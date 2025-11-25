@@ -1,0 +1,233 @@
+.ItemImageProductPage2 {
+    width: 100%;
+    display: grid;
+    gap: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(308px, 1fr));
+    margin-top: 20px;
+    /* Adjust this value to move the container up */
+}
+
+.ItemImageProductPageOne {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    background-color: white;
+    transition: transform 0.3s;
+}
+
+.ImageBlockItemImageProductPageOne {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* background-color: rgb(247, 247, 247); */
+    padding: 20px;
+}
+
+.ProductImageProduct {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+}
+
+.ProductNameProduct {
+    padding: 20px;
+    border: 1px solid #efeeee;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.product__name__link:hover {
+    color: #c45500;
+}
+
+.product__name__link {
+    text-decoration: none;
+    color: black;
+    font-weight: 600;
+}
+
+.PriceProductDetailPage {
+    display: flex;
+    align-items: baseline;
+}
+
+.RateHomeDetail {
+    font-size: 22px;
+    font-weight: bold;
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.Cart {
+    background-color: whitesmoke;
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.TopLeftCart {
+    padding: 20px;
+    box-sizing: border-box;
+    width: 77%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.TopLeftCartTitle {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.DeselectAllCart {
+    color: #007185;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.CartPriceTextDivider {
+    text-align: right;
+    font-size: 14px;
+    color: #565959;
+    margin-top: 10px;
+}
+
+.CartItemDiv {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.CartItemBlock {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    border-top: 1px solid #e7e7e7;
+    align-items: flex-start;
+}
+
+.CartItemLeftBlock {
+    display: flex;
+    gap: 15px;
+    width: 80%;
+}
+
+.CartItemLeftBlockImage {
+    width: 200px;
+    flex-shrink: 0;
+}
+
+.CartItemLeftBlockImg {
+    width: 100%;
+    object-fit: cover;
+}
+
+.CartItemLeftBlockDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.CartItemProductName {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.InStockCart {
+    color: #007600;
+    font-size: 14px;
+}
+
+.FreeShipping {
+    color: #565959;
+    font-size: 14px;
+}
+
+.RemoveFromCart {
+    padding: 8px 15px;
+    font-size: 14px;
+    background-color: #febd69;
+    color: rgb(0, 0, 0);
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    width: fit-content;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.RemoveFromCart:hover {
+    background-color: #f3a847;
+    transform: scale(1.05);
+}
+
+.CartItemRightBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    width: 20%;
+}
+
+.CartItemPrice {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.TopRightCart {
+    padding: 20px;
+    box-sizing: border-box;
+    width: 23%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: fit-content;
+}
+
+.SubTotalTitle {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.SubTotalTitleSpan {
+    font-weight: 700;
+    color: #c45500;
+}
+
+.GiftAddTo {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 14px;
+}
+
+.ProceedToBuy {
+    font-size: 16px;
+    background-color: #febd69;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-decoration: none;
+}
+
+.ProceedToBuy:hover {
+    background-color: #f3a847;
+    transform: scale(1.05);
+}
+
+.ProceedToBuy__text {
+    color: black;
+}
