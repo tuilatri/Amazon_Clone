@@ -222,17 +222,79 @@ async def register_user(user: UserResponse, db: Session = Depends(get_db)):
 #         db.rollback()
 #         raise HTTPException(status_code=500, detail="An unexpected error occurred: " + str(e))
 
+# @app.post("/postRegister/")
+# async def postRegister(user: UserRegisterRequest, db: Session = Depends(get_db)):
+#     # Kiểm tra email trùng
+#     existing_user = db.query(SiteUser).filter(SiteUser.email_address == user.email_address).first()
+#     if existing_user:
+#         raise HTTPException(status_code=400, detail="User with this email already exists.")
+
+#     hashed_password = hash_password(user.password)
+
+#     try:
+#         # 1. Tạo user trong PostgreSQL (DB chính)
+#         db_user = SiteUser(
+#             user_name=user.user_name,
+#             age=user.age,
+#             gender=user.gender,
+#             email_address=user.email_address,
+#             phone_number=user.phone_number,
+#             city=user.city,
+#             password=hashed_password,
+#         )
+        
+#         db.add(db_user)
+#         db.commit()
+#         db.refresh(db_user)  # Bây giờ an toàn vì đã commit
+
+#         # 2. Lưu vào MongoDB cho recommendation (dùng user_id thật)
+#         mongo_result = insert_new_user_to_mongo(
+#             user_data={
+#                 "age": user.age,
+#                 "gender": user.gender,
+#                 "city": user.city
+#             },
+#             postgres_user_id=db_user.user_id  # <<< QUAN TRỌNG: dùng user_id thật
+#         )
+#         print("MongoDB result:", mongo_result)
+
+#         # Trả về thông tin user
+#         return {
+#             "message": "Registration successful",
+#             "user": {
+#                 "user_id": db_user.user_id,
+#                 "user_name": db_user.user_name,
+#                 "email_address": db_user.email_address,
+#                 "phone_number": db_user.phone_number,
+#                 "age": db_user.age,
+#                 "gender": db_user.gender,
+#                 "city": db_user.city,
+#             }
+#         }
+
+#     except IntegrityError as e:
+#         db.rollback()
+#         raise HTTPException(status_code=400, detail="Email hoặc số điện thoại đã được sử dụng")
+#     except Exception as e:
+#         db.rollback()
+#         print("Lỗi đăng ký:", e)
+#         raise HTTPException(status_code=500, detail="Đăng ký thất bại")
+
 @app.post("/postRegister/")
 async def postRegister(user: UserRegisterRequest, db: Session = Depends(get_db)):
-    # Kiểm tra email trùng
-    existing_user = db.query(SiteUser).filter(SiteUser.email_address == user.email_address).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User with this email already exists.")
+    # 1. Kiểm tra trùng lặp (Email & SĐT)
+    existing_email = db.query(SiteUser).filter(SiteUser.email_address == user.email_address).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email này đã được sử dụng.")
+    
+    existing_phone = db.query(SiteUser).filter(SiteUser.phone_number == user.phone_number).first()
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="Số điện thoại này đã được sử dụng.")
 
     hashed_password = hash_password(user.password)
 
     try:
-        # 1. Tạo user trong PostgreSQL (DB chính)
+        # 2. Tạo user trong PostgreSQL (DB chính)
         db_user = SiteUser(
             user_name=user.user_name,
             age=user.age,
@@ -245,20 +307,12 @@ async def postRegister(user: UserRegisterRequest, db: Session = Depends(get_db))
         
         db.add(db_user)
         db.commit()
-        db.refresh(db_user)  # Bây giờ an toàn vì đã commit
+        db.refresh(db_user) 
 
-        # 2. Lưu vào MongoDB cho recommendation (dùng user_id thật)
-        mongo_result = insert_new_user_to_mongo(
-            user_data={
-                "age": user.age,
-                "gender": user.gender,
-                "city": user.city
-            },
-            postgres_user_id=db_user.user_id  # <<< QUAN TRỌNG: dùng user_id thật
-        )
-        print("MongoDB result:", mongo_result)
-
-        # Trả về thông tin user
+        # --- ĐÃ XÓA PHẦN LƯU VÀO MONGODB THEO YÊU CẦU CỦA BẠN ---
+        # Phần này trước đây gây lỗi vì chưa import hàm, giờ bỏ đi là xong.
+        
+        # 3. Trả về kết quả thành công
         return {
             "message": "Registration successful",
             "user": {
@@ -274,11 +328,12 @@ async def postRegister(user: UserRegisterRequest, db: Session = Depends(get_db))
 
     except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Email hoặc số điện thoại đã được sử dụng")
+        print(f"Integrity Error: {e}")
+        raise HTTPException(status_code=400, detail="Email hoặc số điện thoại đã tồn tại (Lỗi Database)")
     except Exception as e:
         db.rollback()
-        print("Lỗi đăng ký:", e)
-        raise HTTPException(status_code=500, detail="Đăng ký thất bại")
+        print(f"Lỗi hệ thống: {e}") # Sẽ in ra lỗi cụ thể ở terminal nếu có cái khác
+        raise HTTPException(status_code=500, detail="Đăng ký thất bại do lỗi hệ thống")
     
 @app.post("/login")
 async def login(user: LoginRequire, db: Session = Depends(get_db)):
