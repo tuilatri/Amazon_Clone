@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from pymongo.mongo_client import MongoClient
-# MONGODB_URI = "mongodb+srv://khoibk123123:khoibk123@recommenddtb.4in6a.mongodb.net/?retryWrites=true&w=majority"
 
 MONGODB_URI = "mongodb+srv://root:12345@smartonlinemarketplacew.xnnyxwb.mongodb.net/?retryWrites=true&w=majority"
 

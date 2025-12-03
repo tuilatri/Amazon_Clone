@@ -1,3 +1,5 @@
+# file này dùng để test backend khi chưa có frontend và dataset
+
 from passlib.context import CryptContext
 import random
 import uuid

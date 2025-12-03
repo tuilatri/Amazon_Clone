@@ -1,48 +1,40 @@
+# toMongo.py – PHIÊN BẢN ĐÃ SỬA HOÀN HẢO
 from pymongo.mongo_client import MongoClient
-from pymongo import DESCENDING
-# MONGODB_URI = "mongodb+srv://khoibk123123:khoibk123@recommenddtb.4in6a.mongodb.net/?retryWrites=true&w=majority"
+from pymongo.errors import DuplicateKeyError
 
 MONGODB_URI = "mongodb+srv://root:12345@smartonlinemarketplacew.xnnyxwb.mongodb.net/?retryWrites=true&w=majority"
 client = MongoClient(MONGODB_URI)
-try:
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(f"An error occurred: {e}")
-# db = client["Recommend"]
-# user_collection = db["User"]
-
 db = client["SmartOnlineMarketplaceWebsite"]
-
 user_collection = db["new_user_data"]
-class newUser:
-    def __init__(self, user_collection):
-        self.user_collection = user_collection
 
-    def get_max_user_id(self):
-        try:
-            pipeline = [
-                {"$addFields": {"user_id_int": {"$toInt": "$user_id"}}},
-                {"$sort": {"user_id_int": DESCENDING}},
-                {"$limit": 1}
-            ]
-            result = list(self.user_collection.aggregate(pipeline))
-            if result:
-                return result[0]["user_id_int"]
-            else:
-                return 0
-        except Exception as e:
-            print(f"An error occurred while getting max user_id: {e}")
-            return 0
-    def insert_new_user(self, user_data):
-        try:
-            max_user_id = self.get_max_user_id()
-            next_user_id = max_user_id + 1
-            user_data["user_id"] = str(next_user_id)
-            result = self.user_collection.insert_one(user_data)
-            return f"User inserted with ID: {result.inserted_id} and user_id: {next_user_id}"
-        except Exception as e:
-            return f"An error occurred: {e}"
-new_user=newUser(user_collection)
-def insert_new_user_to_mongo(user_data):
-    new_user.insert_new_user(user_data)
+def insert_new_user_to_mongo(user_data: dict, postgres_user_id: int):
+    """
+    Lưu user vào MongoDB cho recommendation
+    user_data: chỉ chứa age, gender, city
+    postgres_user_id: user_id từ PostgreSQL → dùng làm user_id trong Mongo luôn
+    """
+    try:
+        # Dùng chính user_id từ PostgreSQL → không cần sinh, không sợ trùng!
+        user_doc = {
+            "user_id": str(postgres_user_id),   # ép string cho đồng bộ với dữ liệu cũ
+            "age": user_data["age"],
+            "gender": user_data["gender"],
+            "city": user_data["city"]
+        }
+        
+        result = user_collection.update_one(
+            {"user_id": str(postgres_user_id)},  # nếu đã có thì update
+            {"$set": user_doc},
+            upsert=True  # nếu chưa có thì insert
+        )
+        
+        if result.upserted_id:
+            print(f"[MongoDB] Inserted new user: {postgres_user_id}")
+        else:
+            print(f"[MongoDB] Updated user: {postgres_user_id}")
+            
+        return {"status": "success", "mongo_user_id": str(postgres_user_id)}
+        
+    except Exception as e:
+        print(f"[MongoDB] Lỗi khi lưu user {postgres_user_id}: {e}")
+        return {"status": "error", "message": str(e)}

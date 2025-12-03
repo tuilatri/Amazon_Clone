@@ -161,3 +161,28 @@ footer {
   padding: 10px;
   color: red,
 }
+
+.password-wrapper {
+  position: relative;
+  /* margin-bottom: 15px; */
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding: 8px 40px 8px 8px; /* có chỗ cho icon bên phải */
+  border: 1px solid #a6a6a6;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 35%;
+  right: 4px;
+  transform: translateY(-50%);
+  pointer-events: none; /* để IconButton vẫn nhận click */
+}
+
+.password-toggle > * {
+  pointer-events: auto; /* bật lại cho IconButton */
+}
