@@ -4,11 +4,13 @@ import amazon_logo from "../../Assets/amazon_logo_black.png";
 import { Link } from 'react-router-dom';
 import axios from 'axios'; // Import Axios for making API requests
 import { useNavigate } from 'react-router-dom';  // Import useNavigate
+import { useAuth } from '../../Context/AuthContext';
 
 const SignIn = () => {
 
   const [message, setMessage] = useState(''); // To display success or error messages
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     phone_number_or_email: '', // Can be either username or email
@@ -40,11 +42,12 @@ const SignIn = () => {
 
       console.log('Login successful:', response.data);
       setMessage('Login successful!'); // Display success message
-      // navigate('/LoginVerifyEmail', { state: { userData: { ...response.data.user } } });
 
-      navigate('/', { state: { userData: { ...response.data.user } } });
-      // Redirect or further actions after successful login
-      // Example: navigate('/dashboard');
+      // Lưu user vào AuthContext và localStorage
+      login(response.data.user);
+
+      // Navigate về homepage (không cần truyền state nữa)
+      navigate('/');
     } catch (error) {
       setMessage(
         error.response?.data?.detail || 'Login failed. Please check your credentials.'

@@ -111,13 +111,47 @@ async def getUserInfoByEmail(email: str, db: Session = Depends(get_db)):
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Check if user has address - if not, return null values
     user_addresses = db.query(UserAddress).filter(UserAddress.user_id == existing_user.user_id).all()
+    
     if not user_addresses:
-        raise HTTPException(status_code=404, detail="Address not found")
-
+        # User doesn't have address yet - return user info with null address fields
+        return {
+            "data": {
+                "name": existing_user.user_name,
+                "email": existing_user.email_address,
+                "phone": existing_user.phone_number,
+                "age": existing_user.age,
+                "gender": existing_user.gender,
+                "city": existing_user.city,
+                "unit_number": None,
+                "street_number": None,
+                "address_line1": None,
+                "address_line2": None,
+                "region": None,
+                "postal_code": None,
+            }
+        }
+    
     address = db.query(Address).filter(Address.address_id == user_addresses[0].address_id).first()
     if not address:
-        raise HTTPException(status_code=404, detail="Detailed address not found")
+        # Address record not found - return null values
+        return {
+            "data": {
+                "name": existing_user.user_name,
+                "email": existing_user.email_address,
+                "phone": existing_user.phone_number,
+                "age": existing_user.age,
+                "gender": existing_user.gender,
+                "city": existing_user.city,
+                "unit_number": None,
+                "street_number": None,
+                "address_line1": None,
+                "address_line2": None,
+                "region": None,
+                "postal_code": None,
+            }
+        }
 
     return {
         "data": {
