@@ -27,7 +27,9 @@ const Cart = () => {
     city: user?.city || '',
   };
   const [CartItem, SetCartItem] = useState([]);
+  const [selectedItems, setSelectedItems] = useState(new Set()); // Track selected product IDs
   const Dispatch = useDispatch();
+
   const HandleAddToCart = async (item) => {
     Dispatch(AddToCart(item));
     try {
@@ -44,6 +46,7 @@ const Cart = () => {
       toast.error(error);
     }
   };
+
   // Fetch cart items when the component mounts and user is authenticated
   useEffect(() => {
     if (userInfo.email) {
@@ -51,20 +54,36 @@ const Cart = () => {
     }
   }, [user?.email_address]); // Re-fetch when user auth changes
 
-  // Fetch recommended items when cart has items
+  // Fetch recommended items based on cart status
   useEffect(() => {
     if (CartItem.length > 0 && userInfo.email) {
       fetchRecommendedItems();
+    } else {
+      // When cart is empty, fetch highest rated products
+      fetchHighestRatedProducts();
     }
   }, [CartItem.length, userInfo.email]);
 
-  const totalCost = CartItem.reduce((total, item) => {
-    // Fallback values in case the properties are missing
-    const quantity = item.quantity || 1; // Default to 1 if quantity is missing
-    const price = item.discount_price_usd || item.price || 0; // Default to 0 if price is missing
+  // Auto-select all items when cart is fetched
+  useEffect(() => {
+    if (CartItem.length > 0) {
+      const allIds = new Set(CartItem.map(item => item.product_id || item.id));
+      setSelectedItems(allIds);
+    }
+  }, [CartItem]);
 
+  // Calculate total cost only for selected items
+  const totalCost = CartItem.reduce((total, item) => {
+    const itemId = item.product_id || item.id;
+    if (!selectedItems.has(itemId)) return total; // Skip unselected items
+
+    const quantity = item.quantity || 1;
+    const price = item.discount_price_usd || item.price || 0;
     return total + (quantity * price);
   }, 0);
+
+  // Count selected items
+  const selectedCount = CartItem.filter(item => selectedItems.has(item.product_id || item.id)).length;
 
   const fetchCartItems = async () => {
     try {
@@ -78,6 +97,8 @@ const Cart = () => {
   };
 
   const [recommendedItems, setRecommendedItems] = useState([]);
+  const [recommendedPage, setRecommendedPage] = useState(1);
+  const recommendedPerPage = 10;
 
   const fetchRecommendedItems = async () => {
     try {
@@ -93,42 +114,132 @@ const Cart = () => {
       }
     } catch (error) {
       console.error("Error fetching related items:", error);
-      // Not showing a toast error here because recommended items are not critical
       setRecommendedItems([]);
     }
+  };
+
+  const fetchHighestRatedProducts = async () => {
+    try {
+      const response = await axios.get("http://localhost:8000/getHighestRatedProducts/");
+      if (response.data && Array.isArray(response.data)) {
+        setRecommendedItems(response.data);
+      } else {
+        setRecommendedItems([]);
+      }
+    } catch (error) {
+      console.error("Error fetching highest rated products:", error);
+      setRecommendedItems([]);
+    }
+  };
+
+  // Pagination for recommended items
+  const totalRecommendedPages = Math.ceil(recommendedItems.length / recommendedPerPage);
+  const paginatedRecommendedItems = recommendedItems.slice(
+    (recommendedPage - 1) * recommendedPerPage,
+    recommendedPage * recommendedPerPage
+  );
+
+  const handleRecommendedPageChange = (page) => {
+    setRecommendedPage(page);
+    // Scroll to recommended section
+    document.querySelector('.ItemImageProductPage2')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Toggle individual item selection
+  const handleItemSelect = (itemId) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all items
+  const handleSelectAll = () => {
+    const allIds = new Set(CartItem.map(item => item.product_id || item.id));
+    setSelectedItems(allIds);
+  };
+
+  // Deselect all items
+  const handleDeselectAll = () => {
+    setSelectedItems(new Set());
+  };
+
+  // Remove all items from cart (backend)
+  const handleRemoveAllFromCart = async () => {
+    try {
+      await axios.post("http://localhost:8000/cart", { type: "remove-all", user_email: userInfo.email });
+      toast.error("All items removed from cart", { position: "bottom-right" });
+      Dispatch(RemoveAllFromCart());
+      SetCartItem([]);
+      setSelectedItems(new Set());
+    } catch (error) {
+      console.error("Error removing all items:", error);
+      toast.error("Failed to remove all items from cart.");
+    }
+  };
+
+  // Dynamic text and actions for the selection area
+  const getSelectionUI = () => {
+    if (CartItem.length === 0) {
+      return <span style={{ color: '#666' }}>No product is in cart</span>;
+    }
+
+    const allSelected = selectedItems.size === CartItem.length;
+    const noneSelected = selectedItems.size === 0;
+
+    if (noneSelected) {
+      return (
+        <span>
+          No items selected. <span className="DeselectAllCartLink" onClick={handleSelectAll}>Select all items</span>
+        </span>
+      );
+    }
+
+    if (allSelected) {
+      return (
+        <span className="DeselectAllCartLink" onClick={handleDeselectAll}>Deselect all items</span>
+      );
+    }
+
+    // Some selected, some not
+    return (
+      <span>
+        <span className="DeselectAllCartLink" onClick={handleSelectAll}>Select all items</span>
+        {' | '}
+        <span className="DeselectAllCartLink" onClick={handleDeselectAll}>Deselect all items</span>
+      </span>
+    );
   };
 
   console.log(CartItem)
   // Handle remove item from the cart
   const HandleRemoveFromCart = async (id) => {
     try {
-      console.log("Removing product with ID:", id); // Add logging
+      console.log("Removing product with ID:", id);
       const response = await axios.post("http://localhost:8000/cart", {
         type: "remove",
         user_email: userInfo.email,
         product_id: id
       });
       toast.error("Removed From Cart", { position: "bottom-right" });
-      Dispatch(RemoveFromCart(id)); // Update Redux state
-      fetchCartItems(); // Re-fetch cart items after removal
+      Dispatch(RemoveFromCart(id));
+
+      // Remove from selected items
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+
+      fetchCartItems();
     } catch (error) {
       console.error("Error removing item from cart:", error);
       toast.error("Failed to remove item from cart.");
-    }
-  };
-
-  // Handle Deselect All Items
-  const handleDeselectAll = async () => {
-    try {
-      // Send request to remove all items from the cart
-      await axios.post("http://localhost:8000/cart", { type: "remove-all", user_email: userInfo.email });
-      toast.error("All items removed from cart", { position: "bottom-right" });
-      Dispatch(RemoveAllFromCart()); // Clear the Redux cart
-      SetCartItem([]); // Clear the local state for cart items
-      fetchCartItems();
-    } catch (error) {
-      console.error("Error deselecting all items:", error);
-      toast.error("Failed to remove all items from cart.");
     }
   };
 
@@ -140,7 +251,6 @@ const Cart = () => {
     }
 
     try {
-      // Send updated quantity to the backend
       await axios.post("http://localhost:8000/cart", {
         type: "update-quantity",
         user_email: userInfo.email,
@@ -148,10 +258,8 @@ const Cart = () => {
         quantity: newQuantity
       });
 
-      // Update Redux state
       Dispatch(UpdateCartQuantity(id, newQuantity));
 
-      // Update local state
       SetCartItem((prevItems) =>
         prevItems.map((item) =>
           (item.product_id === id ? { ...item, quantity: newQuantity } : item)
@@ -172,12 +280,20 @@ const Cart = () => {
 
         <div className="TopLeftCart">
           <div className="TopLeftCartTitle">Shopping Cart</div>
-          <div className="DeselectAllCart" onClick={handleDeselectAll}>Deselect all items</div>
+          <div className="DeselectAllCart">{getSelectionUI()}</div>
           <div className="CartPriceTextDivider">Price</div>
           <div className="CartItemDiv">
             {CartItem.map((item, ind) => (
               <div className="CartItemBlock" key={ind}>
                 <div className="CartItemLeftBlock">
+                  {/* Checkbox for selection */}
+                  <div className="CartItemCheckbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(item.product_id || item.id)}
+                      onChange={() => handleItemSelect(item.product_id || item.id)}
+                    />
+                  </div>
                   <div className="CartItemLeftBlockImage">
                     <img
                       className="CartItemLeftBlockImg"
@@ -237,9 +353,9 @@ const Cart = () => {
 
         <div className="TopRightCart">
           <div>
-            Subtotal ({CartItem.length} items):
+            Subtotal ({selectedCount} items):
             <span className="SubTotalTitleSpan">
-              {GB_CURRENCY.format(totalCost)} {/* Use the totalCost variable */}
+              {GB_CURRENCY.format(totalCost)}
             </span>
           </div>
           <div className="GiftAddTo">
@@ -255,43 +371,80 @@ const Cart = () => {
         <ToastContainer />
       </div>
 
-      <div className='ItemImageProductPage2'>
-        {recommendedItems.map((item, ind) => (
-          <div className='ItemImageProductPageOne' key={item.product_id}>
-            <div className='ImageBlockItemImageProductPageOne'>
-              <img src={item.product_image} className="ProductImageProduct" alt={item.product_name} />
-            </div>
-            <div className='ProductNameProduct'>
-              <Link
-                to={{
-                  pathname: `/Item/${item.product_id}`,
-                }}
-                className="product__name__link"
-              >
-                {item.product_name}
-              </Link>
-              <div className='PriceProductDetailPage'>
-                <div className='RateHomeDetail'>
-                  <div className='RateHomeDetailPrice'>
-                    {GB_CURRENCY.format(item.discount_price_usd)}
-                  </div>
-                  <div className='AddToCartButton' onClick={() => HandleAddToCart(item)}>
-                    Add To Cart
+      {/* Recommended Products Section */}
+      <div className="RecommendedSection">
+        <h2 className="RecommendedTitle">
+          {CartItem.length > 0 ? "Products Related to Items in Your Cart" : "Top Rated Products"}
+        </h2>
+        <div className='ItemImageProductPage2'>
+          {paginatedRecommendedItems.map((item, ind) => (
+            <div className='ItemImageProductPageOne' key={item.product_id}>
+              <div className='ImageBlockItemImageProductPageOne'>
+                <img src={item.product_image} className="ProductImageProduct" alt={item.product_name} />
+              </div>
+              <div className='ProductNameProduct'>
+                <Link
+                  to={{
+                    pathname: `/Item/${item.product_id}`,
+                  }}
+                  className="product__name__link"
+                >
+                  {item.product_name}
+                </Link>
+                <div className='PriceProductDetailPage'>
+                  <div className='RateHomeDetail'>
+                    <div className='RateHomeDetailPrice'>
+                      {GB_CURRENCY.format(item.discount_price_usd)}
+                    </div>
+                    <div className='AddToCartButton' onClick={() => HandleAddToCart(item)}>
+                      Add To Cart
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className='ProductRatings'>
-                <ItemRatings avgRating={item.average_rating} ratings={item.no_of_ratings} />
-              </div>
-              <div className='SaleProductPage'>
-                Up to 25% off on Black Friday
-              </div>
-              <div className='DeliveryHomepage'>
-                Free Domestic Shipping By Amazon
+                <div className='ProductRatings'>
+                  <ItemRatings average_rating={item.average_rating} no_of_ratings={item.no_of_ratings} />
+                </div>
+                <div className='SaleProductPage'>
+                  Up to 25% off on Black Friday
+                </div>
+                <div className='DeliveryHomepage'>
+                  Free Domestic Shipping By Amazon
+                </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        {/* Pagination for recommended items */}
+        {totalRecommendedPages > 1 && (
+          <div className="pagination">
+            <button
+              className="pagination__button"
+              onClick={() => handleRecommendedPageChange(recommendedPage - 1)}
+              disabled={recommendedPage === 1}
+            >
+              Previous
+            </button>
+
+            {[...Array(totalRecommendedPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                className={`pagination__number ${recommendedPage === index + 1 ? 'pagination__number--active' : ''}`}
+                onClick={() => handleRecommendedPageChange(index + 1)}
+              >
+                {index + 1}
+              </button>
+            ))}
+
+            <button
+              className="pagination__button"
+              onClick={() => handleRecommendedPageChange(recommendedPage + 1)}
+              disabled={recommendedPage === totalRecommendedPages}
+            >
+              Next
+            </button>
           </div>
-        ))}
+        )}
       </div>
       <Footer />
     </div>
