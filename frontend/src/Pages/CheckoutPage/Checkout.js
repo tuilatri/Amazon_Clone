@@ -1,70 +1,171 @@
 import React, { useState, useEffect } from 'react';
-import {Link} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import NavBar from "../../Components/Navbar/Navigation";
 import Footer from "../../Components/Footer/Footer";
 import "./Checkout.css";
 import { GB_CURRENCY } from '../../Utils/constants';
-import { useSelector, useDispatch } from 'react-redux';
-import { RemoveFromCart, ClearCart } from '../../Redux/Action/Action';
+import { useDispatch } from 'react-redux';
+import { ClearCart } from '../../Redux/Action/Action';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+import { useAuth } from '../../Context/AuthContext';
 
 const Checkout = () => {
-
-    const [CartItem, SetCartItem] = useState([]);
+    const { isAuthenticated, user } = useAuth();
+    const navigate = useNavigate();
     const Dispatch = useDispatch();
-    const CartItems = useSelector((state) => state.cart.items);
-    const [paymentMethods, setPaymentMethods] = useState([]);
-    const [shippingMethods, setShippingMethods] = useState([]);
-    const [selectedPayment, setSelectedPayment] = useState(null);
-    const [selectedShipping, setSelectedShipping] = useState(null);
-    const totalCost = CartItems.reduce((total, item) => total + item.price, 0);
 
-    useEffect(() => {
-      SetCartItem(CartItems);
-    }, [CartItems])
-
-    const HandleProceed = () => {
-        Dispatch(ClearCart()); // Clear all items from the cart
-        toast.success("Order Completed!", {
-            position: "bottom-right"
-        });
+    // User info derived from AuthContext
+    const userInfo = {
+        name: user?.user_name || '',
+        email: user?.email_address || '',
+        phone: user?.phone_number || '',
+        age: user?.age || '',
+        gender: user?.gender || '',
+        city: user?.city || '',
     };
 
-    const fetchCheckoutData = async () => {
-        try {
-            const response = await axios.post("http://localhost:8000/checkout/display");
-            const { cart_items, total_price, payment_methods, shipping_methods } = response.data;
-;
-            setPaymentMethods(payment_methods);
-            setShippingMethods(shipping_methods);
-        } catch (error) {
-            console.error("Error fetching checkout data:", error);
-            toast.error("Failed to load checkout data.");
-        }
-    };
+    const [cartItems, setCartItems] = useState([]);
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const handleCreateOrder = async () => {
-        if (!selectedPayment || !selectedShipping) {
-            toast.warn("Please select payment and shipping methods.");
+    // Fetch cart items from backend
+    const fetchCartItems = async () => {
+        if (!userInfo.email) {
+            setLoading(false);
             return;
         }
 
         try {
-            const response = await axios.post("http://localhost:8000/checkout/create-order", {
-                payment_method_id: selectedPayment,
-                shipping_method_id: selectedShipping,
+            const response = await axios.post("http://localhost:8000/cart", {
+                type: "display",
+                user_email: userInfo.email
             });
 
-            toast.success("Order completed successfully!");
-           Dispatch(ClearCart()); // Clear the cart after checkout
+            if (response.data.cart && Array.isArray(response.data.cart)) {
+                setCartItems(response.data.cart);
+            }
         } catch (error) {
-            console.error("Error creating order:", error);
-            toast.error("Failed to complete the order.");
+            console.error("Error fetching cart:", error);
+            toast.error("Failed to load cart items.");
+        } finally {
+            setLoading(false);
         }
     };
 
+    // Load cart items and selection state on mount
+    useEffect(() => {
+        if (userInfo.email) {
+            fetchCartItems();
+        } else {
+            setLoading(false);
+        }
+    }, [user?.email_address]);
+
+    // Load selection state from localStorage after cart items are loaded
+    useEffect(() => {
+        if (cartItems.length > 0 && userInfo.email) {
+            const storageKey = `cartSelection_${userInfo.email}`;
+            const savedSelection = localStorage.getItem(storageKey);
+
+            if (savedSelection) {
+                try {
+                    const savedIds = JSON.parse(savedSelection);
+                    // Filter to only items that exist in cart and are selected
+                    const selectedCartItems = cartItems.filter(item =>
+                        savedIds.includes(item.product_id || item.id)
+                    );
+                    setSelectedItems(selectedCartItems);
+                } catch (e) {
+                    console.error("Error parsing saved selection:", e);
+                    // Fallback: use all cart items
+                    setSelectedItems(cartItems);
+                }
+            } else {
+                // No saved selection - use all items
+                setSelectedItems(cartItems);
+            }
+        }
+    }, [cartItems, userInfo.email]);
+
+    // Calculate total cost for selected items
+    const subtotal = selectedItems.reduce((total, item) => {
+        const quantity = item.quantity || 1;
+        const price = parseFloat(item.discount_price_usd) || parseFloat(item.price) || 0;
+        return total + (quantity * price);
+    }, 0);
+
+    // Calculate total quantity
+    const totalQuantity = selectedItems.reduce((total, item) => total + (item.quantity || 1), 0);
+
+    const HandleProceed = async () => {
+        if (selectedItems.length === 0) {
+            toast.warn("No items selected for checkout.");
+            return;
+        }
+
+        try {
+            // Clear the cart after successful checkout
+            await axios.post("http://localhost:8000/cart", {
+                type: "remove-all",
+                user_email: userInfo.email
+            });
+
+            Dispatch(ClearCart());
+
+            // Clear selection from localStorage
+            const storageKey = `cartSelection_${userInfo.email}`;
+            localStorage.removeItem(storageKey);
+
+            // Dispatch event to update cart count in navbar
+            window.dispatchEvent(new Event('cartUpdated'));
+
+            toast.success("Order Completed! Thank you for your purchase.", {
+                position: "bottom-right"
+            });
+
+            // Redirect to home after delay
+            setTimeout(() => {
+                navigate('/');
+            }, 2000);
+        } catch (error) {
+            console.error("Error completing order:", error);
+            toast.error("Failed to complete order. Please try again.");
+        }
+    };
+
+    // Redirect if not authenticated
+    if (!isAuthenticated) {
+        return (
+            <div className="checkout">
+                <NavBar />
+                <div className="checkout__container">
+                    <div className="checkout__title">
+                        Please log in to proceed with checkout
+                    </div>
+                    <div className="checkout__section">
+                        <Link to="/SignIn" className="checkout__button">
+                            Sign In
+                        </Link>
+                    </div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <div className="checkout">
+                <NavBar />
+                <div className="checkout__container">
+                    <div className="checkout__title">Loading...</div>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
 
     return (
         <div className="checkout">
@@ -72,113 +173,101 @@ const Checkout = () => {
             <div className="checkout__container">
                 {/* checkout title */}
                 <div className="checkout__title">
-                    Checkout ({CartItem.length} items)
+                    Checkout ({totalQuantity} items)
                 </div>
-
-                {/* checkout information */}
-                {/* <div className="checkout__section">
-                    <div className="checkout__part">
-                        <h3>User Information</h3>
-                    </div>
-                    <div className="checkout__information">
-                        hello
-                    </div>
-                </div> */}
 
                 {/* checkout shows items */}
                 <div className="checkout__section">
-                    {/* khung này để hiện mục (không biết đặt tên gì cho hợp) */}
                     <div className="checkout__part">
                         <h3>Review Items</h3>
                     </div>
                     <div className="checkout__showitems">
-                    {
-                        CartItems.map((item, ind) => {
-                        return  (
-                            <div className="checkout__showitems__block" key={ind}> 
-                                <div className="checkout__showitems__leftblock"> 
-                                    <div className="checkout__showitems__leftblock__image"> 
-                                        <img 
-                                            className="checkout__showitems__leftblockimg"
-                                            src={item.imageUrl} />
-                                    </div> 
-                                    <div className="checkout__showitems__leftblock__details">
-                                        <div className="checkout__showitems__leftblock__name">
-                                            {item.name}
-                                        </div>
-                                    </div> 
-                                </div>
-                                
-                                <div className="checkout__showitems__rightblock">
-                                    <div className="checkout__showitems__rightblock__price">{GB_CURRENCY.format(item.price)}</div>
-                                </div>
+                        {selectedItems.length === 0 ? (
+                            <div className="checkout__empty">
+                                No items selected. Please go back to <Link to="/Cart">Cart</Link> and select items.
                             </div>
-                            )
-                        })
-                    }
+                        ) : (
+                            selectedItems.map((item, ind) => (
+                                <div className="checkout__showitems__block" key={item.product_id || ind}>
+                                    <div className="checkout__showitems__leftblock">
+                                        <div className="checkout__showitems__leftblock__image">
+                                            <img
+                                                className="checkout__showitems__leftblockimg"
+                                                src={item.product_image || item.imageUrl}
+                                                alt={item.product_name || item.name}
+                                            />
+                                        </div>
+                                        <div className="checkout__showitems__leftblock__details">
+                                            <div className="checkout__showitems__leftblock__name">
+                                                {item.product_name || item.name}
+                                            </div>
+                                            <div className="checkout__showitems__leftblock__quantity">
+                                                Quantity: {item.quantity || 1}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="checkout__showitems__rightblock">
+                                        <div className="checkout__showitems__rightblock__price">
+                                            {GB_CURRENCY.format(
+                                                (item.quantity || 1) * (parseFloat(item.discount_price_usd) || parseFloat(item.price) || 0)
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
-                {/* checkout shows price total */}
+                {/* checkout shows subtotal */}
                 <div className="checkout__section">
-                    {/* khung này để hiện mục (không biết đặt tên gì cho hợp) */}
                     <div className="checkout__part">
-                        <h3>Total</h3>
-                    </div> 
-                    <div className="checkout__showprice">
-                        <span className="checkout__showprice__subtotal">{GB_CURRENCY.format(totalCost)}</span>
+                        <h3>Order Summary</h3>
+                    </div>
+                    <div className="checkout__summary">
+                        <div className="checkout__summary__row">
+                            <span>Items ({totalQuantity}):</span>
+                            <span>{GB_CURRENCY.format(subtotal)}</span>
+                        </div>
+                        <div className="checkout__summary__row checkout__summary__total">
+                            <span><strong>Order Total:</strong></span>
+                            <span><strong>{GB_CURRENCY.format(subtotal)}</strong></span>
+                        </div>
                     </div>
                 </div>
 
-  {/* Payment and Shipping */}
-  <div className="checkout__section">
+                {/* Payment Method */}
+                <div className="checkout__section">
                     <div className="checkout__part">
                         <h3>Payment Method</h3>
                     </div>
-                    <div className="checkout__payment-options">
-                        {paymentMethods.map((method) => (
-                            <div key={method.id}>
-                                <input
-                                    type="radio"
-                                    id={`payment-${method.id}`}
-                                    name="payment"
-                                    value={method.id}
-                                    onChange={() => setSelectedPayment(method.id)}
-                                />
-                                <label htmlFor={`payment-${method.id}`}>{method.provider} ({method.account_number})</label>
-                            </div>
-                        ))}
+                    <div className="checkout__payment-method">
+                        <div className="checkout__payment-option">
+                            <input
+                                type="radio"
+                                id="payment-cod"
+                                name="payment"
+                                checked
+                                readOnly
+                            />
+                            <label htmlFor="payment-cod">Cash On Delivery</label>
+                        </div>
                     </div>
                 </div>
-
-                <div className="checkout__section">
-                    <div className="checkout__part">
-                        <h3>Shipping Method</h3>
-                    </div>
-                    <div className="checkout__shipping-options">
-                        {shippingMethods.map((method) => (
-                            <div key={method.id}>
-                                <input
-                                    type="radio"
-                                    id={`shipping-${method.id}`}
-                                    name="shipping"
-                                    value={method.id}
-                                    onChange={() => setSelectedShipping(method.id)}
-                                />
-                                <label htmlFor={`shipping-${method.id}`}>
-                                    {method.type} - {GB_CURRENCY.format(method.price)}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
 
                 {/* button for payment */}
                 <div className="checkout__section">
                     <div className="checkout__payment">
-                        <div className="checkout__button" onClick={HandleProceed}>
-                            Proceed
+                        <div
+                            className="checkout__button"
+                            onClick={HandleProceed}
+                            style={{
+                                opacity: selectedItems.length === 0 ? 0.5 : 1,
+                                cursor: selectedItems.length === 0 ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            Place Order
                         </div>
                     </div>
                 </div>
