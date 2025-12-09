@@ -183,6 +183,9 @@ const Cart = () => {
       Dispatch(RemoveAllFromCart());
       SetCartItem([]);
       setSelectedItems(new Set());
+
+      // Dispatch custom event to notify Navigation to update cart count
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       console.error("Error removing all items:", error);
       toast.error("Failed to remove all items from cart.");
@@ -242,6 +245,9 @@ const Cart = () => {
         return newSet;
       });
 
+      // Dispatch custom event to notify Navigation to update cart count
+      window.dispatchEvent(new Event('cartUpdated'));
+
       fetchCartItems();
     } catch (error) {
       console.error("Error removing item from cart:", error);
@@ -271,6 +277,9 @@ const Cart = () => {
           (item.product_id === id ? { ...item, quantity: newQuantity } : item)
         )
       );
+
+      // Dispatch custom event to notify Navigation to update cart count
+      window.dispatchEvent(new Event('cartUpdated'));
 
       toast.success("Quantity updated", { position: "bottom-right" });
     } catch (error) {
