@@ -56,13 +56,19 @@ const Cart = () => {
 
   // Fetch recommended items based on cart status
   useEffect(() => {
+    // If cart has items and user is logged in, fetch related items
     if (CartItem.length > 0 && userInfo.email) {
       fetchRecommendedItems();
-    } else {
-      // When cart is empty, fetch highest rated products
+    } else if (CartItem.length === 0) {
+      // When cart is empty (or user not logged in), fetch highest rated products
       fetchHighestRatedProducts();
     }
   }, [CartItem.length, userInfo.email]);
+
+  // Initial load - always fetch highest rated products first (for immediate display)
+  useEffect(() => {
+    fetchHighestRatedProducts();
+  }, []);
 
   // Auto-select all items when cart is fetched
   useEffect(() => {
