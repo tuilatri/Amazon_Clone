@@ -1,42 +1,32 @@
 import "./UserPage.css";
 import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
-import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
+import { useAuth } from '../../Context/AuthContext';
 
 const UserPage = () => {
-    const location = useLocation();  // Get the location object
-    const { userData } = location.state;  // Access userData passed via state
-    const navigate = useNavigate(); // Hook to handle navigation
+    const { isAuthenticated, user } = useAuth();
+    const navigate = useNavigate();
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
-    // If userData is not passed, provide default empty object or 'Guest' info
-    const [userInfo, setUserInfo] = useState({
-        name: userData?.name || 'Guest',
-        email: userData?.email || '',
-        phone: userData?.phone || '',
-        address: userData?.address || '',
-        age: userData?.age || '',
-        gender: userData?.gender || '',
-        city: userData?.city || '',
-        unit_number: userData?.unit_number || '',
-        street_number: userData?.street_number || '',
-        address_line1: userData?.address_line1 || '',
-        address_line2: userData?.address_line2 || '',
-        region: userData?.region || '',
-        postal_code: userData?.postal_code || '',
-    });
+
+    const [userInfo, setUserInfo] = useState(null);
+
     useEffect(() => {
-        if (!userInfo?.email) return; // Avoid making the API call if email is undefined
+        // Redirect to login if not authenticated
+        if (!isAuthenticated || !user) {
+            navigate('/SignIn');
+            return;
+        }
 
         const fetchUserInfo = async () => {
             try {
                 const response = await axios.get("http://127.0.0.1:8000/getUserProfile/", {
                     params: {
-                        email: userInfo.email,
+                        email: user.email_address,
                     },
                 });
 
@@ -52,8 +42,8 @@ const UserPage = () => {
         };
 
         fetchUserInfo();
-    }, [userInfo?.email]); // Fetch only when email changes
-    // Simulating user information change
+    }, [isAuthenticated, user, navigate]);
+
     const handleUserChange = async (e) => {
         try {
             navigate('/ChangeUserInfo', { state: { userData: { ...userInfo } } });
@@ -62,9 +52,33 @@ const UserPage = () => {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="user">
+                <NavBar />
+                <div className="user__container">
+                    <p>Loading...</p>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (!userInfo) {
+        return (
+            <div className="user">
+                <NavBar />
+                <div className="user__container">
+                    <p>No user information available.</p>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
     return (
         <div className="user">
-            <NavBar userInfo={userInfo} />
+            <NavBar />
             <div className="user__container">
                 <div className="user__profile">
                     {/* User Image */}

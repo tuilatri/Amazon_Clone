@@ -14,25 +14,27 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';  // Import useNavigate
 import axios from "axios";
 import ItemRatings from '../ItemPage/ItemRatings';
+import { useAuth } from '../../Context/AuthContext';
 
 const Item = () => {
     const location = useLocation();
-    const userData = location.state?.userData;
+    const { isAuthenticated, user } = useAuth();
     const navigate = useNavigate(); // Hook to handle navigation
-    const [userInfo, setUserInfo] = useState({
-        name: userData?.name || '',
-        email: userData?.email || '',
-        phone: userData?.phone || '',
-        address: userData?.address || '',
-        age: userData?.age || '',
-        gender: userData?.gender || '',
-        city: userData?.city || '',
-    });
-    console.log(userData)
+    // Derive userInfo from AuthContext instead of location.state
+    const userInfo = {
+        name: user?.user_name || '',
+        email: user?.email_address || '',
+        phone: user?.phone_number || '',
+        address: '',
+        age: user?.age || '',
+        gender: user?.gender || '',
+        city: user?.city || '',
+    };
+    console.log(user)
     const Dispatch = useDispatch();
     const CartItems = useSelector((state) => state.cart.items);
     const HandleAddToCart = async (item) => {
-        if (!userInfo || !userInfo.email) {
+        if (!isAuthenticated || !user?.email_address) {
             // Pop up login request and navigate to login
             toast.info("Please log in to add items to the cart.", {
                 position: "bottom-right"
@@ -96,25 +98,25 @@ const Item = () => {
 
     const [relaProducts, setRelaProducts] = useState([]);
 
-    const getRelatedProduct = async(product_id) => {
+    const getRelatedProduct = async (product_id) => {
         fetch(`http://localhost:8000/RelatedItem/${product_id}`)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error("Failed to fetch prodcut");
-            }
-            console.log(response);
-            return response.json();
-        })
-        .then((data) => {
-            setRelaProducts(data.products);
-        })
-        .catch((error) => {
-            console.error("Error fetching product:", error);
-            setError(error.message);
-        })
-        .finally(() => {
-            setLoading(false);
-        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch prodcut");
+                }
+                console.log(response);
+                return response.json();
+            })
+            .then((data) => {
+                setRelaProducts(data.products);
+            })
+            .catch((error) => {
+                console.error("Error fetching product:", error);
+                setError(error.message);
+            })
+            .finally(() => {
+                setLoading(false);
+            })
     }
 
     useEffect(() => {
@@ -177,47 +179,46 @@ const Item = () => {
 
             <div className='ItemImageProductPage1'>
                 {relaProducts.map((relaProduct) => (
-                <div className='ItemImageProductPageOne' key={relaProduct.product_id}>
-                    <div className='ImageBlockItemImageProductPageOne'>
-                        <img 
-                            className="ProductImageProduct" 
-                            src={relaProduct.product_image}
-                            alt={relaProduct.product_name}
-                        />
-                    </div>
-                    <div className='ProductNameProduct'>
-                        <Link
-                            to={{
-                                pathname: `/Item/${relaProduct.product_id}`,
-                            }}
-                            state={{ userData }} // Pass userData in the state prop
-                            className="product__name__link"
-                        >
-                            {relaProduct.product_name}
-                        </Link>
-                        <div className='PriceProductDetailPage'>
-                            <div className='RateHomeDetail'>
-                                <div className='RateHomeDetailPrice'>
-                                    {GB_CURRENCY.format(relaProduct.discount_price_usd)}
-                                </div>
-                                <div className='AddToCartButton' onClick={() => HandleAddToCart(relaProduct)}>
-                                    Add To Cart
+                    <div className='ItemImageProductPageOne' key={relaProduct.product_id}>
+                        <div className='ImageBlockItemImageProductPageOne'>
+                            <img
+                                className="ProductImageProduct"
+                                src={relaProduct.product_image}
+                                alt={relaProduct.product_name}
+                            />
+                        </div>
+                        <div className='ProductNameProduct'>
+                            <Link
+                                to={{
+                                    pathname: `/Item/${relaProduct.product_id}`,
+                                }}
+                                className="product__name__link"
+                            >
+                                {relaProduct.product_name}
+                            </Link>
+                            <div className='PriceProductDetailPage'>
+                                <div className='RateHomeDetail'>
+                                    <div className='RateHomeDetailPrice'>
+                                        {GB_CURRENCY.format(relaProduct.discount_price_usd)}
+                                    </div>
+                                    <div className='AddToCartButton' onClick={() => HandleAddToCart(relaProduct)}>
+                                        Add To Cart
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className='ProductRatings'>
-                            <ItemRatings average_rating={relaProduct.average_rating} no_of_ratings={relaProduct.no_of_ratings} />
-                        </div>
-                        <div className='SaleProductPage'>
-                            Up to 25% off on Black Friday
-                        </div>
-                        <div className='DeliveryHomepage'>
-                            Free Domestic Shipping By Amazon
+                            <div className='ProductRatings'>
+                                <ItemRatings average_rating={relaProduct.average_rating} no_of_ratings={relaProduct.no_of_ratings} />
+                            </div>
+                            <div className='SaleProductPage'>
+                                Up to 25% off on Black Friday
+                            </div>
+                            <div className='DeliveryHomepage'>
+                                Free Domestic Shipping By Amazon
+                            </div>
                         </div>
                     </div>
-                </div>
                 ))}
-    
+
             </div>
             <ToastContainer />
             <Footer />

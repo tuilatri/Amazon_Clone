@@ -15,14 +15,23 @@ import { motion } from "framer-motion"
 import LanguageIcon from '@mui/icons-material/Language';
 import { useSelector, useDispatch } from 'react-redux';
 import { callAPI } from '../../Utils/CallAPI';
-import { useAuth } from '../../Context/AuthContext';
 
-const NavBar = () => {
-    const { isAuthenticated, user, logout } = useAuth();
+const NavBar = ({ userInfo }) => {
     const [category, setCategory] = useState("All");
+    const [userData, setUserData] = useState({
+        name: userInfo?.name || '',
+        email: userInfo?.email || '',
+        phone: userInfo?.phone || '',
+        address: userInfo?.address || '',
+        age: userInfo?.age || '',
+        gender: userInfo?.gender || '',
+        city: userInfo?.city || '',
+    });
 
     const handleNavigate = () => {
-        navigate('/');
+        navigate('/', {
+            state: { userData: { ...userInfo } },
+        });
     };
     const [showAll, setShowAll] = useState(false);
     const allItems = [
@@ -71,22 +80,6 @@ const NavBar = () => {
         "women's clothing": 18
     };
 
-    // Reverse mapping: encoded ID -> category title
-    const categoryNameMapping = {
-        "0": "Accessories", "1": "Appliances", "2": "Bags & Luggage",
-        "3": "Beauty & Health", "4": "Car & Motorbike", "5": "Grocery & Gourmet Foods",
-        "6": "Home & Kitchen", "7": "Home, Kitchen, Pets", "8": "Industrial Supplies",
-        "9": "Kids' Fashion", "10": "Men's Clothing", "11": "Men's Shoes",
-        "12": "Music", "13": "Pet Supplies", "14": "Sports & Fitness",
-        "15": "Stores", "16": "Toys & Baby Products", "17": "TV, Audio & Cameras",
-        "18": "Women's Clothing", "19": "Women's Shoes"
-    };
-
-    // Get current location to determine active category
-    const location = useLocation();
-    const currentCategoryFromUrl = location.pathname.match(/\/Product\/(\d+)/)?.[1] || null;
-    const displayedCategoryName = currentCategoryFromUrl ? categoryNameMapping[currentCategoryFromUrl] || "All" : "All";
-
     const [sidebar, setSiderbar] = useState(false)
 
     const ref = useRef();
@@ -101,28 +94,32 @@ const NavBar = () => {
     const CartItems = useSelector((state) => state.cart.items);
     // When a category is selected
     const handleCategorySelect = (categoryTitle) => {
-        // Handle "All" selection
-        if (categoryTitle === "All") {
-            navigate('/Product');
-            setShowAll(false);
-            return;
-        }
-
         const mainCategoryEncoded = categoryMapping[categoryTitle]; // Get main_category_encoded
         if (mainCategoryEncoded === undefined) {
             console.error("Category title not found in mapping:", categoryTitle);
             return; // Stop execution if the category title is invalid
         }
-        navigate(`/Product/${mainCategoryEncoded}`); // Navigate with the encoded value
+        console.log(userData)
+        navigate(`/Homepage/${mainCategoryEncoded}`, { state: { userData: { ...userData } } }); // Navigate with the encoded value
         setShowAll(false); // Close the dropdown after selection
     };
     const handleProfileClick = () => {
-        navigate('/UserPage');
+        // Ensure userData is defined
+        if (!userData) {
+            console.error("No user data available!");
+            return;
+        }
+
+        // Use navigate to go to /UserPage with state
+        navigate('/UserPage', {
+            state: { userData }  // Pass userData as state to /UserPage
+        });
     };
 
     const handleLogOutClick = () => {
-        logout();
-        navigate('/');
+        // Clear user info and navigate to home page
+        setUserData(null); // Optionally clear user-specific state
+        navigate('/', { state: null }); // Pass null state to clear location.state
     };
 
     // khĂºc nĂ y lĂ m suggestion cho search bar
@@ -164,7 +161,9 @@ const NavBar = () => {
         e.preventDefault();
         navigate({
             pathname: "/search",
-            search: `?${createSearchParams({ category, searchTerm })}`,
+            search: `?${createSearchParams({ category, searchTerm })}`, // Adds query params
+        }, {
+            state: { userData }, // Pass userData in the state object
         });
         setSearchTerm("");
         setCategory("All");
@@ -219,7 +218,7 @@ const NavBar = () => {
                                 className="searchbox__all"
                                 onClick={() => setShowAll(!showAll)}
                             >
-                                <div className="searchbox__all__text">{displayedCategoryName}</div>
+                                <div className="searchbox__all__text">All</div>
                                 <ArrowDropDownOutlinedIcon sx={{ fontSize: "20px" }} />
                             </div>
 
@@ -227,20 +226,11 @@ const NavBar = () => {
                             {showAll && (
                                 <div>
                                     <ul className="searchbox__all__textbox">
-                                        {/* All option - shows all products */}
-                                        <li
-                                            className="textbox__text"
-                                            key="all"
-                                            onClick={() => handleCategorySelect("All")}
-                                            style={{ fontWeight: !currentCategoryFromUrl ? 'bold' : 'normal' }}
-                                        >
-                                            All
-                                        </li>
                                         {allItems.map(item => (
                                             <li
                                                 className="textbox__text"
-                                                key={item.main_category_encoded}
-                                                onClick={() => handleCategorySelect(item.title)}
+                                                key={item._id}
+                                                onClick={() => handleCategorySelect(item.title)}  // Handle category selection
                                             >
                                                 {item.title}
                                             </li>
@@ -301,7 +291,7 @@ const NavBar = () => {
                     <div className="account">
                         <div className="account__left">
                             <div className="account__up">
-                                {isAuthenticated && user ? `Hello, ${user.user_name}` : "Hello, Sign in"}
+                                {userData?.name ? `Hello, ${userData.name}` : "Hello, User"}
                             </div>
                             <div className="account__down">
                                 Accounts & Lists
@@ -315,7 +305,7 @@ const NavBar = () => {
                         <div
                             className={`account__dropdownMenu ${isDropdownOpen ? 'open' : ''}`}
                         >
-                            {!isAuthenticated ? (
+                            {!userData?.name ? (
                                 <>
                                     <Link to="/SignUp" className="account__dropdownOption">
                                         Sign Up
@@ -352,7 +342,10 @@ const NavBar = () => {
 
                     {/* giá» hĂ ng */}
                     <Link
-                        to="/Cart" // Pass userData via state
+                        to={{
+                            pathname: "/Cart",
+                        }}
+                        state={{ userData }} // Pass userData via state
                         className="cart"
                     >
                         <span className="cart__up">

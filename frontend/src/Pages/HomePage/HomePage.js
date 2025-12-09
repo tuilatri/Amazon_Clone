@@ -5,13 +5,13 @@ import ChevronLeftOutlinedIcon from "@mui/icons-material/ChevronLeftOutlined";
 import NavBar from "../../Components/Navbar/Navigation";
 import HomepageFooter from "../../Pages/HomePage/HomepageFooter";
 import { Link } from 'react-router-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from "axios";
+import { useAuth } from '../../Context/AuthContext';
 
 const HomePage = () => {
 
-  const location = useLocation();
-  const userData = location.state?.userData;
+  const { isAuthenticated, user } = useAuth();
   const [randomCategoriesWithProducts, setRandomCategoriesWithProducts] = useState([]); // Holds 5 random categories with products
   const [listOfAllMainCategory, setListOfAllMainCategory] = useState([]);
   const [originalProducts, setOriginalProducts] = useState({}); // Store the original products by category
@@ -19,17 +19,18 @@ const HomePage = () => {
   const [startSlider, setStartSlider] = useState(0);
   const imgItemRef = useRef(null);
 
-  const [userInfo, setUserInfo] = useState({
-    name: userData?.name || '',
-    email: userData?.email || '',
-    phone: userData?.phone || '',
-    address: userData?.address || '',
-    age: userData?.age || '',
-    gender: userData?.gender || '',
-    city: userData?.city || '',
-  });
+  // Derive userInfo from AuthContext instead of location.state
+  const userInfo = {
+    name: user?.user_name || '',
+    email: user?.email_address || '',
+    phone: user?.phone_number || '',
+    address: '',
+    age: user?.age || '',
+    gender: user?.gender || '',
+    city: user?.city || '',
+  };
 
-  console.log(userData)
+  console.log(user)
   const slideRight = () => {
     const totalSlides = imgItemRef.current.children.length - 1; // Total number of images
     const endSlider = totalSlides * -100; // Max negative translateX value
@@ -107,7 +108,7 @@ const HomePage = () => {
   }, [listOfAllMainCategory, originalProducts]); // Dependencies to re-run the effect when data changes
 
 
-  
+
 
   return (
     <div className="homepage">
@@ -304,7 +305,7 @@ const HomePage = () => {
 
       </div>
 
-      {(!userData || (Object.keys(userData).length === 0 && userData.constructor === Object)) && (
+      {!isAuthenticated && (
         <div className="card__slider">
           {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
             <div className="card__slider--long">
@@ -346,7 +347,7 @@ const HomePage = () => {
         </div>
       )}
 
-      {(!userData || (Object.keys(userData).length === 0 && userData.constructor === Object)) && (
+      {!isAuthenticated && (
         <div className="card__slider">
           {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
             <div className="card__slider--long">
@@ -387,7 +388,7 @@ const HomePage = () => {
           )}
         </div>
       )}
-      {(!userData || (Object.keys(userData).length === 0 && userData.constructor === Object)) && (
+      {!isAuthenticated && (
         <div className="card__slider">
           {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
             <div className="card__slider--long">
@@ -428,7 +429,7 @@ const HomePage = () => {
           )}
         </div>
       )}
-      {(!userData || (Object.keys(userData).length === 0 && userData.constructor === Object)) && (
+      {!isAuthenticated && (
         <div className="card__slider">
           {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
             <div className="card__slider--long">
@@ -469,7 +470,7 @@ const HomePage = () => {
           )}
         </div>
       )}
-      {(!userData || (Object.keys(userData).length === 0 && userData.constructor === Object)) && (
+      {!isAuthenticated && (
         <div className="card__slider">
           {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
             <div className="card__slider--long">

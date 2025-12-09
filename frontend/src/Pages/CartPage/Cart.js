@@ -7,23 +7,25 @@ import 'react-toastify/dist/ReactToastify.css';
 import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
 import { GB_CURRENCY } from '../../Utils/constants';
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import ItemRatings from '../ItemPage/ItemRatings';
 import { AddToCart } from '../../Redux/Action/Action';
+import { useAuth } from '../../Context/AuthContext';
+
 const Cart = () => {
-  const location = useLocation();
-  const userData = location.state?.userData;
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate(); // Hook to handle navigation
-  const [userInfo, setUserInfo] = useState({
-    name: userData?.name || '',
-    email: userData?.email || '',
-    phone: userData?.phone || '',
-    address: userData?.address || '',
-    age: userData?.age || '',
-    gender: userData?.gender || '',
-    city: userData?.city || '',
-  });
+  // Derive userInfo from AuthContext instead of location.state
+  const userInfo = {
+    name: user?.user_name || '',
+    email: user?.email_address || '',
+    phone: user?.phone_number || '',
+    address: '',
+    age: user?.age || '',
+    gender: user?.gender || '',
+    city: user?.city || '',
+  };
   const [CartItem, SetCartItem] = useState([]);
   const Dispatch = useDispatch();
   const HandleAddToCart = async (item) => {
@@ -258,7 +260,6 @@ const Cart = () => {
                 to={{
                   pathname: `/Item/${item.product_id}`,
                 }}
-                state={{ userData }} // Pass userData in the state prop
                 className="product__name__link"
               >
                 {item.product_name}

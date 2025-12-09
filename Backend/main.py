@@ -111,13 +111,47 @@ async def getUserInfoByEmail(email: str, db: Session = Depends(get_db)):
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Check if user has address - if not, return null values
     user_addresses = db.query(UserAddress).filter(UserAddress.user_id == existing_user.user_id).all()
+    
     if not user_addresses:
-        raise HTTPException(status_code=404, detail="Address not found")
-
+        # User doesn't have address yet - return user info with null address fields
+        return {
+            "data": {
+                "name": existing_user.user_name,
+                "email": existing_user.email_address,
+                "phone": existing_user.phone_number,
+                "age": existing_user.age,
+                "gender": existing_user.gender,
+                "city": existing_user.city,
+                "unit_number": None,
+                "street_number": None,
+                "address_line1": None,
+                "address_line2": None,
+                "region": None,
+                "postal_code": None,
+            }
+        }
+    
     address = db.query(Address).filter(Address.address_id == user_addresses[0].address_id).first()
     if not address:
-        raise HTTPException(status_code=404, detail="Detailed address not found")
+        # Address record not found - return null values
+        return {
+            "data": {
+                "name": existing_user.user_name,
+                "email": existing_user.email_address,
+                "phone": existing_user.phone_number,
+                "age": existing_user.age,
+                "gender": existing_user.gender,
+                "city": existing_user.city,
+                "unit_number": None,
+                "street_number": None,
+                "address_line1": None,
+                "address_line2": None,
+                "region": None,
+                "postal_code": None,
+            }
+        }
 
     return {
         "data": {
@@ -686,6 +720,35 @@ async def get_products_by_category(categoryencode: str, db: Session = Depends(ge
             "category_id": product.category_id,
         }
         for product in products_by_category
+    ]
+
+
+# Get ALL products from database as a flat list (for Product page with no category filter)
+@app.get("/getAllProductsFlat/", response_model=List[dict])
+async def get_all_products_flat(db: Session = Depends(get_db)):
+    """Return all products from database as a flat list for the Product page."""
+    all_products = db.query(Product).all()
+
+    if not all_products:
+        raise HTTPException(status_code=404, detail="No products found")
+
+    return [
+        {
+            "product_id": product.product_id,
+            "product_name": product.product_name,
+            "main_category": product.main_category,
+            "main_category_encoded": product.main_category_encoded,
+            "sub_category": product.sub_category,
+            "sub_category_encoded": product.sub_category_encoded,
+            "product_image": product.product_image,
+            "product_link": product.product_link,
+            "average_rating": product.average_rating,
+            "no_of_ratings": product.no_of_ratings,
+            "discount_price_usd": product.discount_price_usd,
+            "actual_price_usd": product.actual_price_usd,
+            "category_id": product.category_id,
+        }
+        for product in all_products
     ]
 
 

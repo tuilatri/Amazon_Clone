@@ -5,15 +5,18 @@ import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
+import { useAuth } from '../../Context/AuthContext';
+
 const ChangeUserInfo = () => {
-    const location = useLocation();  // Get the location object
-    const { userData } = location.state;  // Access userData passed via state
-    const navigate = useNavigate(); // Hook to handle navigation
+    const location = useLocation();
+    const { userData } = location.state || {};
+    const navigate = useNavigate();
     const [message, setMessage] = useState('');
+    const { updateUser } = useAuth();
 
     // If userData is not passed, provide default empty object or 'Guest' info
     const [userInfo, setUserInfo] = useState({
-        name: userData?.name || 'Guest',
+        name: userData?.name || '',
         email: userData?.email || '',
         phone: userData?.phone || '',
         address: userData?.address || '',
@@ -27,6 +30,7 @@ const ChangeUserInfo = () => {
         region: userData?.region || '',
         postal_code: userData?.postal_code || '',
     });
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setUserInfo((prevUserInfo) => ({
@@ -34,14 +38,27 @@ const ChangeUserInfo = () => {
             [name]: value,
         }));
     };
-    // Simulating user information change
+
     const handleUserChange = async (e) => {
         try {
             console.log(userInfo)
             const response = await axios.post("http://127.0.0.1:8000/postUpdate/", userInfo);
             console.log('successful:', response.data);
+
+            // Cập nhật AuthContext với thông tin mới
+            updateUser({
+                user_name: userInfo.name,
+                email_address: userInfo.email,
+                phone_number: userInfo.phone,
+                age: userInfo.age,
+                gender: userInfo.gender,
+                city: userInfo.city
+            });
+
             setMessage("Success update information. Redirect to Your Profile Page.");
-            navigate('/UserPage', { state: { userData: { ...userInfo } } });
+            setTimeout(() => {
+                navigate('/UserPage');
+            }, 1500);
 
         } catch (error) {
             setMessage(error.response?.data?.detail || "Verification failed.");
@@ -52,7 +69,7 @@ const ChangeUserInfo = () => {
 
     return (
         <div className="user">
-            <NavBar userInfo={userInfo} />
+            <NavBar />
             <div className="user__container">
                 <div className="user__profile">
                     {/* User Image */}
