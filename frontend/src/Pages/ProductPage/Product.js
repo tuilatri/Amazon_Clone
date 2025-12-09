@@ -35,6 +35,9 @@ const Product = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(50);
 
+  // Rating filter state (0 = show all, 1-4 = minimum rating threshold)
+  const [ratingFilter, setRatingFilter] = useState(0);
+
   // Category name mapping (encoded value -> display name)
   const categoryNameMapping = {
     "0": "Accessories", "1": "Appliances", "2": "Bags & Luggage",
@@ -160,11 +163,16 @@ const Product = () => {
   //     return <h1>Loading Products...</h1>;
   // }
 
-  // Pagination calculations
+  // Filter products by rating
+  const filteredProducts = ratingFilter > 0
+    ? products.filter(item => Math.floor(item.average_rating || 0) >= ratingFilter)
+    : products;
+
+  // Pagination calculations (based on filtered products)
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(products.length / productsPerPage);
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   // Get category name for banner
   const categoryName = category ? categoryNameMapping[category] || "Products" : "All Products";
@@ -173,6 +181,16 @@ const Product = () => {
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo(0, 0); // Scroll to top when page changes
+  };
+
+  // Handle rating filter toggle (clicking same filter again resets to show all)
+  const handleRatingFilter = (minRating) => {
+    if (ratingFilter === minRating) {
+      setRatingFilter(0); // Reset filter
+    } else {
+      setRatingFilter(minRating);
+    }
+    setCurrentPage(1); // Reset to page 1 when filter changes
   };
 
   // Show loading state
@@ -219,14 +237,36 @@ const Product = () => {
       <div className='ProductPageMain'>
         {/* left sidebar */}
         <div className="ProductPageMainLeftCategory">
-          <div className='ProductPageMainLeftCategoryTitle'>Catergory</div>
+          <div className='ProductPageMainLeftCategoryTitle'>Customer Reviews</div>
           <div className="ProductPageMainLeftCategoryContent">
-            <div className="ProductPageMainLeftCategoryTitleContent">Computers & Accessories</div>
-            <div className="ProductPageMainLeftCategoryContentSub">Macbooks</div>
-            <div className="ProductPageMainLeftCategoryContentSub">Amazon Prime</div>
-            <div className="ProductPageMainLeftCategoryContentSub">Average Customer Review</div>
 
-            <div className="RatingLeftBox">
+            {/* All - No filter */}
+            <div
+              className="RatingLeftBox"
+              onClick={() => handleRatingFilter(0)}
+              style={{ cursor: 'pointer', backgroundColor: ratingFilter === 0 ? '#f0f0f0' : 'transparent', padding: '5px', borderRadius: '4px' }}
+            >
+              <input
+                type="checkbox"
+                checked={ratingFilter === 0}
+                onChange={() => handleRatingFilter(0)}
+                style={{ marginRight: '8px', cursor: 'pointer' }}
+              />
+              <span>All Ratings</span>
+            </div>
+
+            {/* 4 Stars & Up */}
+            <div
+              className="RatingLeftBox"
+              onClick={() => handleRatingFilter(4)}
+              style={{ cursor: 'pointer', backgroundColor: ratingFilter === 4 ? '#f0f0f0' : 'transparent', padding: '5px', borderRadius: '4px' }}
+            >
+              <input
+                type="checkbox"
+                checked={ratingFilter === 4}
+                onChange={() => handleRatingFilter(4)}
+                style={{ marginRight: '8px', cursor: 'pointer' }}
+              />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
@@ -235,7 +275,18 @@ const Product = () => {
               <div className="AndUp"> & Up</div>
             </div>
 
-            <div className="RatingLeftBox">
+            {/* 3 Stars & Up */}
+            <div
+              className="RatingLeftBox"
+              onClick={() => handleRatingFilter(3)}
+              style={{ cursor: 'pointer', backgroundColor: ratingFilter === 3 ? '#f0f0f0' : 'transparent', padding: '5px', borderRadius: '4px' }}
+            >
+              <input
+                type="checkbox"
+                checked={ratingFilter === 3}
+                onChange={() => handleRatingFilter(3)}
+                style={{ marginRight: '8px', cursor: 'pointer' }}
+              />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
@@ -244,7 +295,18 @@ const Product = () => {
               <div className="AndUp"> & Up</div>
             </div>
 
-            <div className="RatingLeftBox">
+            {/* 2 Stars & Up */}
+            <div
+              className="RatingLeftBox"
+              onClick={() => handleRatingFilter(2)}
+              style={{ cursor: 'pointer', backgroundColor: ratingFilter === 2 ? '#f0f0f0' : 'transparent', padding: '5px', borderRadius: '4px' }}
+            >
+              <input
+                type="checkbox"
+                checked={ratingFilter === 2}
+                onChange={() => handleRatingFilter(2)}
+                style={{ marginRight: '8px', cursor: 'pointer' }}
+              />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarOutlineIcon sx={{ fontSize: "20px", color: "#febd69" }} />
@@ -253,7 +315,18 @@ const Product = () => {
               <div className="AndUp"> & Up</div>
             </div>
 
-            <div className="RatingLeftBox">
+            {/* 1 Star & Up */}
+            <div
+              className="RatingLeftBox"
+              onClick={() => handleRatingFilter(1)}
+              style={{ cursor: 'pointer', backgroundColor: ratingFilter === 1 ? '#f0f0f0' : 'transparent', padding: '5px', borderRadius: '4px' }}
+            >
+              <input
+                type="checkbox"
+                checked={ratingFilter === 1}
+                onChange={() => handleRatingFilter(1)}
+                style={{ marginRight: '8px', cursor: 'pointer' }}
+              />
               <StarRateIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarOutlineIcon sx={{ fontSize: "20px", color: "#febd69" }} />
               <StarOutlineIcon sx={{ fontSize: "20px", color: "#febd69" }} />
@@ -268,10 +341,11 @@ const Product = () => {
         {/* right sidebar */}
         <div className='ProductPageMainRight'>
           <div className="ProductPageMainRightTopBanner">
-            {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, products.length)} of {products.length} results for{" "}
+            {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, filteredProducts.length)} of {filteredProducts.length} results for{" "}
             <span className='ProductPageMainRightTopBannerSpan'>
               {categoryName}
             </span>
+            {ratingFilter > 0 && <span style={{ marginLeft: '8px', color: '#666' }}>(Rating: {ratingFilter}★+)</span>}
           </div>
 
           <div className='ItemImageProductPage'>
