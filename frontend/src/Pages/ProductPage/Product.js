@@ -199,7 +199,7 @@ const Product = () => {
   return (
     <div className='ProductPage'>
       <NavBar />
-      <div className='ProductTopBanner'>
+      {/* <div className='ProductTopBanner'>
 
         <div className='ProductTopBannerItems'>
           Electronics
@@ -214,7 +214,7 @@ const Product = () => {
         <div className="ProductTopBannerItemsSubMenu">Smart Technology</div>
         <div className="ProductTopBannerItemsSubMenu">Musical Instruments</div>
         <div className="ProductTopBannerItemsSubMenu">Office & Stationary</div>
-      </div>
+      </div> */}
 
       <div className='ProductPageMain'>
         {/* left sidebar */}
@@ -320,14 +320,14 @@ const Product = () => {
                       </div>
                       <div className='ProductRatings'>
                         {/* Add star ratings */}
-                        <ItemRatings avgRating={item.average_rating} ratings={item.no_of_ratings} />
+                        <ItemRatings average_rating={item.average_rating} no_of_ratings={item.no_of_ratings} />
                       </div>
                       <div className='SaleProductPage'>
                         Up to 25% off on Black Friday
                       </div>
                       <div className='DeliveryHomepage'>
                         Free Domestic Shipping By Amazon
-                        0</div>
+                      </div>
                     </div>
                   </div>
                 );
