@@ -98,6 +98,13 @@
     /* Adds space between items */
     justify-content: space-between;
     /* Optional: Adjust spacing */
+    padding: 15px;
+    margin-bottom: 20px;
+    /* Clean spacing between containers */
+}
+
+/* First item__box__container overlaps the image slider */
+.item__box__container:first-of-type {
     margin-top: -150px;
     /* Overlap 25% from bottom of image slider */
 }

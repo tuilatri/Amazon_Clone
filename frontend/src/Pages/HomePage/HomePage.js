@@ -45,21 +45,32 @@ const HomePage = () => {
     }
   };
 
-  // Auto-slide every 3 seconds (infinite slider)
+  // Slider direction state for ping-pong effect
+  const [sliderDirection, setSliderDirection] = useState(1); // 1 = forward, -1 = backward
+
+  // Auto-slide every 3 seconds with ping-pong effect (goes forward then backward)
   useEffect(() => {
     const totalSlides = 7; // Number of images in the slider
     const autoSlideInterval = setInterval(() => {
       setStartSlider(prev => {
-        const endSlider = (totalSlides - 1) * -100;
+        const endSlider = (totalSlides - 1) * -100; // -600
+
+        // Check if we need to change direction
         if (prev <= endSlider) {
-          return 0; // Loop back to first slide
+          setSliderDirection(-1); // Start going backward
+          return prev + 100;
+        } else if (prev >= 0) {
+          setSliderDirection(1); // Start going forward
+          return prev - 100;
         }
-        return prev - 100;
+
+        // Continue in current direction
+        return prev - (sliderDirection * 100);
       });
     }, 3000);
 
     return () => clearInterval(autoSlideInterval); // Cleanup on unmount
-  }, []);
+  }, [sliderDirection]);
   useEffect(() => {
     const fetchData = async () => {
       try {
