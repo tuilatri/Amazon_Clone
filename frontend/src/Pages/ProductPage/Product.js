@@ -5,7 +5,7 @@ import StarOutlineIcon from '@mui/icons-material/StarOutline';
 // import ProductDetail from "../../../public/Data/Product.json";
 import NavBar from "../../Components/Navbar/Navigation"
 import ProductFooter from "./ProductFooter"
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { AddToCart } from '../../Redux/Action/Action';
 import { toast, ToastContainer } from 'react-toastify';
@@ -15,6 +15,7 @@ import ItemRatings from '../ItemPage/ItemRatings';
 import axios from "axios";
 
 const Product = () => {
+  const { category } = useParams(); // Get optional category from URL
   const Dispatch = useDispatch();
   const CartItems = useSelector((state) => state.cart.items);
 
@@ -30,17 +31,27 @@ const Product = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch the JSON file from the public folder
-  //Test take product from here
+  // Fetch products - all products or filtered by category
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch("http://localhost:8000/products/search?query=");
+        setIsLoading(true);
+        let response;
+
+        if (category) {
+          // Fetch products by category
+          response = await fetch(`http://127.0.0.1:8000/getProductbyCategory/?categoryencode=${category}`);
+        } else {
+          // Fetch all products
+          response = await fetch("http://localhost:8000/products/search?query=");
+        }
+
         if (!response.ok) {
           throw new Error("Failed to fetch product data.");
         }
         const data = await response.json();
-        setProducts(data);
+        // Handle both array response and object with products property
+        setProducts(data.products || data);
       } catch (error) {
         console.error("Error fetching products:", error);
         toast.error("Error fetching product data. Please try again later.", {
@@ -49,26 +60,28 @@ const Product = () => {
       } finally {
         setIsLoading(false);
       }
-    }
-  }, []);
-    // Fetch products from the backend API
-    // useEffect(() => {
-    //   const fetchProducts = async () => {
-    //     try {
-    //       const response = await axios.post("http://localhost:3000/searchProducts/");
-    //       setProducts(response.data);
-    //     } catch (err) {
-    //       setError("Failed to fetch products.");
-    //       console.error(err);
-    //     } finally {
-    //       setLoading(false);
-    //     }
-    //   };
-    //   fetchProducts();
-    // }, []);
+    };
+
+    fetchProducts(); // Actually call the function!
+  }, [category]);
+  // Fetch products from the backend API
+  // useEffect(() => {
+  //   const fetchProducts = async () => {
+  //     try {
+  //       const response = await axios.post("http://localhost:3000/searchProducts/");
+  //       setProducts(response.data);
+  //     } catch (err) {
+  //       setError("Failed to fetch products.");
+  //       console.error(err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchProducts();
+  // }, []);
 
 
-      // Fetch product details by product_id (for individual product page)
+  // Fetch product details by product_id (for individual product page)
   // const fetchProductDetails = async (productId) => {
   //   try {
   //     const response = await axios.get(`http://localhost:3000/product/${productId}`);
@@ -131,17 +144,27 @@ const Product = () => {
   //     return <h1>Loading Products...</h1>;
   // }
 
-  if (products.length === 0) {
-
+  // Show loading state
   if (isLoading) {
-    return <h1>Loading Products...</h1>;
+    return (
+      <div className='ProductPage'>
+        <NavBar />
+        <h1 style={{ textAlign: 'center', padding: '50px' }}>Loading Products...</h1>
+      </div>
+    );
   }
 
+  // Show no products message
   if (products.length === 0) {
-    return <h1>No Products Found</h1>;
+    return (
+      <div className='ProductPage'>
+        <NavBar />
+        <h1 style={{ textAlign: 'center', padding: '50px' }}>No Products Found</h1>
+      </div>
+    );
   }
 
-
+  // Main product display
   return (
     <div className='ProductPage'>
       <NavBar />
@@ -249,15 +272,15 @@ const Product = () => {
                         <div className='CurrencyText'>
                         </div>
                         <div className='RateHomeDetail'>
-                        <div className="RateHomeDetailPrice">
-                          <span className="discount-price">
-                            {GB_CURRENCY.format(item.discount_price_usd)}
-                          </span>
-                          &nbsp;
-                          <span className="original-price">
-                            {GB_CURRENCY.format(item.actual_price_usd)}
-                          </span>
-                        </div>
+                          <div className="RateHomeDetailPrice">
+                            <span className="discount-price">
+                              {GB_CURRENCY.format(item.discount_price_usd)}
+                            </span>
+                            &nbsp;
+                            <span className="original-price">
+                              {GB_CURRENCY.format(item.actual_price_usd)}
+                            </span>
+                          </div>
 
                           <div className='AddToCartButton' onClick={() => (HandleAddToCart(item))}>
                             Add To Cart
@@ -291,9 +314,7 @@ const Product = () => {
       <ToastContainer />
       <ProductFooter />
     </div>
-
   )
-}
 }
 
 export default Product;

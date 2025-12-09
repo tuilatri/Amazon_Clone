@@ -90,7 +90,7 @@ const NavBar = () => {
             console.error("Category title not found in mapping:", categoryTitle);
             return; // Stop execution if the category title is invalid
         }
-        navigate(`/Homepage/${mainCategoryEncoded}`); // Navigate with the encoded value
+        navigate(`/Product/${mainCategoryEncoded}`); // Navigate with the encoded value
         setShowAll(false); // Close the dropdown after selection
     };
     const handleProfileClick = () => {
