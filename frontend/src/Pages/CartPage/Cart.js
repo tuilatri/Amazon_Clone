@@ -70,13 +70,47 @@ const Cart = () => {
     fetchHighestRatedProducts();
   }, []);
 
-  // Auto-select all items when cart is fetched
+  // Track if selection has been loaded from localStorage
+  const [isSelectionLoaded, setIsSelectionLoaded] = useState(false);
+
+  // Load selection state from localStorage when cart items are fetched
   useEffect(() => {
-    if (CartItem.length > 0) {
-      const allIds = new Set(CartItem.map(item => item.product_id || item.id));
-      setSelectedItems(allIds);
+    if (CartItem.length > 0 && userInfo.email) {
+      const storageKey = `cartSelection_${userInfo.email}`;
+      const savedSelection = localStorage.getItem(storageKey);
+
+      if (savedSelection) {
+        try {
+          const savedIds = JSON.parse(savedSelection);
+          // Filter saved selection to only include items that exist in current cart
+          const validIds = savedIds.filter(id =>
+            CartItem.some(item => (item.product_id || item.id) === id)
+          );
+          setSelectedItems(new Set(validIds));
+        } catch (e) {
+          console.error("Error parsing saved selection:", e);
+          // Fallback: select all items
+          const allIds = new Set(CartItem.map(item => item.product_id || item.id));
+          setSelectedItems(allIds);
+        }
+      } else {
+        // No saved selection - select all items by default
+        const allIds = new Set(CartItem.map(item => item.product_id || item.id));
+        setSelectedItems(allIds);
+      }
+      // Mark that selection loading is complete
+      setIsSelectionLoaded(true);
     }
-  }, [CartItem]);
+  }, [CartItem, userInfo.email]);
+
+  // Save selection state to localStorage whenever it changes (only after initial load)
+  useEffect(() => {
+    if (userInfo.email && isSelectionLoaded) {
+      const storageKey = `cartSelection_${userInfo.email}`;
+      const selectionArray = Array.from(selectedItems);
+      localStorage.setItem(storageKey, JSON.stringify(selectionArray));
+    }
+  }, [selectedItems, userInfo.email, isSelectionLoaded]);
 
   // Calculate total cost only for selected items
   const totalCost = CartItem.reduce((total, item) => {

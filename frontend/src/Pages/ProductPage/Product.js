@@ -66,6 +66,9 @@ const Product = () => {
         toast.success('Added to cart successfully', {
           position: 'bottom-right',
         });
+
+        // Dispatch custom event to notify Navigation to update cart count
+        window.dispatchEvent(new Event('cartUpdated'));
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
