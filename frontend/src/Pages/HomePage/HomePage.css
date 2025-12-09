@@ -23,6 +23,9 @@
 .image__container {
     position: relative;
     z-index: 1;
+    overflow: hidden;
+    max-height: 600px;
+    /* Fixed height allows for predictable overlap */
 }
 
 .image__item {
@@ -33,6 +36,7 @@
 
 .btn__slider {
     border: 2px solid transparent;
+    height: 62%;
     padding: 100px 20px;
     font-size: 50px;
     font-weight: 300;
@@ -87,26 +91,24 @@
     /* Adds space between previous section */
 }
 
+/* All item__box__container elements overlap the image__container by 40% */
 .item__box__container {
     position: relative;
     z-index: 10;
     display: flex;
-    /* Sets a flex container */
     flex-wrap: wrap;
-    /* Allows wrapping if cards exceed container width */
     gap: 20px;
-    /* Adds space between items */
     justify-content: space-between;
-    /* Optional: Adjust spacing */
     padding: 15px;
-    margin-bottom: 20px;
-    /* Clean spacing between containers */
+    margin-top: -240px;
+    /* 40% overlap from bottom of image__container (600px * 0.40 = 240px) */
+    background-color: transparent;
 }
 
-/* First item__box__container overlaps the image slider */
-.item__box__container:first-of-type {
-    margin-top: -150px;
-    /* Overlap 25% from bottom of image slider */
+/* Subsequent containers - reset margin for proper spacing */
+.item__box__container~.item__box__container {
+    margin-top: 30px;
+    /* Clean spacing between subsequent containers */
 }
 
 .item__box__card {
