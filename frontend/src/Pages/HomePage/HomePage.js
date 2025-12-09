@@ -12,6 +12,30 @@ import { useAuth } from '../../Context/AuthContext';
 const HomePage = () => {
 
   const { isAuthenticated, user } = useAuth();
+
+  // Category mapping for card__slider links (matches searchbox__all__textbox categories)
+  const categoryMapping = {
+    "stores": 15,
+    "car & motorbike": 4,
+    "home, kitchen, pets": 7,
+    "pet supplies": 13,
+    "home & kitchen": 6,
+    "men's shoes": 11,
+    "accessories": 0,
+    "beauty & health": 3,
+    "toys & baby products": 16,
+    "music": 12,
+    "sports & fitness": 14,
+    "tv, audio & cameras": 17,
+    "women's shoes": 19,
+    "appliances": 1,
+    "grocery & gourmet foods": 5,
+    "kids' fashion": 9,
+    "bags & luggage": 2,
+    "men's clothing": 10,
+    "industrial supplies": 8,
+    "women's clothing": 18
+  };
   const [randomCategoriesWithProducts, setRandomCategoriesWithProducts] = useState([]); // Holds 5 random categories with products
   const [listOfAllMainCategory, setListOfAllMainCategory] = useState([]);
   const [originalProducts, setOriginalProducts] = useState({}); // Store the original products by category
@@ -44,6 +68,33 @@ const HomePage = () => {
       setStartSlider(startSlider + 100);
     }
   };
+
+  // Slider direction state for ping-pong effect
+  const [sliderDirection, setSliderDirection] = useState(1); // 1 = forward, -1 = backward
+
+  // Auto-slide every 3 seconds with ping-pong effect (goes forward then backward)
+  useEffect(() => {
+    const totalSlides = 7; // Number of images in the slider
+    const autoSlideInterval = setInterval(() => {
+      setStartSlider(prev => {
+        const endSlider = (totalSlides - 1) * -100; // -600
+
+        // Check if we need to change direction
+        if (prev <= endSlider) {
+          setSliderDirection(-1); // Start going backward
+          return prev + 100;
+        } else if (prev >= 0) {
+          setSliderDirection(1); // Start going forward
+          return prev - 100;
+        }
+
+        // Continue in current direction
+        return prev - (sliderDirection * 100);
+      });
+    }, 3000);
+
+    return () => clearInterval(autoSlideInterval); // Cleanup on unmount
+  }, [sliderDirection]);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -100,7 +151,7 @@ const HomePage = () => {
     updateRandomCategories();
 
     // Set an interval to update the categories every 10 seconds
-    const interval = setInterval(updateRandomCategories, 10000);
+    const interval = setInterval(updateRandomCategories, 500000); // Refresh every 500 seconds
 
     // Clean up the interval on component unmount
     return () => clearInterval(interval);
@@ -305,213 +356,182 @@ const HomePage = () => {
 
       </div>
 
-      {!isAuthenticated && (
-        <div className="card__slider">
-          {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
-            <div className="card__slider--long">
-              <div className="card__slider__title">
-                {randomCategoriesWithProducts[0].category}
-              </div>
-              <div className="card__slider__box">
-                <div className="card__slider__scroll">
-                  {randomCategoriesWithProducts[0].products
-                    .slice(0, 20)
-                    .map((product) => (
-                      <div
-                        key={product.product_id || product.product_name}
-                        className="card__slider__item1"
-                      >
-                        <Link
-                          to={product.product_link}
-                          className="card__slider__item__link"
-                        >
-                          <img
-                            src={product.product_image}
-                            alt={product.product_name}
-                            className="card__slider__item__image"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+Unavailable"; // Fallback image
-                            }}
-                          />
-                        </Link>
-                      </div>
-                    ))}
-                </div>
+      {/* Card Slider 1 - Shows for all users */}
+      <div className="card__slider">
+        {loading ? (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ width: '200px', height: '24px', backgroundColor: '#e0e0e0', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton1-${index}`} className="card__slider__item" style={{ backgroundColor: '#f0f0f0' }}>
+                    <div style={{ width: '180px', height: '160px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="loading-indicator">Loading...</div> // Loading indicator
-          )}
-        </div>
-      )}
+          </div>
+        ) : randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
+          <div className="card__slider--long">
+            <Link
+              to={`/Product/${categoryMapping[randomCategoriesWithProducts[0]?.category?.toLowerCase()] || ''}`}
+              className="card__slider__title"
+              style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer', display: 'block' }}
+            >
+              {randomCategoriesWithProducts[0]?.category}
+            </Link>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {randomCategoriesWithProducts[0]?.products
+                  ?.slice(0, 20)
+                  .map((product) => (
+                    <div
+                      key={product.product_id || product.product_name}
+                      className="card__slider__item"
+                    >
+                      <Link
+                        to={`/Item/${product.product_id}`}
+                        className="card__slider__item__link"
+                      >
+                        <img
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="card__slider__item__image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/150?text=Image+Unavailable";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ color: '#666' }}>Loading categories...</div>
+          </div>
+        )}
+      </div>
 
-      {!isAuthenticated && (
-        <div className="card__slider">
-          {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
-            <div className="card__slider--long">
-              <div className="card__slider__title">
-                {randomCategoriesWithProducts[1].category}
-              </div>
-              <div className="card__slider__box">
-                <div className="card__slider__scroll">
-                  {randomCategoriesWithProducts[1].products
-                    .slice(0, 20)
-                    .map((product) => (
-                      <div
-                        key={product.product_id || product.product_name}
-                        className="card__slider__item1"
-                      >
-                        <Link
-                          to={product.product_link}
-                          className="card__slider__item__link"
-                        >
-                          <img
-                            src={product.product_image}
-                            alt={product.product_name}
-                            className="card__slider__item__image"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+Unavailable"; // Fallback image
-                            }}
-                          />
-                        </Link>
-                      </div>
-                    ))}
-                </div>
+      {/* Card Slider 2 - Shows for all users */}
+      <div className="card__slider">
+        {loading ? (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ width: '200px', height: '24px', backgroundColor: '#e0e0e0', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton2-${index}`} className="card__slider__item" style={{ backgroundColor: '#f0f0f0' }}>
+                    <div style={{ width: '180px', height: '160px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="loading-indicator">Loading...</div> // Loading indicator
-          )}
-        </div>
-      )}
-      {!isAuthenticated && (
-        <div className="card__slider">
-          {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
-            <div className="card__slider--long">
-              <div className="card__slider__title">
-                {randomCategoriesWithProducts[2].category}
-              </div>
-              <div className="card__slider__box">
-                <div className="card__slider__scroll">
-                  {randomCategoriesWithProducts[2].products
-                    .slice(0, 20)
-                    .map((product) => (
-                      <div
-                        key={product.product_id || product.product_name}
-                        className="card__slider__item1"
+          </div>
+        ) : randomCategoriesWithProducts && randomCategoriesWithProducts.length > 1 ? (
+          <div className="card__slider--long">
+            <Link
+              to={`/Product/${categoryMapping[randomCategoriesWithProducts[1]?.category?.toLowerCase()] || ''}`}
+              className="card__slider__title"
+              style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer', display: 'block' }}
+            >
+              {randomCategoriesWithProducts[1]?.category}
+            </Link>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {randomCategoriesWithProducts[1]?.products
+                  ?.slice(0, 20)
+                  .map((product) => (
+                    <div
+                      key={product.product_id || product.product_name}
+                      className="card__slider__item"
+                    >
+                      <Link
+                        to={`/Item/${product.product_id}`}
+                        className="card__slider__item__link"
                       >
-                        <Link
-                          to={product.product_link}
-                          className="card__slider__item__link"
-                        >
-                          <img
-                            src={product.product_image}
-                            alt={product.product_name}
-                            className="card__slider__item__image"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+Unavailable"; // Fallback image
-                            }}
-                          />
-                        </Link>
-                      </div>
-                    ))}
-                </div>
+                        <img
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="card__slider__item__image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/150?text=Image+Unavailable";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                  ))}
               </div>
             </div>
-          ) : (
-            <div className="loading-indicator">Loading...</div> // Loading indicator
-          )}
-        </div>
-      )}
-      {!isAuthenticated && (
-        <div className="card__slider">
-          {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
-            <div className="card__slider--long">
-              <div className="card__slider__title">
-                {randomCategoriesWithProducts[3].category}
-              </div>
-              <div className="card__slider__box">
-                <div className="card__slider__scroll">
-                  {randomCategoriesWithProducts[3].products
-                    .slice(0, 20)
-                    .map((product) => (
-                      <div
-                        key={product.product_id || product.product_name}
-                        className="card__slider__item1"
-                      >
-                        <Link
-                          to={product.product_link}
-                          className="card__slider__item__link"
-                        >
-                          <img
-                            src={product.product_image}
-                            alt={product.product_name}
-                            className="card__slider__item__image"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+Unavailable"; // Fallback image
-                            }}
-                          />
-                        </Link>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="loading-indicator">Loading...</div> // Loading indicator
-          )}
-        </div>
-      )}
-      {!isAuthenticated && (
-        <div className="card__slider">
-          {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
-            <div className="card__slider--long">
-              <div className="card__slider__title">
-                {randomCategoriesWithProducts[4].category}
-              </div>
-              <div className="card__slider__box">
-                <div className="card__slider__scroll">
-                  {randomCategoriesWithProducts[4].products
-                    .slice(0, 20)
-                    .map((product) => (
-                      <div
-                        key={product.product_id || product.product_name}
-                        className="card__slider__item1"
-                      >
-                        <Link
-                          to={product.product_link}
-                          className="card__slider__item__link"
-                        >
-                          <img
-                            src={product.product_image}
-                            alt={product.product_name}
-                            className="card__slider__item__image"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+Unavailable"; // Fallback image
-                            }}
-                          />
-                        </Link>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="loading-indicator">Loading...</div> // Loading indicator
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ color: '#666' }}>Loading categories...</div>
+          </div>
+        )}
+      </div>
 
+      {/* Card Slider 3 - Shows for all users */}
+      <div className="card__slider">
+        {loading ? (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ width: '200px', height: '24px', backgroundColor: '#e0e0e0', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton3-${index}`} className="card__slider__item" style={{ backgroundColor: '#f0f0f0' }}>
+                    <div style={{ width: '180px', height: '160px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : randomCategoriesWithProducts && randomCategoriesWithProducts.length > 2 ? (
+          <div className="card__slider--long">
+            <Link
+              to={`/Product/${categoryMapping[randomCategoriesWithProducts[2]?.category?.toLowerCase()] || ''}`}
+              className="card__slider__title"
+              style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer', display: 'block' }}
+            >
+              {randomCategoriesWithProducts[2]?.category}
+            </Link>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {randomCategoriesWithProducts[2]?.products
+                  ?.slice(0, 20)
+                  .map((product) => (
+                    <div
+                      key={product.product_id || product.product_name}
+                      className="card__slider__item"
+                    >
+                      <Link
+                        to={`/Item/${product.product_id}`}
+                        className="card__slider__item__link"
+                      >
+                        <img
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="card__slider__item__image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/150?text=Image+Unavailable";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ color: '#666' }}>Loading categories...</div>
+          </div>
+        )}
+      </div>
       <div className="item__box__container">
         <div className="item__box">
           <div className="item__box__card">
@@ -638,324 +658,129 @@ const HomePage = () => {
 
       </div>
 
-      {/* card 07 */}
-      {/* <div className="item__box__card">
-          <div className="item__box__card__title">
-            Get your game on
-            <div className="item__box__card__image">
-
-              <div className="item__box__card__block__only">
-                <img className="item__box__card__block__image__only" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/Stores-Gaming/FinalGraphics/Fuji_Gaming_store_Dashboard_card_1x_EN._SY304_CB564799420_.jpg" alt="image01" />
+      {/* Card Slider 4 - Shows for all users */}
+      <div className="card__slider">
+        {loading ? (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ width: '200px', height: '24px', backgroundColor: '#e0e0e0', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton4-${index}`} className="card__slider__item" style={{ backgroundColor: '#f0f0f0' }}>
+                    <div style={{ width: '180px', height: '160px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                ))}
               </div>
-            </div>
-
-            <div className="item__box__card__block__seeMore__only">
-              <Link to="/Product" className="seeMore__only">
-                Shop gaming
-              </Link>
             </div>
           </div>
-        </div> */}
-
-      {/* card 08 */}
-      {/* <div className="item__box__card">
-          <div className="item__box__card__title">
-            Easy updates for elevated spaces
-            <div className="item__box__card__image">
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/img18/home/2023/Q2/Homepage/2023Q2_GW_EE_LaundryLuxe_D_Quad_186x116._SY116_CB594237035_.jpg" alt="image01" />
-                <div className="item__box__card__block__text">
-                  Baskets & hampers
-                </div>
+        ) : randomCategoriesWithProducts && randomCategoriesWithProducts.length > 3 ? (
+          <div className="card__slider--long">
+            <Link
+              to={`/Product/${categoryMapping[randomCategoriesWithProducts[3]?.category?.toLowerCase()] || ''}`}
+              className="card__slider__title"
+              style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer', display: 'block' }}
+            >
+              {randomCategoriesWithProducts[3]?.category}
+            </Link>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {randomCategoriesWithProducts[3]?.products
+                  ?.slice(0, 20)
+                  .map((product) => (
+                    <div
+                      key={product.product_id || product.product_name}
+                      className="card__slider__item"
+                    >
+                      <Link
+                        to={`/Item/${product.product_id}`}
+                        className="card__slider__item__link"
+                      >
+                        <img
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="card__slider__item__image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/150?text=Image+Unavailable";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                  ))}
               </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/img18/home/2023/Q2/Homepage/2023Q2_GW_EE_Kitchen_D_Quad_186x116._SY116_CB594237035_.jpg" alt="image02" />
-                <div className="item__box__card__block__text">
-                  Hardwares
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/img18/home/2023/Q2/Homepage/2023Q2_GW_EE_AccentFurniture_D_Quad_186x116._SY116_CB594237035_.jpg" alt="image03" />
-                <div className="item__box__card__block__text">
-                  Accent furniture
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/img18/home/2023/Q2/Homepage/2023Q2_GW_EE_Hallway_D_Quad_186x116._SY116_CB594237035_.jpg" alt="image04" />
-                <div className="item__box__card__block__text">
-                  Wallpaper & paint
-                </div>
-              </div>
-            </div>
-
-            <div className="item__box__card__block__seeMore">
-              <Link to="/Product" className="seeMore">
-                See more
-              </Link>
             </div>
           </div>
-        </div>
-      </div> */}
-
-      {/* các card */}
-      {/* <div className="item__box--01"> */}
-      {/* card 01 */}
-      {/* <div className="item__box__card">
-          <div className="item__box__card__title">
-            Most-loved travel essentials
-            <div className="item__box__card__image">
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/Backpack_1x._SY116_CB566100767_.jpg" alt="image01" />
-                <div className="item__box__card__block__text">
-                  Backpacks
-                </div>
+        ) : (
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ color: '#666' }}>Loading categories...</div>
+          </div>
+        )}
+      </div>
+      {/* Card Slider - Shows for all users */}
+      <div className="card__slider">
+        {loading ? (
+          /* Skeleton Loading */
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ width: '200px', height: '24px', backgroundColor: '#e0e0e0', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton-${index}`} className="card__slider__item" style={{ backgroundColor: '#f0f0f0' }}>
+                    <div style={{ width: '180px', height: '160px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                ))}
               </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/TravelBag_1x._SY116_CB566100767_.jpg" alt="image02" />
-                <div className="item__box__card__block__text">
-                  Suitcases
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/Accessories_1x._SY116_CB566100767_.jpg" alt="image03" />
-                <div className="item__box__card__block__text">
-                  Accessories
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/Handbags_1x._SY116_CB566100767_.jpg" alt="image04" />
-                <div className="item__box__card__block__text">
-                  Handbags
-                </div>
-              </div>
-            </div>
-
-            <div className="item__box__card__block__seeMore--1row">
-              <Link to="/Product" className="seeMore--1row">
-                See more
-              </Link>
             </div>
           </div>
-        </div> */}
-
-      {/* card 02 */}
-      {/* <div className="item__box__card">
-          <div className="item__box__card__title">
-            Fantastic Finds for Home
-            <div className="item__box__card__image">
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/DskBTFQuadCards/Fuji_BTF_Quad_Cards_1x_Kitchen._SY116_CB558654384_.jpg" alt="image01" />
-                <div className="item__box__card__block__text">
-                  Kitchen
-                </div>
+        ) : randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
+          <div className="card__slider--long">
+            {/* Category Title - Links to Category Page */}
+            <Link
+              to={`/Product/${categoryMapping[randomCategoriesWithProducts[0].category.toLowerCase()] || ''}`}
+              className="card__slider__title"
+              style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+            >
+              {randomCategoriesWithProducts[0].category}
+            </Link>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {randomCategoriesWithProducts[0].products
+                  .slice(0, 20)
+                  .map((product) => (
+                    <div
+                      key={product.product_id || product.product_name}
+                      className="card__slider__item"
+                    >
+                      {/* Product Image - Links to Product Detail Page */}
+                      <Link
+                        to={`/Item/${product.product_id}`}
+                        className="card__slider__item__link"
+                      >
+                        <img
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="card__slider__item__image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://via.placeholder.com/150?text=Image+Unavailable";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                  ))}
               </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/DskBTFQuadCards/Fuji_BTF_Quad_Cards_1x_Home_decor._SY116_CB558654384_.jpg" alt="image02" />
-                <div className="item__box__card__block__text">
-                  Home Decor
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/DskBTFQuadCards/Fuji_BTF_Quad_Cards_1x_Dining._SY116_CB558654384_.jpg" alt="image03" />
-                <div className="item__box__card__block__text">
-                  Dining
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/DskBTFQuadCards/Fuji_BTF_Quad_Cards_1x_Smart_home._SY116_CB558654384_.jpg" alt="image04" />
-                <div className="item__box__card__block__text">
-                  Smart Home
-                </div>
-              </div>
-            </div>
-
-            <div className="item__box__card__block__seeMore--1row">
-              <Link to="/Product" className="seeMore--1row">
-                See more
-              </Link>
             </div>
           </div>
-        </div> */}
-
-      {/* card 03 */}
-      {/* <div className="item__box__card">
-          <div className="item__box__card__title">
-            Gaming merchandise
-            <div className="item__box__card__image">
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Fuji/2021/June/Fuji_Quad_Apparel_1x._SY116_CB667159060_.jpg" alt="image01" />
-                <div className="item__box__card__block__text">
-                  Apprarel
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Fuji/2021/June/Fuji_Quad_Hat_1x._SY116_CB667159060_.jpg" alt="image02" />
-                <div className="item__box__card__block__text">
-                  Hats
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Fuji/2021/June/Fuji_Quad_Figure_1x._SY116_CB667159060_.jpg" alt="image03" />
-                <div className="item__box__card__block__text">
-                  Action figures
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Fuji/2021/June/Fuji_Quad_Mug_1x._SY116_CB667159063_.jpg" alt="image04" />
-                <div className="item__box__card__block__text">
-                  Mugs
-                </div>
-              </div>
-            </div>
-
-            <div className="item__box__card__block__seeMore--1row">
-              <Link to="/Product" className="seeMore--1row">
-                See more
-              </Link>
-            </div>
+        ) : (
+          /* Fallback skeleton if no data */
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ color: '#666' }}>Loading categories...</div>
           </div>
-        </div> */}
+        )}
+      </div>
 
-      {/* card 04 */}
-      {/* <div className="item__box__card">
-          <div className="item__box__card__title">
-            Most-loved watches
-            <div className="item__box__card__image">
 
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/WomenWatches_1x._SY116_CB564394432_.jpg" alt="image01" />
-                <div className="item__box__card__block__text">
-                  Women
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/MenWatches_1x._SY116_CB564394432_.jpg" alt="image02" />
-                <div className="item__box__card__block__text">
-                  Men
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/GirlWatches_1x._SY116_CB564394432_.jpgg" alt="image03" />
-                <div className="item__box__card__block__text">
-                  Girls
-                </div>
-              </div>
-
-              <div className="item__box__card__block">
-                <img className="item__box__card__block__image" src="https://images-na.ssl-images-amazon.com/images/G/01/AmazonExports/Events/2024/BAU2024Aug/BoyWatches_1x._SY116_CB564394432_.jpg" alt="image04" />
-                <div className="item__box__card__block__text">
-                  Boys
-                </div>
-              </div>
-            </div>
-
-            <div className="item__box__card__block__seeMore--1row">
-              <Link to="/Product" className="seeMore--1row">
-                See more
-              </Link>
-            </div>
-          </div>
-        </div>
-
-      </div> */}
-
-      {/* card trượt */}
-      {/* <div className="card__slider--02">
-        <div className="card__slider--long">
-          <div className="card__slider__title">
-            Here come Holiday Specials
-          </div> */}
-      {/* khung bao bên ngoài khung trượt card */}
-      {/* <div className="card__slider__box">
-            {/* tạo thanh kéo ngang */}
-      {/* <div className="card__slider__scroll"> */}
-      {/* khung cho card */}
-      {/*<div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/814ODyP8cgL._AC_SY200_.jpg" alt="image01" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/61KedtnoewL._AC_SY200_.jpg" alt="image02" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/71yCr1TDfJL._AC_SY200_.jpg" alt="image03" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/71-KO+-WQoL._AC_SY200_.jpg" alt="image04" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/61mrBMnPhfL._AC_SY200_.jpg" alt="image05" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/61pZC9GjRWL._AC_SY200_.jpg" alt="image06" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/71qBcrVc+lL._AC_SY200_.jpg" alt="image07" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/71YJXiyG3LL._AC_SY200_.jpg" alt="image08" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/71aDjWyuTtL._AC_SY200_.jpg" alt="image09" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/510Cvj313yL._AC_SY200_.jpg" alt="image10" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/91NMUNjp7OL._AC_SY200_.jpg" alt="image11" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/81HqnkGPgEL._AC_SY200_.jpg" alt="image12" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/91IGKPcEn2L._AC_SY200_.jpg" alt="image13" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/617ommgrJfL._AC_SY200_.jpg" alt="image14" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/91poO8oibLL._AC_SY200_.jpg" alt="image15" className="card__slider__item__image" />
-              </div>
-
-              <div className="card__slider__item">
-                <img src="https://m.media-amazon.com/images/I/51ZmkZrGVwL._AC_SY200_.jpg" alt="image16" className="card__slider__item__image" />
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </div> */}
 
       <HomepageFooter />
     </div>
