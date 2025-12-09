@@ -1,11 +1,12 @@
 .homepage_footer {
-    position: absolute;
-    top: 383%;
+    position: relative;
     width: 100%;
+    margin-top: 40px;
+    /* Space between last content and footer */
 }
 
 /* footer trên */
-.footer__up {   
+.footer__up {
     width: 100%;
     background-color: #232f3e;
     color: white;
@@ -19,7 +20,7 @@
 }
 
 .footer__up__box__text {
-    max-width: 65rem; 
+    max-width: 65rem;
     /* này chỉnh cái khung text, muốn to ra thì tăng lên */
     margin-left: auto;
     margin-right: auto;
@@ -35,9 +36,12 @@
 
 .footer__up__box__text__header {
     color: white;
-    font-size: 1rem; /* text-base */
-    font-weight: 600; /* font-semibold */
-    margin-bottom: 0.75rem; /* mb-3 */
+    font-size: 1rem;
+    /* text-base */
+    font-weight: 600;
+    /* font-semibold */
+    margin-bottom: 0.75rem;
+    /* mb-3 */
 }
 
 .footer__up__box__text__lines {
@@ -45,8 +49,9 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem; /* gap-2 */
-    font-family: var(--font-bodyFont); 
+    gap: 0.5rem;
+    /* gap-2 */
+    font-family: var(--font-bodyFont);
 }
 
 .footer__up__box__text__lines__link {
@@ -58,7 +63,8 @@
 }
 
 .footer__up__box__text__lines__link:hover {
-    color: #f3f4f6; /* Equivalent to text-gray-100 */
+    color: #f3f4f6;
+    /* Equivalent to text-gray-100 */
     text-decoration: underline;
 }
 
@@ -74,7 +80,7 @@
     padding-bottom: 1.5rem;
 }
 
-.footer__amazon__logo{
+.footer__amazon__logo {
     width: 5rem;
     padding-top: 0.75rem;
 }
@@ -164,7 +170,7 @@
 }
 
 .footer__down__box__text {
-    max-width: 65rem; 
+    max-width: 65rem;
     /* này chỉnh cái khung text, muốn to ra thì tăng lên */
     margin-left: auto;
     margin-right: auto;
@@ -185,8 +191,10 @@
 
 .footer__down__box__text__header {
     color: white;
-    font-size: 12px; /* text-base */
-    font-weight: 600; /* font-semibold */
+    font-size: 12px;
+    /* text-base */
+    font-weight: 600;
+    /* font-semibold */
     margin-bottom: 2px;
 }
 
@@ -197,7 +205,7 @@
     display: flex;
     flex-direction: column;
     /* gap: 0.25rem; gap-2 */
-    font-family: var(--font-bodyFont); 
+    font-family: var(--font-bodyFont);
 }
 
 .footer__down__box__text__lines__link {
@@ -209,7 +217,8 @@
 }
 
 .footer__down__box__text__lines__link:hover {
-    color: #f3f4f6; /* Equivalent to text-gray-100 */
+    color: #f3f4f6;
+    /* Equivalent to text-gray-100 */
     text-decoration: underline;
 }
 
@@ -223,9 +232,7 @@
     padding-right: 1rem;
 }
 
-.footer__bottom__up {
-
-}
+.footer__bottom__up {}
 
 .footer__bottom__up__block {
     list-style-type: none;
@@ -257,9 +264,7 @@
     text-decoration: underline;
 }
 
-.footer__bottom__down {
-
-}
+.footer__bottom__down {}
 
 .footer__bottom__down__text {
     margin: 0px 10px 10px 10px;
