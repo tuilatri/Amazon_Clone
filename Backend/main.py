@@ -752,6 +752,38 @@ async def get_all_products_flat(db: Session = Depends(get_db)):
     ]
 
 
+# Get highest rated products (for Cart page when empty)
+@app.get("/getHighestRatedProducts/", response_model=List[dict])
+async def get_highest_rated_products(db: Session = Depends(get_db)):
+    """Return top 50 products sorted by highest average rating and number of ratings."""
+    highest_rated = db.query(Product).order_by(
+        Product.average_rating.desc(),
+        Product.no_of_ratings.desc()
+    ).limit(50).all()
+
+    if not highest_rated:
+        return []
+
+    return [
+        {
+            "product_id": product.product_id,
+            "product_name": product.product_name,
+            "main_category": product.main_category,
+            "main_category_encoded": product.main_category_encoded,
+            "sub_category": product.sub_category,
+            "sub_category_encoded": product.sub_category_encoded,
+            "product_image": product.product_image,
+            "product_link": product.product_link,
+            "average_rating": product.average_rating,
+            "no_of_ratings": product.no_of_ratings,
+            "discount_price_usd": product.discount_price_usd,
+            "actual_price_usd": product.actual_price_usd,
+            "category_id": product.category_id,
+        }
+        for product in highest_rated
+    ]
+
+
 # Get all categories
 @app.get("/getAllCategory/")
 async def get_all_categories(db: Session = Depends(get_db)):

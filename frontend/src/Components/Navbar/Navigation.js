@@ -16,6 +16,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import { useSelector, useDispatch } from 'react-redux';
 import { callAPI } from '../../Utils/CallAPI';
 import { useAuth } from '../../Context/AuthContext';
+import axios from 'axios';
 
 const NavBar = () => {
     const { isAuthenticated, user, logout } = useAuth();
@@ -99,6 +100,65 @@ const NavBar = () => {
     }, [ref, sidebar]);
 
     const CartItems = useSelector((state) => state.cart.items);
+    const [backendCartCount, setBackendCartCount] = useState(0);
+    const [cartUpdateTrigger, setCartUpdateTrigger] = useState(0);
+
+    // Function to fetch cart count from backend
+    const fetchCartCount = async () => {
+        if (isAuthenticated && user?.email_address) {
+            try {
+                const response = await axios.post("http://localhost:8000/cart", {
+                    type: "display",
+                    user_email: user.email_address
+                });
+                if (response.data.cart && Array.isArray(response.data.cart)) {
+                    // Sum up all quantities for total item count
+                    const totalQuantity = response.data.cart.reduce(
+                        (sum, item) => sum + (item.quantity || 1), 0
+                    );
+                    setBackendCartCount(totalQuantity);
+                }
+            } catch (error) {
+                console.error("Error fetching cart count:", error);
+            }
+        } else {
+            setBackendCartCount(0);
+        }
+    };
+
+    // Fetch cart count on mount, when user changes, and when triggered by cart updates
+    useEffect(() => {
+        fetchCartCount();
+    }, [isAuthenticated, user?.email_address, cartUpdateTrigger]);
+
+    // Listen for cart update events from other components (Cart.js)
+    useEffect(() => {
+        const handleCartUpdate = (event) => {
+            if (event.key === 'cartUpdated') {
+                setCartUpdateTrigger(prev => prev + 1);
+            }
+        };
+
+        // Also listen for custom event for same-tab updates
+        const handleCustomCartUpdate = () => {
+            fetchCartCount();
+        };
+
+        window.addEventListener('storage', handleCartUpdate);
+        window.addEventListener('cartUpdated', handleCustomCartUpdate);
+
+        return () => {
+            window.removeEventListener('storage', handleCartUpdate);
+            window.removeEventListener('cartUpdated', handleCustomCartUpdate);
+        };
+    }, [isAuthenticated, user?.email_address]);
+
+    // Calculate total quantity from Redux store
+    const reduxCartTotal = CartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+    // Use the maximum of Redux cart total and backend cart total
+    // This ensures immediate updates (Redux) and persistence after reload (backend)
+    const cartCount = Math.max(reduxCartTotal, backendCartCount);
     // When a category is selected
     const handleCategorySelect = (categoryTitle) => {
         // Handle "All" selection
@@ -356,7 +416,7 @@ const NavBar = () => {
                         className="cart"
                     >
                         <span className="cart__up">
-                            {CartItems.length}
+                            {cartCount}
                         </span>
                         <div className="cart__down">
                             <ShoppingCartOutlinedIcon className="cart__icon" />

@@ -231,3 +231,98 @@
 .ProceedToBuy__text {
     color: black;
 }
+
+/* Checkbox for cart item selection */
+.CartItemCheckbox {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 5px;
+}
+
+.CartItemCheckbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ff9900;
+}
+
+/* Clickable links in DeselectAllCart */
+.DeselectAllCartLink {
+    color: #007185;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.DeselectAllCartLink:hover {
+    color: #c45500;
+    text-decoration: underline;
+}
+
+/* Recommended section */
+.RecommendedSection {
+    padding: 20px;
+    background-color: white;
+    margin: 20px 0;
+}
+
+.RecommendedTitle {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e7e7e7;
+}
+
+/* Pagination styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 30px;
+    padding: 20px 0;
+}
+
+.pagination__button {
+    padding: 10px 20px;
+    background-color: #f7f7f7;
+    border: 1px solid #d5d5d5;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.pagination__button:hover:not(:disabled) {
+    background-color: #e7e7e7;
+}
+
+.pagination__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination__number {
+    padding: 8px 14px;
+    background-color: #fff;
+    border: 1px solid #d5d5d5;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.pagination__number:hover {
+    background-color: #f7f7f7;
+}
+
+.pagination__number--active {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    color: white;
+    font-weight: bold;
+}
+
+.pagination__number--active:hover {
+    background-color: #e68a00;
+}
