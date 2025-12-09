@@ -4,17 +4,21 @@ import StarBorderOutlinedIcon from '@mui/icons-material/StarBorderOutlined';  //
 import "./ItemRatings.css";
 
 const ItemRatings = (props) => {
-    const startNumber = props.average_rating;  // Average rating (1 to 5)
+    const avgRating = props.average_rating || 0;  // Average rating (1 to 5)
     const ratingNumber = props.no_of_ratings;  // Number of ratings
+
+    // Cap filled stars at 5 and handle fractional ratings
+    const filledStars = Math.min(5, Math.floor(avgRating));
+    const emptyStars = 5 - filledStars;
 
     return (
         <div className="items__rating">
-            {Array.from({ length: startNumber }, (_, i) => (
-                <StarIcon key={i} className="items__rating__start" />
+            {Array.from({ length: filledStars }, (_, i) => (
+                <StarIcon key={`filled-${i}`} className="items__rating__start" />
             ))}
 
-            {Array.from({ length: 6 - startNumber }, (_, i) => (
-                <StarBorderOutlinedIcon key={i} className="items__rating__start--notfull" />
+            {Array.from({ length: emptyStars }, (_, i) => (
+                <StarBorderOutlinedIcon key={`empty-${i}`} className="items__rating__start--notfull" />
             ))}
 
             <span className="items__rating__text">
