@@ -71,6 +71,22 @@ const NavBar = () => {
         "women's clothing": 18
     };
 
+    // Reverse mapping: encoded ID -> category title
+    const categoryNameMapping = {
+        "0": "Accessories", "1": "Appliances", "2": "Bags & Luggage",
+        "3": "Beauty & Health", "4": "Car & Motorbike", "5": "Grocery & Gourmet Foods",
+        "6": "Home & Kitchen", "7": "Home, Kitchen, Pets", "8": "Industrial Supplies",
+        "9": "Kids' Fashion", "10": "Men's Clothing", "11": "Men's Shoes",
+        "12": "Music", "13": "Pet Supplies", "14": "Sports & Fitness",
+        "15": "Stores", "16": "Toys & Baby Products", "17": "TV, Audio & Cameras",
+        "18": "Women's Clothing", "19": "Women's Shoes"
+    };
+
+    // Get current location to determine active category
+    const location = useLocation();
+    const currentCategoryFromUrl = location.pathname.match(/\/Product\/(\d+)/)?.[1] || null;
+    const displayedCategoryName = currentCategoryFromUrl ? categoryNameMapping[currentCategoryFromUrl] || "All" : "All";
+
     const [sidebar, setSiderbar] = useState(false)
 
     const ref = useRef();
@@ -85,6 +101,13 @@ const NavBar = () => {
     const CartItems = useSelector((state) => state.cart.items);
     // When a category is selected
     const handleCategorySelect = (categoryTitle) => {
+        // Handle "All" selection
+        if (categoryTitle === "All") {
+            navigate('/Product');
+            setShowAll(false);
+            return;
+        }
+
         const mainCategoryEncoded = categoryMapping[categoryTitle]; // Get main_category_encoded
         if (mainCategoryEncoded === undefined) {
             console.error("Category title not found in mapping:", categoryTitle);
@@ -196,7 +219,7 @@ const NavBar = () => {
                                 className="searchbox__all"
                                 onClick={() => setShowAll(!showAll)}
                             >
-                                <div className="searchbox__all__text">All</div>
+                                <div className="searchbox__all__text">{displayedCategoryName}</div>
                                 <ArrowDropDownOutlinedIcon sx={{ fontSize: "20px" }} />
                             </div>
 
@@ -204,11 +227,20 @@ const NavBar = () => {
                             {showAll && (
                                 <div>
                                     <ul className="searchbox__all__textbox">
+                                        {/* All option - shows all products */}
+                                        <li
+                                            className="textbox__text"
+                                            key="all"
+                                            onClick={() => handleCategorySelect("All")}
+                                            style={{ fontWeight: !currentCategoryFromUrl ? 'bold' : 'normal' }}
+                                        >
+                                            All
+                                        </li>
                                         {allItems.map(item => (
                                             <li
                                                 className="textbox__text"
-                                                key={item._id}
-                                                onClick={() => handleCategorySelect(item.title)}  // Handle category selection
+                                                key={item.main_category_encoded}
+                                                onClick={() => handleCategorySelect(item.title)}
                                             >
                                                 {item.title}
                                             </li>

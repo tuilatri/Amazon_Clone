@@ -31,19 +31,35 @@ const Product = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage] = useState(50);
+
+  // Category name mapping (encoded value -> display name)
+  const categoryNameMapping = {
+    "0": "Accessories", "1": "Appliances", "2": "Bags & Luggage",
+    "3": "Beauty & Health", "4": "Car & Motorbike", "5": "Grocery & Gourmet Foods",
+    "6": "Home & Kitchen", "7": "Home, Kitchen, Pets", "8": "Industrial Supplies",
+    "9": "Kids' Fashion", "10": "Men's Clothing", "11": "Men's Shoes",
+    "12": "Music", "13": "Pet Supplies", "14": "Sports & Fitness",
+    "15": "Stores", "16": "Toys & Baby Products", "17": "TV, Audio & Cameras",
+    "18": "Women's Clothing", "19": "Women's Shoes"
+  };
+
   // Fetch products - all products or filtered by category
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
+        setCurrentPage(1); // Reset to page 1 when category changes
         let response;
 
         if (category) {
           // Fetch products by category
           response = await fetch(`http://127.0.0.1:8000/getProductbyCategory/?categoryencode=${category}`);
         } else {
-          // Fetch all products
-          response = await fetch("http://localhost:8000/products/search?query=");
+          // Fetch ALL products from database
+          response = await fetch("http://127.0.0.1:8000/getAllProductsFlat/");
         }
 
         if (!response.ok) {
@@ -144,6 +160,21 @@ const Product = () => {
   //     return <h1>Loading Products...</h1>;
   // }
 
+  // Pagination calculations
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(products.length / productsPerPage);
+
+  // Get category name for banner
+  const categoryName = category ? categoryNameMapping[category] || "Products" : "All Products";
+
+  // Handle page change
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo(0, 0); // Scroll to top when page changes
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -237,16 +268,16 @@ const Product = () => {
         {/* right sidebar */}
         <div className='ProductPageMainRight'>
           <div className="ProductPageMainRightTopBanner">
-            1-10 of {products.length} results for {""}
+            {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, products.length)} of {products.length} results for{" "}
             <span className='ProductPageMainRightTopBannerSpan'>
-              Laptops
+              {categoryName}
             </span>
           </div>
 
           <div className='ItemImageProductPage'>
 
             {
-              products.map((item, index) => {
+              currentProducts.map((item, index) => {
                 return (
                   <div className='ItemImageProductPageOne' key={item.product_id}>
                     <div className='ImageBlockItemImageProductPageOne'>
@@ -307,6 +338,57 @@ const Product = () => {
 
           </div>
 
+          {/* Pagination Controls */}
+          <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', padding: '20px 0', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              style={{ padding: '8px 16px', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', backgroundColor: currentPage === 1 ? '#ccc' : '#febd69', border: 'none', borderRadius: '4px' }}
+            >
+              Previous
+            </button>
+
+            {/* Show limited page numbers */}
+            {totalPages <= 7 ? (
+              [...Array(totalPages)].map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => handlePageChange(index + 1)}
+                  style={{ padding: '8px 12px', cursor: 'pointer', backgroundColor: currentPage === index + 1 ? '#FF9900' : '#fff', border: '1px solid #ccc', borderRadius: '4px', fontWeight: currentPage === index + 1 ? 'bold' : 'normal' }}
+                >
+                  {index + 1}
+                </button>
+              ))
+            ) : (
+              <>
+                {currentPage > 3 && <button onClick={() => handlePageChange(1)} style={{ padding: '8px 12px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}>1</button>}
+                {currentPage > 4 && <span>...</span>}
+                {[...Array(5)].map((_, i) => {
+                  const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  if (pageNum > totalPages) return null;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      style={{ padding: '8px 12px', cursor: 'pointer', backgroundColor: currentPage === pageNum ? '#FF9900' : '#fff', border: '1px solid #ccc', borderRadius: '4px', fontWeight: currentPage === pageNum ? 'bold' : 'normal' }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                {currentPage < totalPages - 3 && <span>...</span>}
+                {currentPage < totalPages - 2 && <button onClick={() => handlePageChange(totalPages)} style={{ padding: '8px 12px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}>{totalPages}</button>}
+              </>
+            )}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              style={{ padding: '8px 16px', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', backgroundColor: currentPage === totalPages ? '#ccc' : '#febd69', border: 'none', borderRadius: '4px' }}
+            >
+              Next
+            </button>
+          </div>
 
         </div>
 
