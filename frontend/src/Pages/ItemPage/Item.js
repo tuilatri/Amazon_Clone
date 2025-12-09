@@ -57,7 +57,7 @@ const Item = () => {
         Dispatch(AddToCart(item));
         try {
             console.log(item.product_id || item.id, userInfo.email)
-            const response = await axios.post("http://localhost:8000/addToCart", { product_id: (item.product_id || item.id), user_email: userInfo.email, quantity: 1 });
+            const response = await axios.post("http://localhost:8000/addToCart/", { product_id: (item.product_id || item.id), user_email: userInfo.email, quantity: 1 });
 
             if (response.status === 200) {
                 toast.success('Added to cart successfully', {

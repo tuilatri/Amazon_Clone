@@ -32,7 +32,7 @@ const Cart = () => {
     Dispatch(AddToCart(item));
     try {
       console.log(item.product_id || item.id, userInfo.email)
-      const response = await axios.post("http://localhost:8000/addToCart", { product_id: (item.product_id || item.id), user_email: userInfo.email, quantity: 1 });
+      const response = await axios.post("http://localhost:8000/addToCart/", { product_id: (item.product_id || item.id), user_email: userInfo.email, quantity: 1 });
 
       if (response.status === 200) {
         toast.success('Added to cart successfully', {
@@ -44,13 +44,19 @@ const Cart = () => {
       toast.error(error);
     }
   };
-  // Fetch cart items when the component mounts
+  // Fetch cart items when the component mounts and user is authenticated
   useEffect(() => {
-    fetchCartItems();
-    if (CartItem.length > 0) {
+    if (userInfo.email) {
+      fetchCartItems();
+    }
+  }, [user?.email_address]); // Re-fetch when user auth changes
+
+  // Fetch recommended items when cart has items
+  useEffect(() => {
+    if (CartItem.length > 0 && userInfo.email) {
       fetchRecommendedItems();
     }
-  }, [CartItem]);
+  }, [CartItem.length, userInfo.email]);
 
   const totalCost = CartItem.reduce((total, item) => {
     // Fallback values in case the properties are missing

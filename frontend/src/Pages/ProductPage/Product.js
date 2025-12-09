@@ -5,7 +5,7 @@ import StarOutlineIcon from '@mui/icons-material/StarOutline';
 // import ProductDetail from "../../../public/Data/Product.json";
 import NavBar from "../../Components/Navbar/Navigation"
 import ProductFooter from "./ProductFooter"
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { AddToCart } from '../../Redux/Action/Action';
 import { toast, ToastContainer } from 'react-toastify';
@@ -13,17 +13,66 @@ import 'react-toastify/dist/ReactToastify.css';
 import { GB_CURRENCY } from '../../Utils/constants';
 import ItemRatings from '../ItemPage/ItemRatings';
 import axios from "axios";
+import { useAuth } from '../../Context/AuthContext';
 
 const Product = () => {
   const { category } = useParams(); // Get optional category from URL
   const Dispatch = useDispatch();
   const CartItems = useSelector((state) => state.cart.items);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
 
-  const HandleAddToCart = (item) => {
-    toast.success("Added Item To Cart", {
-      position: "bottom-right"
-    })
+  // Derive userInfo from AuthContext
+  const userInfo = {
+    name: user?.user_name || '',
+    email: user?.email_address || '',
+    phone: user?.phone_number || '',
+    address: '',
+    age: user?.age || '',
+    gender: user?.gender || '',
+    city: user?.city || '',
+  };
+
+  const HandleAddToCart = async (item) => {
+    if (!isAuthenticated || !user?.email_address) {
+      // Pop up login request and navigate to login
+      toast.info("Please log in to add items to the cart.", {
+        position: "bottom-right"
+      });
+
+      // Navigate to the login page, passing the current page and the item to add as state
+      navigate('/SignIn', {
+        state: {
+          from: location.pathname,
+          itemToAdd: item,
+        }
+      });
+      return;
+    }
+
+    // Add to Redux store
     Dispatch(AddToCart(item));
+
+    try {
+      // Call backend API to persist cart item
+      const response = await axios.post("http://localhost:8000/addToCart/", {
+        product_id: (item.product_id || item.id),
+        user_email: userInfo.email,
+        quantity: 1
+      });
+
+      if (response.status === 200) {
+        toast.success('Added to cart successfully', {
+          position: 'bottom-right',
+        });
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add item to cart. Please try again.", {
+        position: "bottom-right"
+      });
+    }
   }
 
   const [products, setProducts] = useState([]);
