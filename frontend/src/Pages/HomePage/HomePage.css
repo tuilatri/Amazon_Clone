@@ -6,6 +6,19 @@
     /* Let content determine actual height, not fixed viewport units */
 }
 
+/* Skeleton loading animation */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
 .image__list {
     display: flex;
 }

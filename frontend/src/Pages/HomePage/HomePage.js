@@ -12,6 +12,30 @@ import { useAuth } from '../../Context/AuthContext';
 const HomePage = () => {
 
   const { isAuthenticated, user } = useAuth();
+
+  // Category mapping for card__slider links (matches searchbox__all__textbox categories)
+  const categoryMapping = {
+    "stores": 15,
+    "car & motorbike": 4,
+    "home, kitchen, pets": 7,
+    "pet supplies": 13,
+    "home & kitchen": 6,
+    "men's shoes": 11,
+    "accessories": 0,
+    "beauty & health": 3,
+    "toys & baby products": 16,
+    "music": 12,
+    "sports & fitness": 14,
+    "tv, audio & cameras": 17,
+    "women's shoes": 19,
+    "appliances": 1,
+    "grocery & gourmet foods": 5,
+    "kids' fashion": 9,
+    "bags & luggage": 2,
+    "men's clothing": 10,
+    "industrial supplies": 8,
+    "women's clothing": 18
+  };
   const [randomCategoriesWithProducts, setRandomCategoriesWithProducts] = useState([]); // Holds 5 random categories with products
   const [listOfAllMainCategory, setListOfAllMainCategory] = useState([]);
   const [originalProducts, setOriginalProducts] = useState({}); // Store the original products by category
@@ -127,7 +151,7 @@ const HomePage = () => {
     updateRandomCategories();
 
     // Set an interval to update the categories every 10 seconds
-    const interval = setInterval(updateRandomCategories, 10000);
+    const interval = setInterval(updateRandomCategories, 500000); // Refresh every 500 seconds
 
     // Clean up the interval on component unmount
     return () => clearInterval(interval);
@@ -497,47 +521,69 @@ const HomePage = () => {
           )}
         </div>
       )}
-      {!isAuthenticated && (
-        <div className="card__slider">
-          {randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
-            <div className="card__slider--long">
-              <div className="card__slider__title">
-                {randomCategoriesWithProducts[4].category}
-              </div>
-              <div className="card__slider__box">
-                <div className="card__slider__scroll">
-                  {randomCategoriesWithProducts[4].products
-                    .slice(0, 20)
-                    .map((product) => (
-                      <div
-                        key={product.product_id || product.product_name}
-                        className="card__slider__item1"
-                      >
-                        <Link
-                          to={product.product_link}
-                          className="card__slider__item__link"
-                        >
-                          <img
-                            src={product.product_image}
-                            alt={product.product_name}
-                            className="card__slider__item__image"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://via.placeholder.com/150?text=Image+Unavailable"; // Fallback image
-                            }}
-                          />
-                        </Link>
-                      </div>
-                    ))}
-                </div>
+      {/* Card Slider - Shows for all users */}
+      <div className="card__slider">
+        {loading ? (
+          /* Skeleton Loading */
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ width: '200px', height: '24px', backgroundColor: '#e0e0e0', borderRadius: '4px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton-${index}`} className="card__slider__item" style={{ backgroundColor: '#f0f0f0' }}>
+                    <div style={{ width: '180px', height: '160px', backgroundColor: '#e0e0e0', borderRadius: '8px', animation: 'pulse 1.5s ease-in-out infinite' }}></div>
+                  </div>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="loading-indicator">Loading...</div> // Loading indicator
-          )}
-        </div>
-      )}
+          </div>
+        ) : randomCategoriesWithProducts && randomCategoriesWithProducts.length > 0 ? (
+          <div className="card__slider--long">
+            {/* Category Title - Links to Category Page */}
+            <Link
+              to={`/Product/${categoryMapping[randomCategoriesWithProducts[0].category.toLowerCase()] || ''}`}
+              className="card__slider__title"
+              style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+            >
+              {randomCategoriesWithProducts[0].category}
+            </Link>
+            <div className="card__slider__box">
+              <div className="card__slider__scroll">
+                {randomCategoriesWithProducts[0].products
+                  .slice(0, 20)
+                  .map((product) => (
+                    <div
+                      key={product.product_id || product.product_name}
+                      className="card__slider__item"
+                    >
+                      {/* Product Image - Links to Product Detail Page */}
+                      <Link
+                        to={`/Item/${product.product_id}`}
+                        className="card__slider__item__link"
+                      >
+                        <img
+                          src={product.product_image}
+                          alt={product.product_name}
+                          className="card__slider__item__image"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://via.placeholder.com/150?text=Image+Unavailable";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Fallback skeleton if no data */
+          <div className="card__slider--long">
+            <div className="card__slider__title" style={{ color: '#666' }}>Loading categories...</div>
+          </div>
+        )}
+      </div>
 
       <div className="item__box__container">
         <div className="item__box">
