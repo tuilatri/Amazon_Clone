@@ -16,6 +16,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import { useSelector, useDispatch } from 'react-redux';
 import { callAPI } from '../../Utils/CallAPI';
 import { useAuth } from '../../Context/AuthContext';
+import axios from 'axios';
 
 const NavBar = () => {
     const { isAuthenticated, user, logout } = useAuth();
@@ -99,6 +100,33 @@ const NavBar = () => {
     }, [ref, sidebar]);
 
     const CartItems = useSelector((state) => state.cart.items);
+    const [backendCartCount, setBackendCartCount] = useState(0);
+
+    // Fetch cart count from backend on mount and when user changes
+    useEffect(() => {
+        const fetchCartCount = async () => {
+            if (isAuthenticated && user?.email_address) {
+                try {
+                    const response = await axios.post("http://localhost:8000/cart", {
+                        type: "display",
+                        user_email: user.email_address
+                    });
+                    if (response.data.cart && Array.isArray(response.data.cart)) {
+                        setBackendCartCount(response.data.cart.length);
+                    }
+                } catch (error) {
+                    console.error("Error fetching cart count:", error);
+                }
+            } else {
+                setBackendCartCount(0);
+            }
+        };
+        fetchCartCount();
+    }, [isAuthenticated, user?.email_address]);
+
+    // Use the maximum of Redux cart count and backend cart count
+    // This ensures immediate updates (Redux) and persistence after reload (backend)
+    const cartCount = Math.max(CartItems.length, backendCartCount);
     // When a category is selected
     const handleCategorySelect = (categoryTitle) => {
         // Handle "All" selection
@@ -356,7 +384,7 @@ const NavBar = () => {
                         className="cart"
                     >
                         <span className="cart__up">
-                            {CartItems.length}
+                            {cartCount}
                         </span>
                         <div className="cart__down">
                             <ShoppingCartOutlinedIcon className="cart__icon" />
