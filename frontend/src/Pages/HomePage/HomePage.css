@@ -88,6 +88,8 @@
 }
 
 .item__box__container {
+    position: relative;
+    z-index: 10;
     display: flex;
     /* Sets a flex container */
     flex-wrap: wrap;
@@ -96,6 +98,8 @@
     /* Adds space between items */
     justify-content: space-between;
     /* Optional: Adjust spacing */
+    margin-top: -150px;
+    /* Overlap 25% from bottom of image slider */
 }
 
 .item__box__card {

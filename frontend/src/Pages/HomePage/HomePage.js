@@ -44,6 +44,22 @@ const HomePage = () => {
       setStartSlider(startSlider + 100);
     }
   };
+
+  // Auto-slide every 3 seconds (infinite slider)
+  useEffect(() => {
+    const totalSlides = 7; // Number of images in the slider
+    const autoSlideInterval = setInterval(() => {
+      setStartSlider(prev => {
+        const endSlider = (totalSlides - 1) * -100;
+        if (prev <= endSlider) {
+          return 0; // Loop back to first slide
+        }
+        return prev - 100;
+      });
+    }, 3000);
+
+    return () => clearInterval(autoSlideInterval); // Cleanup on unmount
+  }, []);
   useEffect(() => {
     const fetchData = async () => {
       try {
