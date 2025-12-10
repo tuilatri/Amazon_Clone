@@ -29,6 +29,13 @@ const Checkout = () => {
     const [cartItems, setCartItems] = useState([]);
     const [selectedItems, setSelectedItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Payment and Shipping states
+    const [paymentMethods, setPaymentMethods] = useState([]);
+    const [shippingMethods, setShippingMethods] = useState([]);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+    const [selectedShippingMethod, setSelectedShippingMethod] = useState(null);
 
     // Fetch cart items from backend
     const fetchCartItems = async () => {
@@ -54,10 +61,58 @@ const Checkout = () => {
         }
     };
 
+    // Fetch payment methods from backend
+    const fetchPaymentMethods = async () => {
+        try {
+            const response = await axios.get("http://localhost:8000/api/payment-methods");
+            if (response.data.payment_methods) {
+                setPaymentMethods(response.data.payment_methods);
+                // Default to first payment method (COD)
+                if (response.data.payment_methods.length > 0) {
+                    setSelectedPaymentMethod(response.data.payment_methods[0].id);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching payment methods:", error);
+            // Fallback to hardcoded methods if API fails
+            setPaymentMethods([
+                { id: 1, name: 'COD' },
+                { id: 2, name: 'Credit Card' }
+            ]);
+            setSelectedPaymentMethod(1);
+        }
+    };
+
+    // Fetch shipping methods from backend
+    const fetchShippingMethods = async () => {
+        try {
+            const response = await axios.get("http://localhost:8000/api/shipping-methods");
+            if (response.data.shipping_methods) {
+                setShippingMethods(response.data.shipping_methods);
+                // Default to first shipping method (Standard)
+                if (response.data.shipping_methods.length > 0) {
+                    setSelectedShippingMethod(response.data.shipping_methods[0].id);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching shipping methods:", error);
+            // Fallback to hardcoded methods if API fails
+            setShippingMethods([
+                { id: 1, type: 'Standard', price: 5 },
+                { id: 2, type: 'Express', price: 10 },
+                { id: 3, type: 'Same Day', price: 20 },
+                { id: 4, type: 'International', price: 40 }
+            ]);
+            setSelectedShippingMethod(1);
+        }
+    };
+
     // Load cart items and selection state on mount
     useEffect(() => {
         if (userInfo.email) {
             fetchCartItems();
+            fetchPaymentMethods();
+            fetchShippingMethods();
         } else {
             setLoading(false);
         }
@@ -96,6 +151,12 @@ const Checkout = () => {
         return total + (quantity * price);
     }, 0);
 
+    // Get selected shipping cost
+    const shippingCost = shippingMethods.find(sm => sm.id === selectedShippingMethod)?.price || 0;
+
+    // Calculate order total (items + shipping)
+    const orderTotal = subtotal + shippingCost;
+
     // Calculate total quantity
     const totalQuantity = selectedItems.reduce((total, item) => total + (item.quantity || 1), 0);
 
@@ -105,33 +166,65 @@ const Checkout = () => {
             return;
         }
 
+        if (!selectedPaymentMethod) {
+            toast.warn("Please select a payment method.");
+            return;
+        }
+
+        if (!selectedShippingMethod) {
+            toast.warn("Please select a shipping method.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
         try {
-            // Clear the cart after successful checkout
-            await axios.post("http://localhost:8000/cart", {
-                type: "remove-all",
-                user_email: userInfo.email
+            // Prepare order items
+            const orderItems = selectedItems.map(item => ({
+                product_id: item.product_id || item.id,
+                quantity: item.quantity || 1,
+                price: parseFloat(item.discount_price_usd) || parseFloat(item.price) || 0
+            }));
+
+            // Create order via API
+            const orderResponse = await axios.post("http://localhost:8000/api/create-order", {
+                user_email: userInfo.email,
+                payment_method_id: selectedPaymentMethod,
+                shipping_method_id: selectedShippingMethod,
+                items: orderItems
             });
 
-            Dispatch(ClearCart());
+            if (orderResponse.data.order_id) {
+                // Order created successfully - now clear the cart
+                await axios.post("http://localhost:8000/cart", {
+                    type: "remove-all",
+                    user_email: userInfo.email
+                });
 
-            // Clear selection from localStorage
-            const storageKey = `cartSelection_${userInfo.email}`;
-            localStorage.removeItem(storageKey);
+                Dispatch(ClearCart());
 
-            // Dispatch event to update cart count in navbar
-            window.dispatchEvent(new Event('cartUpdated'));
+                // Clear selection from localStorage
+                const storageKey = `cartSelection_${userInfo.email}`;
+                localStorage.removeItem(storageKey);
 
-            toast.success("Order Completed! Thank you for your purchase.", {
-                position: "bottom-right"
-            });
+                // Dispatch event to update cart count in navbar
+                window.dispatchEvent(new Event('cartUpdated'));
 
-            // Redirect to home after delay
-            setTimeout(() => {
-                navigate('/');
-            }, 2000);
+                toast.success(`Order #${orderResponse.data.order_id} placed successfully! Thank you for your purchase.`, {
+                    position: "bottom-right"
+                });
+
+                // Redirect to home after delay
+                setTimeout(() => {
+                    navigate('/');
+                }, 2000);
+            }
         } catch (error) {
             console.error("Error completing order:", error);
-            toast.error("Failed to complete order. Please try again.");
+            const errorMessage = error.response?.data?.detail || "Failed to complete order. Please try again.";
+            toast.error(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -220,20 +313,26 @@ const Checkout = () => {
                     </div>
                 </div>
 
-                {/* checkout shows subtotal */}
+                {/* Shipping Method */}
                 <div className="checkout__section">
                     <div className="checkout__part">
-                        <h3>Order Summary</h3>
+                        <h3>Shipping Method</h3>
                     </div>
-                    <div className="checkout__summary">
-                        <div className="checkout__summary__row">
-                            <span>Items ({totalQuantity}):</span>
-                            <span>{GB_CURRENCY.format(subtotal)}</span>
-                        </div>
-                        <div className="checkout__summary__row checkout__summary__total">
-                            <span><strong>Order Total:</strong></span>
-                            <span><strong>{GB_CURRENCY.format(subtotal)}</strong></span>
-                        </div>
+                    <div className="checkout__shipping-method">
+                        {shippingMethods.map((method) => (
+                            <div className="checkout__shipping-option" key={method.id}>
+                                <input
+                                    type="radio"
+                                    id={`shipping-${method.id}`}
+                                    name="shipping"
+                                    checked={selectedShippingMethod === method.id}
+                                    onChange={() => setSelectedShippingMethod(method.id)}
+                                />
+                                <label htmlFor={`shipping-${method.id}`}>
+                                    {method.type} - {GB_CURRENCY.format(method.price)}
+                                </label>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -243,15 +342,40 @@ const Checkout = () => {
                         <h3>Payment Method</h3>
                     </div>
                     <div className="checkout__payment-method">
-                        <div className="checkout__payment-option">
-                            <input
-                                type="radio"
-                                id="payment-cod"
-                                name="payment"
-                                checked
-                                readOnly
-                            />
-                            <label htmlFor="payment-cod">Cash On Delivery</label>
+                        {paymentMethods.map((method) => (
+                            <div className="checkout__payment-option" key={method.id}>
+                                <input
+                                    type="radio"
+                                    id={`payment-${method.id}`}
+                                    name="payment"
+                                    checked={selectedPaymentMethod === method.id}
+                                    onChange={() => setSelectedPaymentMethod(method.id)}
+                                />
+                                <label htmlFor={`payment-${method.id}`}>
+                                    {method.name === 'COD' ? 'Cash On Delivery (COD)' : method.name}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Order Summary */}
+                <div className="checkout__section">
+                    <div className="checkout__part">
+                        <h3>Order Summary</h3>
+                    </div>
+                    <div className="checkout__summary">
+                        <div className="checkout__summary__row">
+                            <span>Items ({totalQuantity}):</span>
+                            <span>{GB_CURRENCY.format(subtotal)}</span>
+                        </div>
+                        <div className="checkout__summary__row">
+                            <span>Shipping:</span>
+                            <span>{GB_CURRENCY.format(shippingCost)}</span>
+                        </div>
+                        <div className="checkout__summary__row checkout__summary__total">
+                            <span><strong>Order Total:</strong></span>
+                            <span><strong>{GB_CURRENCY.format(orderTotal)}</strong></span>
                         </div>
                     </div>
                 </div>
@@ -261,13 +385,13 @@ const Checkout = () => {
                     <div className="checkout__payment">
                         <div
                             className="checkout__button"
-                            onClick={HandleProceed}
+                            onClick={!isSubmitting ? HandleProceed : undefined}
                             style={{
-                                opacity: selectedItems.length === 0 ? 0.5 : 1,
-                                cursor: selectedItems.length === 0 ? 'not-allowed' : 'pointer'
+                                opacity: selectedItems.length === 0 || isSubmitting ? 0.5 : 1,
+                                cursor: selectedItems.length === 0 || isSubmitting ? 'not-allowed' : 'pointer'
                             }}
                         >
-                            Place Order
+                            {isSubmitting ? 'Processing...' : 'Place Order'}
                         </div>
                     </div>
                 </div>

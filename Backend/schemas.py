@@ -416,3 +416,24 @@ class ListOfInterestingProduct(BaseModel):
     class Config:
         orm_mode = True
 
+
+# Checkout Order Creation Schemas
+class OrderItemRequest(BaseModel):
+    """Schema for individual items in an order"""
+    product_id: str
+    quantity: int
+    price: float
+
+    class Config:
+        orm_mode = True
+
+
+class CreateOrderRequest(BaseModel):
+    """Schema for creating a new order during checkout"""
+    user_email: EmailStr
+    payment_method_id: int
+    shipping_method_id: int
+    items: List[OrderItemRequest]
+
+    class Config:
+        orm_mode = True
