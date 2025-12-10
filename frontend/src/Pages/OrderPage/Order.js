@@ -177,10 +177,10 @@ const Order = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="order-page__search-input"
                             />
-                            <button type="submit" className="order-page__search-button">
+                            {/* <button type="submit" className="order-page__search-button">
                                 <SearchOutlinedIcon sx={{ fontSize: 20 }} />
                                 Search Orders
-                            </button>
+                            </button> */}
                         </form>
                     </div>
                 </div>
