@@ -60,8 +60,8 @@ class UserPaymentMethod(Base):
     is_default = Column(Boolean, default=False)
 
     user = relationship("SiteUser", back_populates="user_payment_methods")
-    shop_order = relationship("ShopOrder", back_populates="payment_method")
     payment_type = relationship("PaymentType", back_populates="user_payment_methods")
+
 
 
 class UserReview(Base):
@@ -144,7 +144,7 @@ class ProductItem(Base):
     # Relationships
     product = relationship("Product", back_populates="items")
     configurations = relationship("ProductConfiguration", back_populates="product_item")
-    order_line = relationship("OrderLine", back_populates="product_item")
+
 
     
 
@@ -238,26 +238,27 @@ class ShopOrder(Base):
     user_id = Column(Integer, ForeignKey("site_user.user_id"))
     order_date = Column(Date, nullable=False)
     order_total = Column(DECIMAL(10, 2))
-    payment_method_id = Column(Integer, ForeignKey("user_payment_method.payment_method_id"))  # Correct foreign key
+    payment_method_id = Column(Integer, ForeignKey("payment_type.payment_type_id"))  # Changed to reference payment_type
     shipping_method_id = Column(Integer, ForeignKey("shipping_method.shipping_method_id"))
     order_status_id = Column(Integer, ForeignKey("order_status.order_status_id"))
 
     user = relationship("SiteUser", back_populates="orders")
-    payment_method = relationship("UserPaymentMethod", back_populates="shop_order")
+    payment_method = relationship("PaymentType")  # Changed to PaymentType
     shipping_method = relationship("ShippingMethod")
     order_status = relationship("OrderStatus")
     order_lines = relationship("OrderLine", back_populates="shop_order")
+
 
 class OrderLine(Base):
     __tablename__ = "order_line"
     ordered_product_id = Column(Integer, primary_key=True)
     order_id = Column(Integer, ForeignKey("shop_order.order_id"))
-    product_item_id = Column(String, ForeignKey("product_item.product_item_id"))
+    product_id = Column(String(100), ForeignKey("product.product_id"))  # Changed to reference product table
     qty = Column(Integer, nullable=False)
     price = Column(DECIMAL(10, 2), nullable=False)
 
     shop_order = relationship("ShopOrder", back_populates="order_lines")
-    product_item = relationship("ProductItem", back_populates="order_line")
+    product = relationship("Product")  # Changed relationship
     reviews = relationship("UserReview", back_populates="order_line")
 
 

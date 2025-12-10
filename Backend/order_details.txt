@@ -1,0 +1,9 @@
+Order ID: 11
+User ID: 2002
+Order Date: 2025-12-10
+Order Total: 20.20
+Payment Method ID: 2
+Shipping Method ID: 2
+Order Status ID: 1
+Order Lines: 1
+  - Product: str203167, Qty: 1, Price: 10.20

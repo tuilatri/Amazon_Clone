@@ -1197,6 +1197,138 @@ async def checkout(db: Session = Depends(get_db)):
     return {"message": "Checkout successful", "order_total": order_total}
 
 # ------------------------------
+# Payment Methods API
+# ------------------------------
+
+@app.get("/api/payment-methods")
+async def get_payment_methods(db: Session = Depends(get_db)):
+    """
+    Fetch all available payment methods from PaymentType table.
+    """
+    payment_methods = db.query(PaymentType).all()
+    
+    return {
+        "payment_methods": [
+            {
+                "id": pm.payment_type_id,
+                "name": pm.payment_name
+            }
+            for pm in payment_methods
+        ]
+    }
+
+# ------------------------------
+# Shipping Methods API
+# ------------------------------
+
+@app.get("/api/shipping-methods")
+async def get_shipping_methods(db: Session = Depends(get_db)):
+    """
+    Fetch all available shipping methods with their prices.
+    """
+    shipping_methods = db.query(ShippingMethod).all()
+    
+    return {
+        "shipping_methods": [
+            {
+                "id": sm.shipping_method_id,
+                "type": sm.type,
+                "price": float(sm.price)
+            }
+            for sm in shipping_methods
+        ]
+    }
+
+# ------------------------------
+# Create Order API
+# ------------------------------
+
+@app.post("/api/create-order")
+async def create_order_api(request: CreateOrderRequest, db: Session = Depends(get_db)):
+    """
+    Create a new order with selected payment and shipping methods.
+    Saves the order to shop_order and order_line tables.
+    """
+    from datetime import datetime
+    
+    # Find the user by email
+    user = db.query(SiteUser).filter(SiteUser.email_address == request.user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Validate payment method exists
+    payment_method = db.query(PaymentType).filter(PaymentType.payment_type_id == request.payment_method_id).first()
+    if not payment_method:
+        raise HTTPException(status_code=400, detail="Invalid payment method")
+    
+    # Validate shipping method exists
+    shipping_method = db.query(ShippingMethod).filter(ShippingMethod.shipping_method_id == request.shipping_method_id).first()
+    if not shipping_method:
+        raise HTTPException(status_code=400, detail="Invalid shipping method")
+    
+    if not request.items or len(request.items) == 0:
+        raise HTTPException(status_code=400, detail="No items in order")
+    
+    # Calculate order total (items + shipping)
+    items_total = sum(item.quantity * item.price for item in request.items)
+    shipping_cost = float(shipping_method.price)
+    order_total = items_total + shipping_cost
+    
+    try:
+        # Create the order
+        new_order = ShopOrder(
+            user_id=user.user_id,
+            order_date=datetime.now().date(),
+            order_total=order_total,
+            payment_method_id=request.payment_method_id,  # References payment_type_id
+            shipping_method_id=request.shipping_method_id,
+            order_status_id=1,  # 'Pending' status
+        )
+        db.add(new_order)
+        db.commit()
+        db.refresh(new_order)
+        
+        # Add order lines for each item
+        for item in request.items:
+            order_line = OrderLine(
+                order_id=new_order.order_id,
+                product_id=item.product_id,  # Changed from product_item_id
+                qty=item.quantity,
+                price=item.price,
+            )
+            db.add(order_line)
+
+        
+        db.commit()
+        
+        # Clear user's cart items that were ordered
+        shopping_cart = db.query(ShoppingCart).filter(ShoppingCart.user_id == user.user_id).first()
+        if shopping_cart:
+            for item in request.items:
+                cart_item = db.query(ShoppingCartItem).filter(
+                    ShoppingCartItem.shopping_cart_id == shopping_cart.shopping_cart_id,
+                    ShoppingCartItem.product_id == item.product_id
+                ).first()
+                if cart_item:
+                    db.delete(cart_item)
+            db.commit()
+        
+        return {
+            "message": "Order created successfully",
+            "order_id": new_order.order_id,
+            "order_total": float(order_total),
+            "items_total": float(items_total),
+            "shipping_cost": shipping_cost,
+            "payment_method": payment_method.payment_name,
+            "shipping_method": shipping_method.type
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating order: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+# ------------------------------
 # 6. Order Page
 # ------------------------------
 
