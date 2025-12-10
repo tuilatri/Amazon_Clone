@@ -1,0 +1,147 @@
+============================================================
+ORDER TRACING AND RETRIEVAL GUIDE
+============================================================
+
+DATABASE TABLES INVOLVED
+----------------------------------------
+1. shop_order - Main order table
+2. order_line - Individual items in each order
+3. site_user - User who placed the order
+4. product - Product details
+5. payment_type - Payment method used
+6. shipping_method - Shipping method selected
+7. order_status - Current status of order
+
+SHOP_ORDER TABLE STRUCTURE
+----------------------------------------
+  - order_id (PK): Unique order identifier
+  - user_id (FK): Links to site_user table
+  - order_date: Date the order was placed
+  - order_total: Total amount including shipping
+  - payment_method_id (FK): Links to payment_type
+  - shipping_method_id (FK): Links to shipping_method
+  - order_status_id (FK): Links to order_status
+
+ORDER_LINE TABLE STRUCTURE
+----------------------------------------
+  - ordered_product_id (PK): Unique line item ID
+  - order_id (FK): Links to shop_order
+  - product_id (FK): Links to product table
+  - qty: Quantity ordered
+  - price: Price per item
+
+SQL QUERIES TO TRACE ORDERS
+----------------------------------------
+
+1. Get all orders for a user by email:
+   SELECT so.* FROM shop_order so
+   JOIN site_user su ON so.user_id = su.user_id
+   WHERE su.email_address = 'guest01@gmail.com';
+
+2. Get specific order details by order_id:
+   SELECT * FROM shop_order WHERE order_id = 11;
+
+3. Get order items/lines for an order:
+   SELECT ol.*, p.product_name
+   FROM order_line ol
+   JOIN product p ON ol.product_id = p.product_id
+   WHERE ol.order_id = 11;
+
+4. Full order with all details:
+   SELECT so.order_id, so.order_date, so.order_total,
+          su.email_address, su.user_name,
+          pt.payment_name, sm.type AS shipping_type,
+          sm.price AS shipping_price, os.status
+   FROM shop_order so
+   JOIN site_user su ON so.user_id = su.user_id
+   JOIN payment_type pt ON so.payment_method_id = pt.payment_type_id
+   JOIN shipping_method sm ON so.shipping_method_id = sm.shipping_method_id
+   JOIN order_status os ON so.order_status_id = os.order_status_id
+   WHERE so.order_id = 11;
+
+API ENDPOINTS FOR ORDER RETRIEVAL
+----------------------------------------
+1. GET /api/payment-methods - List payment options
+2. GET /api/shipping-methods - List shipping options
+3. POST /api/create-order - Create new order
+4. POST /order/{order_id} - Get order details
+5. POST /order/history - Get user order history
+
+PYTHON CODE TO TRACE AN ORDER
+----------------------------------------
+from database import SessionLocal
+from models import ShopOrder, OrderLine, SiteUser
+
+db = SessionLocal()
+
+# Find user
+user = db.query(SiteUser).filter(
+    SiteUser.email_address == "guest01@gmail.com"
+).first()
+
+# Get all orders for user
+orders = db.query(ShopOrder).filter(
+    ShopOrder.user_id == user.user_id
+).all()
+
+for order in orders:
+    print(f"Order ID: {order.order_id}")
+    print(f"Date: {order.order_date}")
+    print(f"Total: {order.order_total}")
+    # Get order lines
+    lines = db.query(OrderLine).filter(
+        OrderLine.order_id == order.order_id
+    ).all()
+    for line in lines:
+        print(f"  - {line.product_id}: {line.qty} x {line.price}")
+
+db.close()
+
+EXAMPLE: ORDERS FOR TEST ACCOUNT
+----------------------------------------
+User: guest01@gmail.com (ID: 2002)
+Total Orders: 8
+
+Order #11
+  Date: 2025-12-10
+  Total: $20.20
+  Payment Method ID: 2
+  Shipping Method ID: 2
+  Status ID: 1
+  Items (1):
+    - Product: str203167, Qty: 1, Price: $10.20
+
+Order #10
+  Date: 2025-12-10
+  Total: $15.99
+  Payment Method ID: 1
+  Shipping Method ID: 1
+  Status ID: 1
+  Items (1):
+    - Product: str203167, Qty: 1, Price: $10.99
+
+Order #9
+  Date: 2025-12-10
+  Total: $20.20
+  Payment Method ID: 2
+  Shipping Method ID: 2
+  Status ID: 1
+  Items (1):
+    - Product: str203167, Qty: 1, Price: $10.20
+
+Order #8
+  Date: 2025-12-10
+  Total: $15.99
+  Payment Method ID: 1
+  Shipping Method ID: 1
+  Status ID: 1
+  Items (0):
+
+Order #7
+  Date: 2025-12-10
+  Total: $15.99
+  Payment Method ID: 1
+  Shipping Method ID: 1
+  Status ID: 1
+  Items (0):
+
