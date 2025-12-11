@@ -1403,6 +1403,51 @@ async def get_order_detail(order_id: int, db: Session = Depends(get_db)):
         "items": items
     }
 
+# ------------------------------
+# Cancel Order API
+# ------------------------------
+
+@app.post("/order/cancel")
+async def cancel_order(
+    order_id: int = Body(..., embed=True),
+    user_email: str = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel an order - only allowed if order status is Pending (id=1).
+    Changes order status to Cancelled (id=5).
+    """
+    # Find user by email
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find the order
+    order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify the order belongs to this user
+    if order.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to cancel this order")
+    
+    # Check if order is in Pending status (id=1)
+    if order.order_status_id != 1:
+        raise HTTPException(
+            status_code=400, 
+            detail="Only orders with Pending status can be cancelled"
+        )
+    
+    # Update status to Cancelled (id=5)
+    order.order_status_id = 5
+    db.commit()
+    
+    return {
+        "message": "Order cancelled successfully",
+        "order_id": order.order_id,
+        "new_status": "Cancelled"
+    }
+
 
 # ------------------------------
 # Checkout Display

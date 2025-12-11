@@ -322,6 +322,51 @@
     font-style: italic;
 }
 
+/* Returned Status */
+.order-card__status[data-status="returned"] {
+    background: #e8f0fe;
+    color: #1967d2;
+}
+
+/* Order Card Actions */
+.order-card__actions {
+    padding: 14px 18px;
+    border-top: 1px solid #d5d9d9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Cancel Button */
+.order-card__cancel-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f1111;
+    background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
+    border: 1px solid #adb1b8 #a2a6ac #8d9096;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.order-card__cancel-btn:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #e7e9ec, #d4d6d9);
+}
+
+.order-card__cancel-btn:active:not(:disabled) {
+    background: #d4d6d9;
+}
+
+.order-card__cancel-btn--disabled,
+.order-card__cancel-btn:disabled {
+    color: #adb1b8;
+    background: #f7f8fa;
+    border-color: #e7e9ec;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .order-page__header {
@@ -354,6 +399,10 @@
     }
 
     .order-card__item-info {
+        justify-content: center;
+    }
+
+    .order-card__actions {
         justify-content: center;
     }
 }

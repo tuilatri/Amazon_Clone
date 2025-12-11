@@ -15,19 +15,21 @@ const Order = () => {
     const [orders, setOrders] = useState([]);
     const [filteredOrders, setFilteredOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [cancellingOrderId, setCancellingOrderId] = useState(null);
 
     // State for filters
-    const [activeTab, setActiveTab] = useState('Order'); // Order, Pending, Processing, Shipped, Delivered, Cancelled
+    const [activeTab, setActiveTab] = useState('Order'); // Order, Pending, Processing, Shipped, Delivered, Cancelled, Returned
     const [timePeriod, setTimePeriod] = useState('past3months'); // last30days, past3months, thisyear, lastyear
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Status mapping
+    // Status mapping - Added Returned (id: 6)
     const statusMapping = {
         1: 'Pending',
         2: 'Processing',
         3: 'Shipped',
         4: 'Delivered',
-        5: 'Cancelled'
+        5: 'Cancelled',
+        6: 'Returned'
     };
 
     // Time period labels
@@ -46,7 +48,7 @@ const Order = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:8000/order/history', {
+            const response = await axios.post('http://localhost:8800/order/history', {
                 user_email: user.email_address
             });
 
@@ -58,6 +60,40 @@ const Order = () => {
             setOrders([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle cancel order
+    const handleCancelOrder = async (orderId) => {
+        if (!user?.email_address) {
+            alert('Please log in to cancel orders.');
+            return;
+        }
+
+        // Confirm cancellation
+        if (!window.confirm('Are you sure you want to cancel this order?')) {
+            return;
+        }
+
+        setCancellingOrderId(orderId);
+
+        try {
+            const response = await axios.post('http://localhost:8800/order/cancel', {
+                order_id: orderId,
+                user_email: user.email_address
+            });
+
+            if (response.data.message) {
+                alert('Order cancelled successfully!');
+                // Refresh orders list
+                fetchOrders();
+            }
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            const errorMessage = error.response?.data?.detail || 'Failed to cancel order. Please try again.';
+            alert(errorMessage);
+        } finally {
+            setCancellingOrderId(null);
         }
     };
 
@@ -129,8 +165,8 @@ const Order = () => {
         // Search is already reactive via useEffect
     };
 
-    // Tab items
-    const tabs = ['Order', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+    // Tab items - Added Returned
+    const tabs = ['Order', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
 
     // Redirect if not authenticated
     if (!isAuthenticated) {
@@ -278,6 +314,27 @@ const Order = () => {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Order Actions - Cancel Button */}
+                                <div className="order-card__actions">
+                                    {order.order_status_id === 1 ? (
+                                        <button
+                                            className="order-card__cancel-btn"
+                                            onClick={() => handleCancelOrder(order.order_id)}
+                                            disabled={cancellingOrderId === order.order_id}
+                                        >
+                                            {cancellingOrderId === order.order_id ? 'Cancelling...' : 'Cancel Order'}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            className="order-card__cancel-btn order-card__cancel-btn--disabled"
+                                            disabled
+                                            title="Only pending orders can be cancelled"
+                                        >
+                                            Cancel Order
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         ))
                     )}
@@ -289,3 +346,4 @@ const Order = () => {
 };
 
 export default Order;
+
