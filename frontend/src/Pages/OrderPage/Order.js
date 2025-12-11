@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
+import OrderNotification from './Order_Notification';
 import './Order.css';
 import { useAuth } from '../../Context/AuthContext';
 import axios from 'axios';
@@ -16,6 +17,8 @@ const Order = () => {
     const [filteredOrders, setFilteredOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [cancellingOrderId, setCancellingOrderId] = useState(null);
+    const [showNotification, setShowNotification] = useState(false);
+    const [orderToCancel, setOrderToCancel] = useState(null);
 
     // State for filters
     const [activeTab, setActiveTab] = useState('Order'); // Order, Pending, Processing, Shipped, Delivered, Cancelled, Returned
@@ -63,29 +66,32 @@ const Order = () => {
         }
     };
 
-    // Handle cancel order
-    const handleCancelOrder = async (orderId) => {
+    // Handle cancel order - shows notification popup
+    const handleCancelOrder = (orderId) => {
         if (!user?.email_address) {
             alert('Please log in to cancel orders.');
             return;
         }
+        // Show custom notification popup
+        setOrderToCancel(orderId);
+        setShowNotification(true);
+    };
 
-        // Confirm cancellation
-        if (!window.confirm('Are you sure you want to cancel this order?')) {
-            return;
-        }
+    // Confirm cancel order - called when user clicks Yes
+    const confirmCancelOrder = async () => {
+        if (!orderToCancel) return;
 
-        setCancellingOrderId(orderId);
+        setShowNotification(false);
+        setCancellingOrderId(orderToCancel);
 
         try {
             const response = await axios.post('http://localhost:8800/order/cancel', {
-                order_id: orderId,
+                order_id: orderToCancel,
                 user_email: user.email_address
             });
 
             if (response.data.message) {
-                alert('Order cancelled successfully!');
-                // Refresh orders list
+                // Refresh orders list to show updated status
                 fetchOrders();
             }
         } catch (error) {
@@ -94,7 +100,14 @@ const Order = () => {
             alert(errorMessage);
         } finally {
             setCancellingOrderId(null);
+            setOrderToCancel(null);
         }
+    };
+
+    // Close notification without cancelling
+    const closeNotification = () => {
+        setShowNotification(false);
+        setOrderToCancel(null);
     };
 
     // Load orders on mount
@@ -340,6 +353,12 @@ const Order = () => {
                     )}
                 </div>
             </div>
+            <OrderNotification
+                isOpen={showNotification}
+                onConfirm={confirmCancelOrder}
+                onCancel={closeNotification}
+                orderId={orderToCancel}
+            />
             <Footer />
         </div>
     );
