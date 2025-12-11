@@ -1332,39 +1332,122 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
 # 6. Order Page
 # ------------------------------
 
-# @app.get("/orders/{order_id}")
-# async def get_order_detail(order_id: int, db: Session = Depends(get_db)):
-#     """Fetch details of a specific order."""
-#     order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
-#     if not order:
-#         raise HTTPException(status_code=404, detail="Order not found")
+@app.post("/order/history")
+async def get_order_history(user_email: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    """Fetch all orders for a user by email."""
+    # Find user by email
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get all orders for this user
+    orders = db.query(ShopOrder).filter(ShopOrder.user_id == user.user_id).order_by(ShopOrder.order_date.desc()).all()
+    
+    result = []
+    for order in orders:
+        # Get order lines with product details
+        order_lines = db.query(OrderLine).filter(OrderLine.order_id == order.order_id).all()
+        
+        items = []
+        for line in order_lines:
+            # Get product details
+            product = db.query(Product).filter(Product.product_id == line.product_id).first()
+            items.append({
+                "product_id": line.product_id,
+                "qty": line.qty,
+                "price": float(line.price),
+                "product_name": product.product_name if product else "Unknown Product",
+                "product_image": product.product_image if product else ""
+            })
+        
+        result.append({
+            "order_id": order.order_id,
+            "order_date": str(order.order_date),
+            "order_total": float(order.order_total),
+            "payment_method_id": order.payment_method_id,
+            "shipping_method_id": order.shipping_method_id,
+            "order_status_id": order.order_status_id,
+            "items": items
+        })
+    
+    return {"orders": result, "total_count": len(result)}
 
-#     return {
-#         "order_id": order.order_id,
-#         "order_date": order.order_date,
-#         "order_total": float(order.order_total),
-#         "items": [
-#             {"product_id": line.product_item_id, "quantity": line.qty, "price": float(line.price)}
-#             for line in order.order_lines
-#         ],
-#     }
+@app.get("/order/{order_id}")
+async def get_order_detail(order_id: int, db: Session = Depends(get_db)):
+    """Fetch details of a specific order."""
+    order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Get order lines with product details
+    order_lines = db.query(OrderLine).filter(OrderLine.order_id == order.order_id).all()
+    
+    items = []
+    for line in order_lines:
+        product = db.query(Product).filter(Product.product_id == line.product_id).first()
+        items.append({
+            "product_id": line.product_id,
+            "qty": line.qty,
+            "price": float(line.price),
+            "product_name": product.product_name if product else "Unknown Product",
+            "product_image": product.product_image if product else ""
+        })
+    
+    return {
+        "order_id": order.order_id,
+        "order_date": str(order.order_date),
+        "order_total": float(order.order_total),
+        "payment_method_id": order.payment_method_id,
+        "shipping_method_id": order.shipping_method_id,
+        "order_status_id": order.order_status_id,
+        "items": items
+    }
 
-# @app.get("/orders/history")
-# async def get_order_history(db: Session = Depends(get_db)):
-#     """Fetch all past orders for a user."""
-#     orders = db.query(ShopOrder).all()
+# ------------------------------
+# Cancel Order API
+# ------------------------------
 
-#     if not orders:
-#         return {"message": "No past orders found."}
+@app.post("/order/cancel")
+async def cancel_order(
+    order_id: int = Body(..., embed=True),
+    user_email: str = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel an order - only allowed if order status is Pending (id=1).
+    Changes order status to Cancelled (id=5).
+    """
+    # Find user by email
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find the order
+    order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify the order belongs to this user
+    if order.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to cancel this order")
+    
+    # Check if order is in Pending status (id=1)
+    if order.order_status_id != 1:
+        raise HTTPException(
+            status_code=400, 
+            detail="Only orders with Pending status can be cancelled"
+        )
+    
+    # Update status to Cancelled (id=5)
+    order.order_status_id = 5
+    db.commit()
+    
+    return {
+        "message": "Order cancelled successfully",
+        "order_id": order.order_id,
+        "new_status": "Cancelled"
+    }
 
-#     return [
-#         {
-#             "order_id": order.order_id,
-#             "order_date": order.order_date,
-#             "order_total": float(order.order_total),
-#         }
-#         for order in orders
-#     ]
 
 # ------------------------------
 # Checkout Display

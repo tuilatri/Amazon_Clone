@@ -1,0 +1,125 @@
+/* Order Notification Popup Styles */
+
+.order-notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.order-notification {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 400px;
+    max-width: 500px;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.order-notification__header {
+    background: #232f3e;
+    color: #fff;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 3px solid #e77600;
+}
+
+.order-notification__body {
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.order-notification__body p {
+    margin: 0;
+    font-size: 15px;
+    color: #0f1111;
+    line-height: 1.5;
+}
+
+.order-notification__order-id {
+    margin-top: 8px !important;
+    font-size: 13px !important;
+    color: #565959 !important;
+}
+
+.order-notification__actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 0 20px 24px 20px;
+}
+
+.order-notification__btn {
+    padding: 10px 30px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.order-notification__btn--yes {
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+    border: 1px solid #a88734 #9c7e31 #846a29;
+    color: #0f1111;
+}
+
+.order-notification__btn--yes:hover {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+.order-notification__btn--yes:active {
+    background: #ddb347;
+}
+
+.order-notification__btn--no {
+    background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
+    border: 1px solid #adb1b8 #a2a6ac #8d9096;
+    color: #0f1111;
+}
+
+.order-notification__btn--no:hover {
+    background: linear-gradient(to bottom, #e7e9ec, #d4d6d9);
+}
+
+.order-notification__btn--no:active {
+    background: #d4d6d9;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .order-notification {
+        min-width: 90%;
+        margin: 0 15px;
+    }
+
+    .order-notification__actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .order-notification__btn {
+        width: 100%;
+    }
+}

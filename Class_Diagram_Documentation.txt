@@ -1,0 +1,1076 @@
+================================================================================
+             AMAZON CLONE - CLASS DIAGRAM DOCUMENTATION
+================================================================================
+
+This document provides a comprehensive overview of all classes (including 
+SQLAlchemy models, Pydantic schemas, and ML recommendation models), their
+attributes with data types, relationships, and Mermaid Class Diagrams.
+
+================================================================================
+                        BACKEND CLASSES OVERVIEW
+================================================================================
+
+------------------------------------------------------------------------------
+1. DATABASE MODEL CLASSES (SQLAlchemy ORM - models.py)
+------------------------------------------------------------------------------
+
+These classes represent the database tables and are defined using SQLAlchemy ORM.
+They inherit from the declarative Base class.
+
+1.1 Address
+    • Purpose: Stores physical address information.
+    • Attributes:
+      - address_id: Integer (Primary Key)
+      - unit_number: String(100)
+      - street_number: String(40)
+      - address_line1: String(255), NOT NULL
+      - address_line2: String(255)
+      - region: String(100)
+      - postal_code: String(20)
+    • Relationships:
+      - user_addresses: List[UserAddress] (one-to-many)
+
+1.2 SiteUser
+    • Purpose: Represents registered users of the platform.
+    • Attributes:
+      - user_id: Integer (Primary Key, Auto Increment)
+      - user_name: String(100), nullable
+      - age: Integer
+      - gender: String(10)
+      - email_address: String(100), unique, nullable
+      - phone_number: String(10), unique, nullable
+      - city: String(100)
+      - password: String(255), nullable
+    • Relationships:
+      - addresses: List[UserAddress] (one-to-many)
+      - user_payment_methods: List[UserPaymentMethod] (one-to-many)
+      - reviews: List[UserReview] (one-to-many)
+      - ratings: List[ProductRating] (one-to-many)
+      - shopping_carts: List[ShoppingCart] (one-to-many)
+      - orders: List[ShopOrder] (one-to-many)
+      - interesting_categories: List[InterestingCategory] (one-to-many)
+
+1.3 UserAddress
+    • Purpose: Junction table linking users to addresses.
+    • Attributes:
+      - user_id: Integer (Primary Key, Foreign Key -> site_user.user_id)
+      - address_id: Integer (Primary Key, Foreign Key -> address.address_id)
+      - is_default: Boolean, default=False
+    • Relationships:
+      - user: SiteUser (many-to-one)
+      - address: Address (many-to-one)
+
+1.4 UserPaymentMethod
+    • Purpose: Stores user's saved payment methods.
+    • Attributes:
+      - payment_method_id: Integer (Primary Key)
+      - user_id: Integer (Foreign Key -> site_user.user_id)
+      - payment_type_id: Integer (Foreign Key -> payment_type.payment_type_id)
+      - provider: String(50), NOT NULL
+      - account_number: String(20), NOT NULL
+      - expiry_date: Date, NOT NULL
+      - is_default: Boolean, default=False
+    • Relationships:
+      - user: SiteUser (many-to-one)
+      - payment_type: PaymentType (many-to-one)
+
+1.5 UserReview
+    • Purpose: Stores product reviews by users.
+    • Attributes:
+      - user_review_id: Integer (Primary Key)
+      - user_id: Integer (Foreign Key -> site_user.user_id)
+      - ordered_product_id: Integer (Foreign Key -> order_line.ordered_product_id)
+      - rating_value: DECIMAL(2,1), NOT NULL
+      - comment: Text
+    • Relationships:
+      - user: SiteUser (many-to-one)
+      - order_line: OrderLine (many-to-one)
+
+1.6 Product
+    • Purpose: Core product catalog.
+    • Attributes:
+      - product_id: String(100) (Primary Key)
+      - product_name: String(255), NOT NULL
+      - main_category: String(255), NOT NULL
+      - main_category_encoded: String(100), NOT NULL
+      - sub_category: String(255), NOT NULL
+      - sub_category_encoded: String(100), NOT NULL
+      - product_image: String(255), nullable
+      - product_link: String(255), nullable
+      - average_rating: Float, default=0.0
+      - no_of_ratings: Integer, default=0
+      - discount_price_usd: DECIMAL(10,2), nullable
+      - actual_price_usd: DECIMAL(10,2), nullable
+      - category_id: Integer (Foreign Key -> product_category.category_id)
+    • Relationships:
+      - category: ProductCategory (many-to-one)
+      - items: List[ProductItem] (one-to-many)
+      - ratings: List[ProductRating] (one-to-many)
+      - shopping_cart_item: List[ShoppingCartItem] (one-to-many)
+
+1.7 ProductRating
+    • Purpose: Individual product ratings.
+    • Attributes:
+      - rating_id: Integer (Primary Key)
+      - user_id: Integer (Foreign Key -> site_user.user_id), NOT NULL
+      - product_id: String(100) (Foreign Key -> product.product_id), NOT NULL
+      - rating: Float, NOT NULL
+    • Relationships:
+      - user: SiteUser (many-to-one)
+      - product: Product (many-to-one)
+
+1.8 ProductCategory
+    • Purpose: Hierarchical product categories.
+    • Attributes:
+      - category_id: Integer (Primary Key)
+      - parent_category_id: Integer (Foreign Key -> self)
+      - category_name: String(100), NOT NULL
+    • Relationships:
+      - parent_category: ProductCategory (self-referential, many-to-one)
+      - products: List[Product] (one-to-many)
+      - variations: List[Variation] (one-to-many)
+      - promotion_categories: List[PromotionCategory] (one-to-many)
+      - interesting_categories: List[InterestingCategory] (one-to-many)
+
+1.9 ProductItem
+    • Purpose: Purchasable product variants.
+    • Attributes:
+      - product_item_id: String(100) (Primary Key)
+      - product_id: String(100) (Foreign Key -> product.product_id)
+      - SKU: String(50), NOT NULL
+      - price: DECIMAL(10,2), NOT NULL
+      - is_in_stock: Boolean, default=True
+      - product_image: String(255), NOT NULL
+    • Relationships:
+      - product: Product (many-to-one)
+      - configurations: List[ProductConfiguration] (one-to-many)
+
+1.10 ProductConfiguration
+    • Purpose: Links product items to variation options.
+    • Attributes:
+      - product_item_id: String (Primary Key, Foreign Key -> product_item.product_item_id)
+      - variation_option_id: Integer (Primary Key, Foreign Key -> variation_option.variation_option_id)
+    • Relationships:
+      - variation_option: VariationOption (many-to-one)
+      - product_item: ProductItem (many-to-one)
+
+1.11 Variation
+    • Purpose: Defines variation types for product categories.
+    • Attributes:
+      - variation_id: Integer (Primary Key)
+      - category_id: Integer (Foreign Key -> product_category.category_id)
+      - name: String(100)
+      - size: String(50)
+      - color: String(50)
+    • Relationships:
+      - category: ProductCategory (many-to-one)
+      - options: List[VariationOption] (one-to-many)
+
+1.12 VariationOption
+    • Purpose: Specific values for variations.
+    • Attributes:
+      - variation_option_id: Integer (Primary Key)
+      - variation_id: Integer (Foreign Key -> variation.variation_id)
+      - value: String
+    • Relationships:
+      - variation: Variation (many-to-one)
+      - product_configurations: List[ProductConfiguration] (one-to-many)
+
+1.13 Promotion
+    • Purpose: Marketing promotions and discounts.
+    • Attributes:
+      - promotion_id: Integer (Primary Key)
+      - name: String(100)
+      - description: Text
+      - discount_rate: DECIMAL(5,2)
+      - start_date: Date
+      - end_date: Date
+    • Relationships:
+      - promotion_categories: List[PromotionCategory] (one-to-many)
+
+1.14 PromotionCategory
+    • Purpose: Links promotions to categories.
+    • Attributes:
+      - category_id: Integer (Primary Key, Foreign Key -> product_category.category_id)
+      - promotion_id: Integer (Primary Key, Foreign Key -> promotion.promotion_id)
+    • Relationships:
+      - product_categories: ProductCategory (many-to-one)
+      - promotion: Promotion (many-to-one)
+
+1.15 ShoppingCart
+    • Purpose: User's shopping cart.
+    • Attributes:
+      - shopping_cart_id: Integer (Primary Key)
+      - user_id: Integer (Foreign Key -> site_user.user_id)
+    • Relationships:
+      - user: SiteUser (many-to-one)
+      - items: List[ShoppingCartItem] (one-to-many)
+
+1.16 ShoppingCartItem
+    • Purpose: Items in a shopping cart.
+    • Attributes:
+      - shopping_cart_id: Integer (Primary Key, Foreign Key -> shopping_cart.shopping_cart_id)
+      - product_id: String(100) (Primary Key, Foreign Key -> product.product_id)
+      - quantity: Integer, NOT NULL
+      - price: DECIMAL(10,2), NOT NULL
+    • Relationships:
+      - shopping_cart: ShoppingCart (many-to-one)
+      - product: Product (many-to-one)
+
+1.17 OrderStatus
+    • Purpose: Order status enumeration.
+    • Attributes:
+      - order_status_id: Integer (Primary Key)
+      - status: String(50), NOT NULL
+    • Relationships:
+      - orders: List[ShopOrder] (one-to-many)
+
+1.18 ShopOrder
+    • Purpose: Completed customer orders.
+    • Attributes:
+      - order_id: Integer (Primary Key)
+      - user_id: Integer (Foreign Key -> site_user.user_id)
+      - order_date: Date, NOT NULL
+      - order_total: DECIMAL(10,2)
+      - payment_method_id: Integer (Foreign Key -> payment_type.payment_type_id)
+      - shipping_method_id: Integer (Foreign Key -> shipping_method.shipping_method_id)
+      - order_status_id: Integer (Foreign Key -> order_status.order_status_id)
+    • Relationships:
+      - user: SiteUser (many-to-one)
+      - payment_method: PaymentType (many-to-one)
+      - shipping_method: ShippingMethod (many-to-one)
+      - order_status: OrderStatus (many-to-one)
+      - order_lines: List[OrderLine] (one-to-many)
+
+1.19 OrderLine
+    • Purpose: Individual order line items.
+    • Attributes:
+      - ordered_product_id: Integer (Primary Key)
+      - order_id: Integer (Foreign Key -> shop_order.order_id)
+      - product_id: String(100) (Foreign Key -> product.product_id)
+      - qty: Integer, NOT NULL
+      - price: DECIMAL(10,2), NOT NULL
+    • Relationships:
+      - shop_order: ShopOrder (many-to-one)
+      - product: Product (many-to-one)
+      - reviews: List[UserReview] (one-to-many)
+
+1.20 PaymentType
+    • Purpose: Available payment method types.
+    • Attributes:
+      - payment_type_id: Integer (Primary Key)
+      - payment_name: String(50), NOT NULL
+    • Relationships:
+      - user_payment_methods: List[UserPaymentMethod] (one-to-many)
+
+1.21 ShippingMethod
+    • Purpose: Available shipping options.
+    • Attributes:
+      - shipping_method_id: Integer (Primary Key)
+      - type: String(50), NOT NULL
+      - price: DECIMAL(10,2), NOT NULL
+    • Relationships:
+      - orders: List[ShopOrder] (one-to-many)
+
+1.22 InterestingCategory
+    • Purpose: Tracks user category interests for recommendations.
+    • Attributes:
+      - interesting_category_id: Integer (Primary Key, Auto Increment)
+      - category_id: Integer (Foreign Key -> product_category.category_id), ON DELETE CASCADE
+      - user_id: Integer (Foreign Key -> site_user.user_id), ON DELETE CASCADE
+    • Constraints:
+      - UniqueConstraint('category_id', 'user_id')
+    • Relationships:
+      - category: ProductCategory (many-to-one)
+      - user: SiteUser (many-to-one)
+
+------------------------------------------------------------------------------
+2. PYDANTIC SCHEMA CLASSES (schemas.py)
+------------------------------------------------------------------------------
+
+These classes are used for API request/response validation and serialization.
+
+2.1 User Schemas
+
+• UserBase
+  - user_name: str
+  - address: str
+  - phone_number: str
+
+• UserCreate (extends UserBase)
+  - password: str
+
+• UserRegisterRequest
+  - user_name: str
+  - email_address: EmailStr
+  - phone_number: str
+  - password: str
+  - age: int
+  - gender: str
+  - city: str
+
+• UserLoginRequest
+  - email_address: EmailStr
+  - password: str
+
+• LoginRequire
+  - phone_number_or_email: Union[str, EmailStr]
+  - password: str
+
+• UserResponse
+  - user_name: str
+  - email_address: EmailStr
+  - phone_number: str
+  - password: str
+  - age: Optional[int]
+  - gender: Optional[str]
+  - city: Optional[str]
+
+• UserProfileResponse
+  - user_id: int
+  - user_name: str
+  - email_address: EmailStr
+  - phone_number: str
+  - user_address: Optional[str]
+
+• UpdateRequire
+  - name: str
+  - email: EmailStr
+  - phone: str
+  - address: str
+  - age: int
+  - gender: str
+  - city: str
+  - unit_number: str
+  - street_number: str
+  - address_line1: str
+  - address_line2: str
+  - region: str
+  - postal_code: str
+
+2.2 Address Schemas
+
+• AddressBase
+  - address_line1: str
+  - address_line2: Optional[str]
+  - city: str
+  - region: str
+  - postal_code: str
+  - country_id: int
+
+• AddressCreate (extends AddressBase)
+  - (no additional fields)
+
+• AddressResponse (extends AddressBase)
+  - address_id: int
+
+• UserAddressRequest
+  - email: EmailStr
+  - unit_number: Optional[str]
+  - street_number: Optional[str]
+  - address_line1: str
+  - address_line2: Optional[str]
+  - region: Optional[str]
+  - postal_code: Optional[str]
+
+2.3 Product Schemas
+
+• ProductBase
+  - product_id: str
+  - product_name: str
+  - main_category: str
+  - main_category_encoded: str
+  - sub_category: str
+  - sub_category_encoded: str
+  - product_image: Optional[str]
+  - product_link: Optional[str]
+  - average_rating: Optional[float]
+  - no_of_ratings: Optional[int]
+  - discount_price_usd: Optional[float]
+  - actual_price_usd: Optional[float]
+
+• ProductResponse
+  - products: List[ProductBase]
+
+• ProductCreate (extends ProductBase)
+  - (no additional fields)
+
+• ProductItemResponse
+  - product_item_id: int
+  - product_name: str
+  - SKU: str
+  - price: Decimal
+  - is_in_stock: bool
+  - product_image: Optional[str]
+  - category: CategoryResponse
+  - product: ProductBase
+
+• ProductConfigurationResponse
+  - product_item_id: int
+  - variation_options: List[str]
+
+2.4 Category Schemas
+
+• CategoryResponse
+  - category_id: int
+  - category_name: str
+
+• CategoryName
+  - categoryencode: str
+
+2.5 Variation Schemas
+
+• VariationResponse
+  - variation_id: int
+  - name: str
+  - size: Optional[str]
+  - color: Optional[str]
+
+2.6 Cart Schemas
+
+• CartFetch
+  - type: str
+  - user_email: str
+  - product_id: str (Optional)
+  - quantity: int (Optional)
+
+• AddToCartRequest
+  - product_id: str
+  - user_email: str
+  - quantity: int
+
+• CartItemResponse
+  - product_id: int
+  - product_name: str
+  - quantity: int
+  - price: Decimal
+  - total_price: Decimal
+
+• CartResponse
+  - cart_id: int
+  - items: List[CartItemResponse]
+  - total: Decimal
+
+2.7 Order Schemas
+
+• OrderLineBase
+  - product_item_id: int
+  - qty: int
+  - price: float
+
+• OrderLineCreate (extends OrderLineBase)
+  - (no additional fields)
+
+• OrderLineResponse (extends OrderLineBase)
+  - ordered_product_id: int
+
+• ShopOrderBase
+  - user_id: int
+  - payment_method_id: int
+  - shipping_method_id: int
+  - shopping_retail: float
+  - order_date: str
+  - order_status_id: int
+
+• ShopOrderCreate (extends ShopOrderBase)
+  - (no additional fields)
+
+• ShopOrderResponse (extends ShopOrderBase)
+  - order_id: int
+  - order_lines: List[OrderLineResponse]
+
+• OrderItemRequest
+  - product_id: str
+  - quantity: int
+  - price: float
+
+• CreateOrderRequest
+  - user_email: EmailStr
+  - payment_method_id: int
+  - shipping_method_id: int
+  - items: List[OrderItemRequest]
+
+• OrderItemResponse
+  - ordered_product_id: int
+  - product_name: str
+  - quantity: int
+  - price: Decimal
+  - total_price: Decimal
+
+• OrderResponse
+  - order_id: int
+  - user_id: int
+  - order_date: date
+  - order_total: Decimal
+  - order_status: str
+  - shipping_method: ShippingMethodResponse
+  - payment_method: PaymentMethodResponse
+  - items: List[OrderItemResponse]
+
+• OrderRequest
+  - payment_method_id: int
+  - shipping_method_id: int
+
+2.8 Payment and Shipping Schemas
+
+• PaymentMethodResponse
+  - payment_method_id: int
+  - payment_name: str
+
+• ShippingMethodResponse
+  - shipping_method_id: int
+  - type: str
+  - price: Decimal
+
+2.9 Email and Password Schemas
+
+• EmailSchema
+  - email: List[EmailStr]
+
+• EmailContent
+  - message: str
+  - subject: str
+
+• RegisterRequest
+  - user: UserRegisterRequest
+  - content: EmailContent
+
+• EmailVadidate
+  - email: EmailStr
+  - code: str
+
+• FPEmail
+  - email: EmailStr
+
+• ChangePasswordInfor
+  - email: EmailStr
+  - newPassword: str
+  - confirmPassword: str
+
+2.10 Interest Schemas
+
+• ListOfInterestingProduct
+  - category_name: List[str]
+  - email: EmailStr
+
+• RecommendedProductResponse
+  - product_id: int
+  - product_name: str
+  - product_image: Optional[str]
+  - price: Decimal
+
+• CountryResponse
+  - country_id: int
+  - country_name: str
+
+------------------------------------------------------------------------------
+3. ML RECOMMENDATION MODEL CLASSES (ModelApp/ML_FastAPI_Docker_Heroku/main.py)
+------------------------------------------------------------------------------
+
+These classes implement various recommendation algorithms using machine learning.
+
+3.1 SearchRecommendation
+    • Purpose: Content-based product search using TF-IDF vectorization.
+    • Attributes:
+      - product: DataFrame - Product dataset
+      - vectorizer: TfidfVectorizer - Text vectorizer for product names
+      - tfidf_matrix: sparse matrix - TF-IDF matrix for all products
+    • Methods:
+      - __init__(self, product): Initializes vectorizer and creates TF-IDF matrix
+      - search(self, query, top_n=40): str -> List[str] - Returns top N product IDs
+
+3.2 RecommendTrendModel
+    • Purpose: Hybrid recommendation using collaborative filtering + trending products.
+    • Attributes:
+      - user_data: DataFrame - User information dataset
+      - ratings_data: DataFrame - User-product ratings
+      - product_data: DataFrame - Product information
+    • Methods:
+      - calculate_similarity(user1, user2): static, calculates user similarity score
+      - find_top_similar_users(self, user_info): Returns top 20 similar users
+      - collaborative_filtering_recommendations(self, user_info, top_n=20): CF-based recommendations
+      - most_trending_products(self, top_n=20): Returns trending products by rating
+      - recommend(self, user_info, top_n=20): Combined recommendations
+
+3.3 InterestRecommendationModel
+    • Purpose: Interest-based recommendations using user preferences.
+    • Attributes:
+      - user_data: DataFrame - User information
+      - ratings_data: DataFrame - User-product ratings
+      - product_data: DataFrame - Product catalog
+    • Methods:
+      - calculate_similarity(user1, user2): static, user similarity calculation
+      - find_top_similar_users(self, user_info): Top 20 similar users
+      - collaborative_filtering_recommendations(self, user_info, top_n=20): CF recommendations
+      - highest_rated_products_by_interest(self, user_info, top_n=20): Interest-filtered products
+      - recommend(self, user_info, top_n=20): Combined interest+CF recommendations
+
+3.4 AssociationRecommendationModel
+    • Purpose: Association rule mining for "frequently bought together" recommendations.
+    • Attributes:
+      - product: DataFrame - Product dataset
+      - rules: DataFrame - Pre-computed association rules
+    • Methods:
+      - get_top_associated_categories(self, item_ids, n=3): Category associations
+      - get_top_rated_items(self, associated_categories, top_n=5): Top items per category
+      - recommend(self, item_ids, associated_n=5, top_n=5): Association-based recommendations
+
+3.5 ItemRecommendationModel
+    • Purpose: Content-based similar item recommendations using TF-IDF.
+    • Attributes:
+      - product: DataFrame - Product dataset
+      - vectorizer: TfidfVectorizer - Text vectorizer
+      - tfidf_matrix: sparse matrix - TF-IDF representation of products
+    • Methods:
+      - __init__(self, product): Initialize vectorizer and matrix
+      - find_similar_items(self, item_id, top_n=20): str -> List[str] - Similar items
+
+3.6 CollabRecommendationModel
+    • Purpose: Pure collaborative filtering recommendations.
+    • Attributes:
+      - user_data: DataFrame - User demographics
+      - product_data: DataFrame - Product catalog
+      - ratings_data: DataFrame - User-product ratings
+    • Methods:
+      - calculate_similarity(user1, user2): static, user similarity score
+      - find_top_similar_users(self, user_info): Top 50 similar users
+      - collaborative_filtering_recommendations(self, user_id, user_info, top_n=40): CF recommendations
+      - recommend(self, user_id, user_info, top_n=40): Main recommendation method
+
+3.7 API Request Models (Pydantic)
+
+• SearchQuery
+  - query: str
+
+• TrendRecommendation
+  - id: str
+
+• InterestRecommendation
+  - id: str
+
+• AssociationRecommendation
+  - ids: list[str]
+
+• ItemRecommendation
+  - id: str
+
+• CollabRecommendation
+  - id: str
+
+------------------------------------------------------------------------------
+4. FRONTEND CONTEXT AND COMPONENT CLASSES
+------------------------------------------------------------------------------
+
+4.1 AuthContext (Context/AuthContext.js)
+    • Purpose: React Context for global authentication state management.
+    • State Properties:
+      - user: Object | null - Current authenticated user
+      - isAuthenticated: boolean - Authentication status
+      - loading: boolean - Auth state loading status
+    • Methods:
+      - login(userData): void - Set user as authenticated
+      - logout(): void - Clear authentication
+      - updateUser(userData): void - Update user information
+
+4.2 Frontend Page Components
+    • HomePage - Main landing page with product recommendations
+    • SignUp / SignUpVerify - User registration flow
+    • SignIn / LoginVerify - User authentication flow
+    • ForgetPassword / FPVerify / ChangePassword - Password recovery flow
+    • Product - Product listing page with category filters
+    • SearchResult - Search results display
+    • Item - Individual product detail page
+    • Cart - Shopping cart management
+    • Checkout - Order checkout process
+    • CategoryPage - Category-specific product listing
+    • UserPage / ChangeUserInfo - User profile management
+    • Order - Order history display
+
+================================================================================
+                            MERMAID CLASS DIAGRAM
+================================================================================
+
+Copy the following code into draw.io (or any Mermaid-compatible tool) to
+visualize the class structure:
+
+```mermaid
+classDiagram
+    direction TB
+
+    %% ============================================
+    %% BASE CLASS
+    %% ============================================
+    class Base {
+        <<abstract>>
+        +declarative_base()
+    }
+
+    %% ============================================
+    %% LOCATION CLASSES
+    %% ============================================
+    class Address {
+        +int address_id
+        +String unit_number
+        +String street_number
+        +String address_line1
+        +String address_line2
+        +String region
+        +String postal_code
+        +List~UserAddress~ user_addresses
+    }
+
+    %% ============================================
+    %% USER-RELATED CLASSES
+    %% ============================================
+    class SiteUser {
+        +int user_id
+        +String user_name
+        +int age
+        +String gender
+        +String email_address
+        +String phone_number
+        +String city
+        +String password
+        +List~UserAddress~ addresses
+        +List~UserPaymentMethod~ user_payment_methods
+        +List~UserReview~ reviews
+        +List~ProductRating~ ratings
+        +List~ShoppingCart~ shopping_carts
+        +List~ShopOrder~ orders
+        +List~InterestingCategory~ interesting_categories
+    }
+
+    class UserAddress {
+        +int user_id
+        +int address_id
+        +boolean is_default
+        +SiteUser user
+        +Address address
+    }
+
+    class UserPaymentMethod {
+        +int payment_method_id
+        +int user_id
+        +int payment_type_id
+        +String provider
+        +String account_number
+        +Date expiry_date
+        +boolean is_default
+        +SiteUser user
+        +PaymentType payment_type
+    }
+
+    class UserReview {
+        +int user_review_id
+        +int user_id
+        +int ordered_product_id
+        +Decimal rating_value
+        +String comment
+        +SiteUser user
+        +OrderLine order_line
+    }
+
+    %% ============================================
+    %% PRODUCT-RELATED CLASSES
+    %% ============================================
+    class Product {
+        +String product_id
+        +String product_name
+        +String main_category
+        +String main_category_encoded
+        +String sub_category
+        +String sub_category_encoded
+        +String product_image
+        +String product_link
+        +float average_rating
+        +int no_of_ratings
+        +Decimal discount_price_usd
+        +Decimal actual_price_usd
+        +int category_id
+        +ProductCategory category
+        +List~ProductItem~ items
+        +List~ProductRating~ ratings
+        +List~ShoppingCartItem~ shopping_cart_item
+    }
+
+    class ProductRating {
+        +int rating_id
+        +int user_id
+        +String product_id
+        +float rating
+        +SiteUser user
+        +Product product
+    }
+
+    class ProductCategory {
+        +int category_id
+        +int parent_category_id
+        +String category_name
+        +ProductCategory parent_category
+        +List~Product~ products
+        +List~Variation~ variations
+        +List~PromotionCategory~ promotion_categories
+        +List~InterestingCategory~ interesting_categories
+    }
+
+    class ProductItem {
+        +String product_item_id
+        +String product_id
+        +String SKU
+        +Decimal price
+        +boolean is_in_stock
+        +String product_image
+        +Product product
+        +List~ProductConfiguration~ configurations
+    }
+
+    class ProductConfiguration {
+        +String product_item_id
+        +int variation_option_id
+        +VariationOption variation_option
+        +ProductItem product_item
+    }
+
+    %% ============================================
+    %% VARIATION CLASSES
+    %% ============================================
+    class Variation {
+        +int variation_id
+        +int category_id
+        +String name
+        +String size
+        +String color
+        +ProductCategory category
+        +List~VariationOption~ options
+    }
+
+    class VariationOption {
+        +int variation_option_id
+        +int variation_id
+        +String value
+        +Variation variation
+        +List~ProductConfiguration~ product_configurations
+    }
+
+    %% ============================================
+    %% PROMOTION CLASSES
+    %% ============================================
+    class Promotion {
+        +int promotion_id
+        +String name
+        +String description
+        +Decimal discount_rate
+        +Date start_date
+        +Date end_date
+        +List~PromotionCategory~ promotion_categories
+    }
+
+    class PromotionCategory {
+        +int category_id
+        +int promotion_id
+        +ProductCategory product_categories
+        +Promotion promotion
+    }
+
+    %% ============================================
+    %% SHOPPING CART CLASSES
+    %% ============================================
+    class ShoppingCart {
+        +int shopping_cart_id
+        +int user_id
+        +SiteUser user
+        +List~ShoppingCartItem~ items
+    }
+
+    class ShoppingCartItem {
+        +int shopping_cart_id
+        +String product_id
+        +int quantity
+        +Decimal price
+        +ShoppingCart shopping_cart
+        +Product product
+    }
+
+    %% ============================================
+    %% ORDER CLASSES
+    %% ============================================
+    class OrderStatus {
+        +int order_status_id
+        +String status
+        +List~ShopOrder~ orders
+    }
+
+    class ShopOrder {
+        +int order_id
+        +int user_id
+        +Date order_date
+        +Decimal order_total
+        +int payment_method_id
+        +int shipping_method_id
+        +int order_status_id
+        +SiteUser user
+        +PaymentType payment_method
+        +ShippingMethod shipping_method
+        +OrderStatus order_status
+        +List~OrderLine~ order_lines
+    }
+
+    class OrderLine {
+        +int ordered_product_id
+        +int order_id
+        +String product_id
+        +int qty
+        +Decimal price
+        +ShopOrder shop_order
+        +Product product
+        +List~UserReview~ reviews
+    }
+
+    %% ============================================
+    %% PAYMENT AND SHIPPING CLASSES
+    %% ============================================
+    class PaymentType {
+        +int payment_type_id
+        +String payment_name
+        +List~UserPaymentMethod~ user_payment_methods
+    }
+
+    class ShippingMethod {
+        +int shipping_method_id
+        +String type
+        +Decimal price
+        +List~ShopOrder~ orders
+    }
+
+    %% ============================================
+    %% INTEREST CLASS
+    %% ============================================
+    class InterestingCategory {
+        +int interesting_category_id
+        +int category_id
+        +int user_id
+        +ProductCategory category
+        +SiteUser user
+    }
+
+    %% ============================================
+    %% ML RECOMMENDATION CLASSES
+    %% ============================================
+    class SearchRecommendation {
+        +DataFrame product
+        +TfidfVectorizer vectorizer
+        +sparse_matrix tfidf_matrix
+        +__init__(product)
+        +search(query, top_n) List~str~
+    }
+
+    class RecommendTrendModel {
+        +DataFrame user_data
+        +DataFrame ratings_data
+        +DataFrame product_data
+        +calculate_similarity(user1, user2) float
+        +find_top_similar_users(user_info) List~int~
+        +collaborative_filtering_recommendations(user_info, top_n) List~str~
+        +most_trending_products(top_n) List~str~
+        +recommend(user_info, top_n) List~str~
+    }
+
+    class InterestRecommendationModel {
+        +DataFrame user_data
+        +DataFrame ratings_data
+        +DataFrame product_data
+        +calculate_similarity(user1, user2) float
+        +find_top_similar_users(user_info) List~int~
+        +collaborative_filtering_recommendations(user_info, top_n) List~str~
+        +highest_rated_products_by_interest(user_info, top_n) List~str~
+        +recommend(user_info, top_n) List~str~
+    }
+
+    class AssociationRecommendationModel {
+        +DataFrame product
+        +DataFrame rules
+        +get_top_associated_categories(item_ids, n) List~str~
+        +get_top_rated_items(associated_categories, top_n) List~str~
+        +recommend(item_ids, associated_n, top_n) List~str~
+    }
+
+    class ItemRecommendationModel {
+        +DataFrame product
+        +TfidfVectorizer vectorizer
+        +sparse_matrix tfidf_matrix
+        +__init__(product)
+        +find_similar_items(item_id, top_n) List~str~
+    }
+
+    class CollabRecommendationModel {
+        +DataFrame user_data
+        +DataFrame product_data
+        +DataFrame ratings_data
+        +calculate_similarity(user1, user2) float
+        +find_top_similar_users(user_info) List~int~
+        +collaborative_filtering_recommendations(user_id, user_info, top_n) List~str~
+        +recommend(user_id, user_info, top_n) List~str~
+    }
+
+    %% ============================================
+    %% INHERITANCE RELATIONSHIPS
+    %% ============================================
+    Base <|-- Address
+    Base <|-- SiteUser
+    Base <|-- UserAddress
+    Base <|-- UserPaymentMethod
+    Base <|-- UserReview
+    Base <|-- Product
+    Base <|-- ProductRating
+    Base <|-- ProductCategory
+    Base <|-- ProductItem
+    Base <|-- ProductConfiguration
+    Base <|-- Variation
+    Base <|-- VariationOption
+    Base <|-- Promotion
+    Base <|-- PromotionCategory
+    Base <|-- ShoppingCart
+    Base <|-- ShoppingCartItem
+    Base <|-- OrderStatus
+    Base <|-- ShopOrder
+    Base <|-- OrderLine
+    Base <|-- PaymentType
+    Base <|-- ShippingMethod
+    Base <|-- InterestingCategory
+
+    %% ============================================
+    %% ASSOCIATION RELATIONSHIPS
+    %% ============================================
+    SiteUser "1" --> "*" UserAddress : has
+    Address "1" --> "*" UserAddress : linked to
+    SiteUser "1" --> "*" UserPaymentMethod : owns
+    PaymentType "1" --> "*" UserPaymentMethod : type of
+    SiteUser "1" --> "*" UserReview : writes
+    OrderLine "1" --> "*" UserReview : reviewed in
+    SiteUser "1" --> "*" ProductRating : rates
+    Product "1" --> "*" ProductRating : receives
+    ProductCategory "1" --> "*" Product : contains
+    ProductCategory "1" --> "0..1" ProductCategory : parent of
+    Product "1" --> "*" ProductItem : has variants
+    ProductItem "1" --> "*" ProductConfiguration : configured by
+    VariationOption "1" --> "*" ProductConfiguration : applied to
+    ProductCategory "1" --> "*" Variation : has
+    Variation "1" --> "*" VariationOption : has options
+    Promotion "1" --> "*" PromotionCategory : applies to
+    ProductCategory "1" --> "*" PromotionCategory : target of
+    SiteUser "1" --> "*" ShoppingCart : owns
+    ShoppingCart "1" --> "*" ShoppingCartItem : contains
+    Product "1" --> "*" ShoppingCartItem : in cart
+    SiteUser "1" --> "*" ShopOrder : places
+    OrderStatus "1" --> "*" ShopOrder : status of
+    PaymentType "1" --> "*" ShopOrder : paid via
+    ShippingMethod "1" --> "*" ShopOrder : shipped via
+    ShopOrder "1" --> "*" OrderLine : includes
+    Product "1" --> "*" OrderLine : ordered in
+    SiteUser "1" --> "*" InterestingCategory : interested in
+    ProductCategory "1" --> "*" InterestingCategory : tracked by
+```
+
+================================================================================
+                           END OF DOCUMENTATION
+================================================================================
