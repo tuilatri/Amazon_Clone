@@ -389,6 +389,11 @@ const NavBar = () => {
                                 </>
                             ) : (
                                 <div>
+                                    {user?.role === 1 && (
+                                        <div className="account__dropdownOption account__dropdownOption--admin">
+                                            System Management
+                                        </div>
+                                    )}
                                     <div onClick={handleProfileClick} className="account__dropdownOption">
                                         Your Profile
                                     </div>

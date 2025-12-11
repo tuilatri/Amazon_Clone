@@ -196,6 +196,7 @@ class UserResponse(BaseModel): # for user response after login / register
     age: Optional[int] = None
     gender: Optional[str] = None
     city: Optional[str] = None
+    role: Optional[int] = 2  # 1=Admin, 2=Normal User, 3=Supplier, 4=Delivery Person
     class Config:
         orm_mode = True
 

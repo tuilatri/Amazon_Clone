@@ -423,7 +423,8 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         password=existing_user.password,
         age=existing_user.age,
         gender=existing_user.gender,
-        city=existing_user.city
+        city=existing_user.city,
+        role=existing_user.role if existing_user.role else 2  # Default to Normal User
     )
 
     # return {
