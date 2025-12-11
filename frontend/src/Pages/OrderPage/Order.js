@@ -166,8 +166,8 @@ const Order = () => {
             });
         }
 
-        // Sort by date (newest first)
-        filtered.sort((a, b) => new Date(b.order_date) - new Date(a.order_date));
+        // Sort by order_id (newest first - higher ID = newer order)
+        filtered.sort((a, b) => b.order_id - a.order_id);
 
         setFilteredOrders(filtered);
     }, [orders, activeTab, timePeriod, searchQuery]);
@@ -270,7 +270,7 @@ const Order = () => {
                             <p>Looks like you haven't placed an order in the {timePeriodLabels[timePeriod]}.</p>
                         </div>
                     ) : (
-                        filteredOrders.map((order) => (
+                        filteredOrders.map((order, orderIndex) => (
                             <div key={order.order_id} className="order-card">
                                 <div className="order-card__header">
                                     <div className="order-card__header-left">
@@ -292,7 +292,7 @@ const Order = () => {
                                         </div>
                                     </div>
                                     <div className="order-card__header-right">
-                                        <span className="order-card__label">ORDER # {order.order_id}</span>
+                                        <span className="order-card__label">ORDER # {orderIndex + 1}</span>
                                         <div className="order-card__status" data-status={statusMapping[order.order_status_id]?.toLowerCase()}>
                                             {statusMapping[order.order_status_id] || 'Unknown'}
                                         </div>
