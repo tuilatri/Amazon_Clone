@@ -201,8 +201,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
     border-bottom: 1px solid #eee;
 }
 
@@ -212,39 +212,43 @@
 }
 
 .trending-header h3 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     color: #0f1111;
     margin: 0;
 }
 
-.trending-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+/* 2-column grid for trending products */
+.trending-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px 40px;
 }
 
 .trending-item {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid #f0f0f0;
+    padding: 12px 15px;
+    background: #f7f8f8;
+    border-radius: 6px;
+    transition: background 0.2s ease;
 }
 
-.trending-item:last-child {
-    border-bottom: none;
+.trending-item:hover {
+    background: #eef0f0;
 }
 
 .trending-rank {
     font-size: 14px;
     font-weight: 700;
     color: #e77600;
-    min-width: 30px;
+    min-width: 25px;
 }
 
 .trending-info {
     flex: 1;
+    min-width: 0;
 }
 
 .trending-name {
@@ -254,6 +258,9 @@
     display: block;
     line-height: 1.4;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .trending-name:hover {
@@ -280,8 +287,82 @@
 
 .trending-loading {
     text-align: center;
-    padding: 20px;
+    padding: 40px;
     color: #565959;
+    grid-column: 1 / -1;
+}
+
+/* Trending Pagination with Page Numbers */
+.trending-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.trending-pagination__btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f1111;
+    background: #fff;
+    border: 1px solid #d5d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.trending-pagination__btn:hover:not(:disabled) {
+    background: #f0f2f2;
+    border-color: #a2a6ac;
+}
+
+.trending-pagination__btn:disabled {
+    color: #d5d9d9;
+    cursor: not-allowed;
+}
+
+.trending-pagination__num {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f1111;
+    background: #fff;
+    border: 1px solid #d5d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.trending-pagination__num:hover {
+    background: #f0f2f2;
+    border-color: #a2a6ac;
+}
+
+.trending-pagination__num--active {
+    background: #232f3e;
+    color: #fff;
+    border-color: #232f3e;
+}
+
+.trending-pagination__num--active:hover {
+    background: #37475a;
+    border-color: #37475a;
+}
+
+.trending-pagination__ellipsis {
+    padding: 0 5px;
+    color: #565959;
+    font-size: 14px;
 }
 
 /* Orders Section */
@@ -467,12 +548,14 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-    .admin-page__top-section {
-        grid-template-columns: 1fr;
-    }
-
     .admin-page__stats {
         grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .trending-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -497,6 +580,10 @@
     .admin-page__tab {
         padding: 12px 15px;
         font-size: 13px;
+    }
+
+    .trending-pagination {
+        flex-wrap: wrap;
     }
 }
 

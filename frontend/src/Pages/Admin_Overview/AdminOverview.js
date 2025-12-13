@@ -83,7 +83,7 @@ const AdminOverview = () => {
     const fetchTrendingProducts = async (page = 1) => {
         try {
             setTrendingLoading(true);
-            const response = await axios.get(`http://localhost:8000/admin/trending-products?page=${page}&per_page=5`);
+            const response = await axios.get(`http://localhost:8000/admin/trending-products?page=${page}&per_page=6`);
             setTrendingProducts(response.data.products);
             setTrendingTotalPages(response.data.total_pages);
             setTrendingPage(page);
@@ -201,100 +201,152 @@ const AdminOverview = () => {
 
         return (
             <div className="admin-page__overview">
-                {/* Top Section: Stats Cards + Trending Products */}
-                <div className="admin-page__top-section">
-                    {/* Statistics Cards */}
-                    <div className="admin-page__stats">
-                        <div className="stat-card">
-                            <div className="stat-card__icon stat-card__icon--customers">
-                                <PeopleAltIcon />
-                            </div>
-                            <div className="stat-card__content">
-                                <div className="stat-card__label">Total Customers</div>
-                                <div className="stat-card__value">
-                                    {statsLoading ? '...' : stats.total_customers.toLocaleString()}
-                                </div>
-                            </div>
+                {/* Statistics Cards Section */}
+                <div className="admin-page__stats">
+                    <div className="stat-card">
+                        <div className="stat-card__icon stat-card__icon--customers">
+                            <PeopleAltIcon />
                         </div>
-
-                        <div className="stat-card">
-                            <div className="stat-card__icon stat-card__icon--orders">
-                                <ShoppingCartIcon />
-                            </div>
-                            <div className="stat-card__content">
-                                <div className="stat-card__label">Total Orders</div>
-                                <div className="stat-card__value">
-                                    {statsLoading ? '...' : stats.total_orders.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="stat-card">
-                            <div className="stat-card__icon stat-card__icon--revenue">
-                                <LegendToggleIcon />
-                            </div>
-                            <div className="stat-card__content">
-                                <div className="stat-card__label">Total Revenue</div>
-                                <div className="stat-card__sublabel">(Delivered Orders)</div>
-                                <div className="stat-card__value">
-                                    ${statsLoading ? '...' : stats.total_revenue.toLocaleString()}
-                                </div>
+                        <div className="stat-card__content">
+                            <div className="stat-card__label">Total Customers</div>
+                            <div className="stat-card__value">
+                                {statsLoading ? '...' : stats.total_customers.toLocaleString()}
                             </div>
                         </div>
                     </div>
 
-                    {/* Trending Products */}
-                    <div className="admin-page__trending">
-                        <div className="trending-header">
-                            <TrendingUpIcon />
-                            <h3>Trending Products</h3>
+                    <div className="stat-card">
+                        <div className="stat-card__icon stat-card__icon--orders">
+                            <ShoppingCartIcon />
                         </div>
-                        <div className="trending-list">
-                            {trendingLoading ? (
-                                <div className="trending-loading">Loading...</div>
-                            ) : trendingProducts.length === 0 ? (
-                                <div className="trending-loading">No trending products found.</div>
-                            ) : (
-                                trendingProducts.map((product, index) => (
-                                    <div key={product.product_id} className="trending-item">
-                                        <span className="trending-rank">#{(trendingPage - 1) * 5 + index + 1}</span>
-                                        <div className="trending-info">
-                                            <Link to={`/Item/${product.product_id}`} className="trending-name">
-                                                {product.product_name}
-                                            </Link>
-                                            <div className="trending-rating">
-                                                <StarIcon className="star-icon" />
-                                                <span>{product.ratings.toFixed(1)}</span>
-                                                <span className="rating-count">({product.no_of_ratings.toLocaleString()} ratings)</span>
-                                            </div>
+                        <div className="stat-card__content">
+                            <div className="stat-card__label">Total Orders</div>
+                            <div className="stat-card__value">
+                                {statsLoading ? '...' : stats.total_orders.toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="stat-card">
+                        <div className="stat-card__icon stat-card__icon--revenue">
+                            <LegendToggleIcon />
+                        </div>
+                        <div className="stat-card__content">
+                            <div className="stat-card__label">Total Revenue</div>
+                            <div className="stat-card__sublabel">(Delivered Orders)</div>
+                            <div className="stat-card__value">
+                                ${statsLoading ? '...' : stats.total_revenue.toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Trending Products Section - Separate from stats */}
+                <div className="admin-page__trending">
+                    <div className="trending-header">
+                        <TrendingUpIcon />
+                        <h3>Trending Products</h3>
+                    </div>
+                    <div className="trending-grid">
+                        {trendingLoading ? (
+                            <div className="trending-loading">Loading...</div>
+                        ) : trendingProducts.length === 0 ? (
+                            <div className="trending-loading">No trending products found.</div>
+                        ) : (
+                            trendingProducts.map((product, index) => (
+                                <div key={product.product_id} className="trending-item">
+                                    <span className="trending-rank">{(trendingPage - 1) * 6 + index + 1}.</span>
+                                    <div className="trending-info">
+                                        <Link to={`/Item/${product.product_id}`} className="trending-name">
+                                            {product.product_name}
+                                        </Link>
+                                        <div className="trending-rating">
+                                            <StarIcon className="star-icon" />
+                                            <span>{product.ratings.toFixed(1)}</span>
+                                            <span className="rating-count">({product.no_of_ratings.toLocaleString()})</span>
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                        {/* Trending Pagination */}
-                        {trendingTotalPages > 1 && (
-                            <div className="pagination">
-                                <button
-                                    className="pagination__btn"
-                                    disabled={trendingPage === 1}
-                                    onClick={() => fetchTrendingProducts(trendingPage - 1)}
-                                >
-                                    Previous
-                                </button>
-                                <span className="pagination__info">
-                                    Page {trendingPage} of {trendingTotalPages}
-                                </span>
-                                <button
-                                    className="pagination__btn"
-                                    disabled={trendingPage === trendingTotalPages}
-                                    onClick={() => fetchTrendingProducts(trendingPage + 1)}
-                                >
-                                    Next
-                                </button>
-                            </div>
+                                </div>
+                            ))
                         )}
                     </div>
+                    {/* Trending Pagination with Page Numbers */}
+                    {trendingTotalPages > 1 && (
+                        <div className="trending-pagination">
+                            <button
+                                className="trending-pagination__btn"
+                                disabled={trendingPage === 1}
+                                onClick={() => fetchTrendingProducts(trendingPage - 1)}
+                            >
+                                &lt;
+                            </button>
+
+                            {/* Page numbers */}
+                            {(() => {
+                                const pages = [];
+                                const showEllipsisStart = trendingPage > 3;
+                                const showEllipsisEnd = trendingPage < trendingTotalPages - 2;
+
+                                // Always show page 1
+                                pages.push(
+                                    <button
+                                        key={1}
+                                        className={`trending-pagination__num ${trendingPage === 1 ? 'trending-pagination__num--active' : ''}`}
+                                        onClick={() => fetchTrendingProducts(1)}
+                                    >
+                                        1
+                                    </button>
+                                );
+
+                                // Show ellipsis after page 1 if needed
+                                if (showEllipsisStart) {
+                                    pages.push(<span key="ellipsis-start" className="trending-pagination__ellipsis">...</span>);
+                                }
+
+                                // Show pages around current page
+                                for (let i = Math.max(2, trendingPage - 1); i <= Math.min(trendingTotalPages - 1, trendingPage + 1); i++) {
+                                    if (i === 1 || i === trendingTotalPages) continue;
+                                    pages.push(
+                                        <button
+                                            key={i}
+                                            className={`trending-pagination__num ${trendingPage === i ? 'trending-pagination__num--active' : ''}`}
+                                            onClick={() => fetchTrendingProducts(i)}
+                                        >
+                                            {i}
+                                        </button>
+                                    );
+                                }
+
+                                // Show ellipsis before last page if needed
+                                if (showEllipsisEnd) {
+                                    pages.push(<span key="ellipsis-end" className="trending-pagination__ellipsis">...</span>);
+                                }
+
+                                // Always show last page if more than 1 page
+                                if (trendingTotalPages > 1) {
+                                    pages.push(
+                                        <button
+                                            key={trendingTotalPages}
+                                            className={`trending-pagination__num ${trendingPage === trendingTotalPages ? 'trending-pagination__num--active' : ''}`}
+                                            onClick={() => fetchTrendingProducts(trendingTotalPages)}
+                                        >
+                                            {trendingTotalPages}
+                                        </button>
+                                    );
+                                }
+
+                                return pages;
+                            })()}
+
+                            <button
+                                className="trending-pagination__btn"
+                                disabled={trendingPage === trendingTotalPages}
+                                onClick={() => fetchTrendingProducts(trendingPage + 1)}
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Last Orders Section */}
