@@ -405,7 +405,7 @@ const NavBar = () => {
                     {/* Conditional rendering based on role */}
                     {isAuthenticated && user?.role === 1 ? (
                         /* Admin UI - System Management replaces Return and Cart */
-                        <Link to="/admin" className="admin-nav-link">
+                        <Link to="/admin/overview" className="admin-nav-link">
                             <div className="admin-nav-content">
                                 <SettingsIcon className="admin-nav-icon" />
                                 <div className="admin-nav-text">

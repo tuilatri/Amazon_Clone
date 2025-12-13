@@ -1623,6 +1623,149 @@ async def process_payment(order_id: int = Body(..., embed=True), db: Session = D
     return {"message": "Payment processed successfully", "order_id": order.order_id}
 
 
+# ------------------------------
+# Admin Dashboard APIs
+# ------------------------------
+
+@app.get("/admin/stats")
+async def get_admin_stats(db: Session = Depends(get_db)):
+    """
+    Get admin dashboard statistics:
+    - Total customers (users with role=2)
+    - Total orders
+    - Total revenue (from Delivered orders only, status_id=4)
+    """
+    # Total customers (role = 2 for normal users)
+    total_customers = db.query(SiteUser).filter(SiteUser.role == 2).count()
+    
+    # Total orders
+    total_orders = db.query(ShopOrder).count()
+    
+    # Total revenue from Delivered orders only (status_id = 4)
+    delivered_orders = db.query(ShopOrder).filter(ShopOrder.order_status_id == 4).all()
+    total_revenue = sum(float(order.order_total or 0) for order in delivered_orders)
+    
+    return {
+        "total_customers": total_customers,
+        "total_orders": total_orders,
+        "total_revenue": round(total_revenue, 2)
+    }
+
+
+@app.get("/admin/orders")
+async def get_admin_orders(
+    page: int = 1,
+    per_page: int = 10,
+    search: str = "",
+    db: Session = Depends(get_db)
+):
+    """
+    Get all orders for admin dashboard with pagination and search.
+    Search by order_id or user_id.
+    """
+    query = db.query(ShopOrder)
+    
+    # Apply search filter
+    if search:
+        try:
+            search_int = int(search)
+            query = query.filter(
+                (ShopOrder.order_id == search_int) | 
+                (ShopOrder.user_id == search_int)
+            )
+        except ValueError:
+            # If search is not a number, try to search by user email
+            user_ids = db.query(SiteUser.user_id).filter(
+                SiteUser.email_address.ilike(f"%{search}%")
+            ).all()
+            user_id_list = [u[0] for u in user_ids]
+            if user_id_list:
+                query = query.filter(ShopOrder.user_id.in_(user_id_list))
+            else:
+                # No matching users, return empty
+                return {
+                    "orders": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                }
+    
+    # Get total count
+    total = query.count()
+    
+    # Sort by newest first and paginate
+    orders = query.order_by(ShopOrder.order_id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    
+    # Get status mapping
+    status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    
+    order_list = []
+    for order in orders:
+        # Get user info
+        user = db.query(SiteUser).filter(SiteUser.user_id == order.user_id).first()
+        order_list.append({
+            "order_id": order.order_id,
+            "user_id": order.user_id,
+            "user_name": user.user_name if user else "Unknown",
+            "order_date": order.order_date.isoformat() if order.order_date else None,
+            "order_total": float(order.order_total) if order.order_total else 0,
+            "status": status_mapping.get(order.order_status_id, "Unknown"),
+            "status_id": order.order_status_id
+        })
+    
+    return {
+        "orders": order_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page
+    }
+
+
+@app.get("/admin/trending-products")
+async def get_trending_products(
+    page: int = 1,
+    per_page: int = 5,
+    db: Session = Depends(get_db)
+):
+    """
+    Get trending products sorted by highest rating and number of ratings.
+    """
+    # Query products with ratings
+    products = db.query(Product).filter(
+        Product.no_of_ratings > 0
+    ).order_by(
+        Product.ratings.desc(),
+        Product.no_of_ratings.desc()
+    ).all()
+    
+    total = len(products)
+    
+    # Paginate
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_products = products[start:end]
+    
+    product_list = []
+    for product in paginated_products:
+        product_list.append({
+            "product_id": product.product_id,
+            "product_name": product.product_name[:80] + "..." if len(product.product_name) > 80 else product.product_name,
+            "ratings": float(product.ratings) if product.ratings else 0,
+            "no_of_ratings": product.no_of_ratings or 0,
+            "image": product.image
+        })
+    
+    return {
+        "products": product_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page
+    }
+
+
 # 4 Search products page
     # products display
 
