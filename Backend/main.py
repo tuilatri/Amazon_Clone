@@ -1732,12 +1732,11 @@ async def get_trending_products(
     """
     Get trending products sorted by highest rating and number of ratings.
     """
-    # Query products with ratings
-    products = db.query(Product).filter(
-        Product.no_of_ratings > 0
-    ).order_by(
-        Product.ratings.desc(),
-        Product.no_of_ratings.desc()
+    # Query all products and sort by ratings (highest first), then by no_of_ratings
+    # Handle NULL values by treating them as 0
+    products = db.query(Product).order_by(
+        Product.ratings.desc().nullslast(),
+        Product.no_of_ratings.desc().nullslast()
     ).all()
     
     total = len(products)

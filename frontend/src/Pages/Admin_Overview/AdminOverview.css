@@ -146,7 +146,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
 }
 
 .stat-card__icon svg {
@@ -154,15 +153,18 @@
 }
 
 .stat-card__icon--customers {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #e8f4fd;
+    color: #0066c0;
 }
 
 .stat-card__icon--orders {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    background: #fef3e8;
+    color: #c45500;
 }
 
 .stat-card__icon--revenue {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: #e6f4ea;
+    color: #137333;
 }
 
 .stat-card__content {
@@ -495,5 +497,213 @@
     .admin-page__tab {
         padding: 12px 15px;
         font-size: 13px;
+    }
+}
+
+/* View Detail Button */
+.view-detail-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #0066c0;
+    background: #fff;
+    border: 1px solid #0066c0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-detail-btn:hover {
+    background: #e8f4fd;
+    color: #004899;
+}
+
+.view-detail-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Order Detail Modal */
+.order-detail-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.order-detail-modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 500px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.order-detail-modal__header {
+    background: #232f3e;
+    color: #fff;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 3px solid #e77600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-detail-modal__close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.order-detail-modal__close:hover {
+    opacity: 0.8;
+}
+
+.order-detail-modal__body {
+    padding: 20px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.order-detail-modal__section {
+    margin-bottom: 20px;
+}
+
+.order-detail-modal__section:last-child {
+    margin-bottom: 0;
+}
+
+.order-detail-modal__section h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f1111;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.order-detail-modal__products {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.order-detail-modal__product {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: #f7f8f8;
+    border-radius: 6px;
+}
+
+.product-info {
+    flex: 1;
+}
+
+.product-name {
+    font-size: 13px;
+    color: #0f1111;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.product-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #565959;
+}
+
+.order-detail-modal__info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f7f8f8;
+    border-radius: 4px;
+}
+
+.info-label {
+    font-size: 13px;
+    color: #565959;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 13px;
+    color: #0f1111;
+    font-weight: 500;
+}
+
+.info-value--total {
+    font-size: 16px;
+    font-weight: 700;
+    color: #c45500;
+}
+
+.order-detail-modal__footer {
+    display: flex;
+    justify-content: center;
+    padding: 16px 20px;
+    border-top: 1px solid #eee;
+}
+
+.order-detail-modal__btn {
+    padding: 10px 30px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f1111;
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+    border: 1px solid #a88734;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.order-detail-modal__btn:hover {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+/* Modal Responsive */
+@media (max-width: 600px) {
+    .order-detail-modal {
+        min-width: 90%;
+        margin: 0 15px;
     }
 }

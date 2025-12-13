@@ -5,11 +5,12 @@ import Footer from '../../Components/Footer/Footer';
 import './AdminOverview.css';
 import { useAuth } from '../../Context/AuthContext';
 import axios from 'axios';
-import PeopleIcon from '@mui/icons-material/People';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import LegendToggleIcon from '@mui/icons-material/LegendToggle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
+import CloseIcon from '@mui/icons-material/Close';
 
 const AdminOverview = () => {
     const { isAuthenticated, user } = useAuth();
@@ -48,6 +49,23 @@ const AdminOverview = () => {
     const [ordersTotal, setOrdersTotal] = useState(0);
     const [ordersLoading, setOrdersLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Order detail modal state
+    const [showOrderDetail, setShowOrderDetail] = useState(false);
+    const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+    const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+
+    // Payment and shipping method mappings
+    const paymentMethods = {
+        1: 'Cash On Delivery',
+        2: 'Credit Card'
+    };
+    const shippingMethods = {
+        1: 'Standard Shipping',
+        2: 'Express Shipping',
+        3: 'Same Day Delivery',
+        4: 'International Shipping'
+    };
 
     // Fetch statistics
     const fetchStats = async () => {
@@ -92,6 +110,27 @@ const AdminOverview = () => {
         } finally {
             setOrdersLoading(false);
         }
+    };
+
+    // Fetch order detail
+    const fetchOrderDetail = async (orderId) => {
+        try {
+            setOrderDetailLoading(true);
+            const response = await axios.get(`http://localhost:8000/order/${orderId}`);
+            setSelectedOrderDetail(response.data);
+            setShowOrderDetail(true);
+        } catch (error) {
+            console.error('Error fetching order detail:', error);
+            alert('Failed to fetch order details');
+        } finally {
+            setOrderDetailLoading(false);
+        }
+    };
+
+    // Close order detail modal
+    const closeOrderDetail = () => {
+        setShowOrderDetail(false);
+        setSelectedOrderDetail(null);
     };
 
     // Load data on mount
@@ -168,7 +207,7 @@ const AdminOverview = () => {
                     <div className="admin-page__stats">
                         <div className="stat-card">
                             <div className="stat-card__icon stat-card__icon--customers">
-                                <PeopleIcon />
+                                <PeopleAltIcon />
                             </div>
                             <div className="stat-card__content">
                                 <div className="stat-card__label">Total Customers</div>
@@ -192,7 +231,7 @@ const AdminOverview = () => {
 
                         <div className="stat-card">
                             <div className="stat-card__icon stat-card__icon--revenue">
-                                <AttachMoneyIcon />
+                                <LegendToggleIcon />
                             </div>
                             <div className="stat-card__content">
                                 <div className="stat-card__label">Total Revenue</div>
@@ -213,6 +252,8 @@ const AdminOverview = () => {
                         <div className="trending-list">
                             {trendingLoading ? (
                                 <div className="trending-loading">Loading...</div>
+                            ) : trendingProducts.length === 0 ? (
+                                <div className="trending-loading">No trending products found.</div>
                             ) : (
                                 trendingProducts.map((product, index) => (
                                     <div key={product.product_id} className="trending-item">
@@ -285,6 +326,7 @@ const AdminOverview = () => {
                                         <th>Date</th>
                                         <th>Status</th>
                                         <th>Amount</th>
+                                        <th>Detail</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -312,6 +354,15 @@ const AdminOverview = () => {
                                                 </span>
                                             </td>
                                             <td className="order-amount">${order.order_total.toFixed(2)}</td>
+                                            <td>
+                                                <button
+                                                    className="view-detail-btn"
+                                                    onClick={() => fetchOrderDetail(order.order_id)}
+                                                    disabled={orderDetailLoading}
+                                                >
+                                                    View Detail
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -371,6 +422,74 @@ const AdminOverview = () => {
                 {/* Tab Content */}
                 {renderTabContent()}
             </div>
+
+            {/* Order Detail Modal */}
+            {showOrderDetail && selectedOrderDetail && (
+                <div className="order-detail-overlay" onClick={closeOrderDetail}>
+                    <div className="order-detail-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="order-detail-modal__header">
+                            <span>Order Details - #{selectedOrderDetail.order_id}</span>
+                            <button className="order-detail-modal__close" onClick={closeOrderDetail}>
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="order-detail-modal__body">
+                            {/* Products List */}
+                            <div className="order-detail-modal__section">
+                                <h4>Products</h4>
+                                <div className="order-detail-modal__products">
+                                    {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
+                                        selectedOrderDetail.items.map((item, index) => (
+                                            <div key={index} className="order-detail-modal__product">
+                                                <div className="product-info">
+                                                    <span className="product-name">{item.product_name}</span>
+                                                    <div className="product-meta">
+                                                        <span>Qty: {item.qty}</span>
+                                                        <span>Price: ${item.price.toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p>No products found.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Order Info */}
+                            <div className="order-detail-modal__section">
+                                <h4>Order Information</h4>
+                                <div className="order-detail-modal__info">
+                                    <div className="info-row">
+                                        <span className="info-label">Payment Method:</span>
+                                        <span className="info-value">
+                                            {paymentMethods[selectedOrderDetail.payment_method_id] || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Shipping Method:</span>
+                                        <span className="info-value">
+                                            {shippingMethods[selectedOrderDetail.shipping_method_id] || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Order Total:</span>
+                                        <span className="info-value info-value--total">
+                                            ${selectedOrderDetail.order_total.toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="order-detail-modal__footer">
+                            <button className="order-detail-modal__btn" onClick={closeOrderDetail}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </div>
     );
