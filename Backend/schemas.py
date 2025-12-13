@@ -162,6 +162,7 @@ class UserRegisterRequest(BaseModel):
     age: int
     gender: str
     city: str
+    role: Optional[int] = 2  # 2=Users, 3=Suppliers
     # @field_validator('password')
     # def password_complexity(cls, value):
     #     if not re.search(r'[A-Z]', value):

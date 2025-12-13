@@ -186,3 +186,33 @@ footer {
 .password-toggle > * {
   pointer-events: auto; /* bật lại cho IconButton */
 }
+
+/* Role Selector Styles */
+.role-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.role-button {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid #a6a6a6;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.role-button:hover {
+  border-color: #f90;
+  box-shadow: 0 0 3px #f90;
+}
+
+.role-button.active {
+  background-color: #f0c14b;
+  border-color: #a88734;
+  color: #111;
+}
