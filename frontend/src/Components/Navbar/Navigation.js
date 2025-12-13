@@ -359,7 +359,7 @@ const NavBar = () => {
                     </div>
 
                     {/* tĂ i khoáº£n */}
-                    <div className="account">
+                    <div className="account" onClick={toggleDropdown}>
                         <div className="account__left">
                             <div className="account__up">
                                 {isAuthenticated && user ? `Hello, ${user.user_name}` : "Hello, Sign in"}
@@ -368,7 +368,7 @@ const NavBar = () => {
                                 Accounts & Lists
                             </div>
                         </div>
-                        <div className="account__right" onClick={toggleDropdown}>
+                        <div className="account__right">
                             <ArrowDropDownOutlinedIcon sx={{ fontSize: 16 }} className="account__dropdown" />
                         </div>
 
