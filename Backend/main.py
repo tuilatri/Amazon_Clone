@@ -337,6 +337,7 @@ async def postRegister(user: UserRegisterRequest, db: Session = Depends(get_db))
             phone_number=user.phone_number,
             city=user.city,
             password=hashed_password,
+            role=user.role,  # Use role from request (2=Users, 3=Suppliers)
         )
         
         db.add(db_user)

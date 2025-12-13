@@ -20,7 +20,8 @@ const SignUp = () => {
     repassword: '',
     age: '',
     gender: '',
-    city: ''
+    city: '',
+    role: 2  // Default to Users (2=Users, 3=Suppliers)
   });
 
   // State để toggle hiển thị mật khẩu
@@ -91,7 +92,7 @@ const SignUp = () => {
     try {
       const response = await axios.post('http://localhost:8000/postRegister/', formData);  // sửa api_endpoint từ register thành postRegister
       console.log('Registration successful:', response.data);
-      
+
       // Thành công → hiện thông báo và chuyển về trang đăng nhập
       setMessage('Registration successful! Please sign in.');
       setTimeout(() => {
@@ -218,6 +219,24 @@ const SignUp = () => {
             required
             onChange={handleInputChange}
           />
+
+          <label>Which role do you want to register as?</label>
+          <div className="role-selector">
+            <button
+              type="button"
+              className={`role-button ${formData.role === 2 ? 'active' : ''}`}
+              onClick={() => setFormData({ ...formData, role: 2 })}
+            >
+              Users
+            </button>
+            <button
+              type="button"
+              className={`role-button ${formData.role === 3 ? 'active' : ''}`}
+              onClick={() => setFormData({ ...formData, role: 3 })}
+            >
+              Suppliers
+            </button>
+          </div>
 
           <button type="submit" className="signup-button">
             Sign up
