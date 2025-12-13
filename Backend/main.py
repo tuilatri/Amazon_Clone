@@ -1732,10 +1732,10 @@ async def get_trending_products(
     """
     Get trending products sorted by highest rating and number of ratings.
     """
-    # Query all products and sort by ratings (highest first), then by no_of_ratings
+    # Query all products and sort by average_rating (highest first), then by no_of_ratings
     # Handle NULL values by treating them as 0
     products = db.query(Product).order_by(
-        Product.ratings.desc().nullslast(),
+        Product.average_rating.desc().nullslast(),
         Product.no_of_ratings.desc().nullslast()
     ).all()
     
@@ -1751,9 +1751,9 @@ async def get_trending_products(
         product_list.append({
             "product_id": product.product_id,
             "product_name": product.product_name[:80] + "..." if len(product.product_name) > 80 else product.product_name,
-            "ratings": float(product.ratings) if product.ratings else 0,
+            "ratings": float(product.average_rating) if product.average_rating else 0,
             "no_of_ratings": product.no_of_ratings or 0,
-            "image": product.image
+            "image": product.product_image
         })
     
     return {
