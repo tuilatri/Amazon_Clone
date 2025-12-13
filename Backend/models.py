@@ -29,6 +29,7 @@ class SiteUser(Base):
     phone_number = Column(String(10), unique=True, nullable=True)
     city = Column(String(100))
     password = Column(String(255), nullable=True)
+    role = Column(Integer, default=2)  # 1=Admin, 2=Normal User, 3=Supplier, 4=Delivery Person
     
 
     # Other Relationships

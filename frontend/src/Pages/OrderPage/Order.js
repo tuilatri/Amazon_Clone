@@ -51,7 +51,7 @@ const Order = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:8800/order/history', {
+            const response = await axios.post('http://localhost:8000/order/history', {
                 user_email: user.email_address
             });
 
@@ -85,7 +85,7 @@ const Order = () => {
         setCancellingOrderId(orderToCancel);
 
         try {
-            const response = await axios.post('http://localhost:8800/order/cancel', {
+            const response = await axios.post('http://localhost:8000/order/cancel', {
                 order_id: orderToCancel,
                 user_email: user.email_address
             });
