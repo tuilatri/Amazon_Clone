@@ -1,6 +1,6 @@
 /* ================================
    ADMIN USER MANAGEMENT STYLES
-   Compact, clean, professional
+   Centered, clear typography
    ================================ */
 
 .admin-page__usermanagement {
@@ -8,6 +8,8 @@
     border: 1px solid #d5d9d9;
     border-radius: 8px;
     overflow: hidden;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 /* Table Structure */
@@ -20,23 +22,23 @@
     grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 0.8fr 40px;
     background: #f7f8f9;
     border-bottom: 1px solid #e0e0e0;
-    padding: 10px 14px;
-    gap: 8px;
+    padding: 14px 20px;
+    gap: 12px;
     align-items: center;
 }
 
 .user-table__header-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     color: #565959;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .user-table__cell {
-    font-size: 13px;
+    font-size: 14px;
     color: #0f1111;
 }
 
@@ -55,12 +57,12 @@
 }
 
 .user-table__search {
-    width: 50%;
-    max-width: 150px;
-    padding: 7px 10px 7px 32px;
+    width: 60%;
+    max-width: 180px;
+    padding: 8px 12px 8px 34px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 14px;
     background: #fff;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -72,13 +74,13 @@
 }
 
 .user-table__select {
-    padding: 7px 10px;
+    padding: 8px 12px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 14px;
     background: #fff;
     cursor: pointer;
-    min-width: 90px;
+    min-width: 100px;
     transition: border-color 0.2s;
 }
 
@@ -87,7 +89,7 @@
     border-color: #e77600;
 }
 
-/* Table Body - Compact */
+/* Table Body */
 .user-table__body {
     max-height: calc(100vh - 350px);
     overflow-y: auto;
@@ -96,8 +98,8 @@
 .user-table__row {
     display: grid;
     grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 0.8fr 40px;
-    padding: 10px 14px;
-    gap: 8px;
+    padding: 14px 20px;
+    gap: 12px;
     align-items: center;
     border-bottom: 1px solid #f0f0f0;
     transition: background 0.2s ease;
@@ -109,22 +111,22 @@
 
 .user-table__loading,
 .user-table__empty {
-    padding: 30px;
+    padding: 40px;
     text-align: center;
     color: #565959;
-    font-size: 13px;
+    font-size: 15px;
 }
 
-/* User Info Cell - Compact */
+/* User Info Cell */
 .user-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .user-avatar {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     background: #e8e8e8;
     display: flex;
@@ -135,7 +137,7 @@
 }
 
 .user-avatar svg {
-    font-size: 20px;
+    font-size: 22px;
 }
 
 .user-details {
@@ -148,7 +150,7 @@
 .user-name {
     font-weight: 600;
     color: #0f1111;
-    font-size: 13px;
+    font-size: 15px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -164,7 +166,7 @@
 
 /* Cell text for Email and Phone columns */
 .cell-text {
-    font-size: 12px;
+    font-size: 14px;
     color: #0f1111;
     white-space: nowrap;
     overflow: hidden;
@@ -172,14 +174,14 @@
     display: block;
 }
 
-/* Status Badge - Compact */
+/* Status Badge */
 .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 3px 8px;
-    border-radius: 10px;
-    font-size: 11px;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
     font-weight: 500;
 }
 
@@ -269,12 +271,12 @@
     color: #c53929;
 }
 
-/* Pagination - Compact */
+/* Pagination */
 .user-pagination {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
+    padding: 16px 20px;
     background: #f7f8f9;
     border-top: 1px solid #e0e0e0;
 }
@@ -282,22 +284,22 @@
 .user-pagination__info {
     display: flex;
     align-items: center;
-    gap: 16px;
-    font-size: 12px;
+    gap: 20px;
+    font-size: 14px;
     color: #565959;
 }
 
 .user-pagination__per-page {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .user-pagination__select {
-    padding: 5px 8px;
+    padding: 6px 10px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 14px;
     background: #fff;
     cursor: pointer;
 }
@@ -310,28 +312,28 @@
 .user-pagination__controls {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
 .user-pagination__btn {
-    padding: 6px 12px;
+    padding: 8px 14px;
     border: 1px solid #d5d9d9;
     border-radius: 4px;
     background: #fff;
-    font-size: 12px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .user-pagination__btn--icon {
-    padding: 6px 8px;
+    padding: 8px 10px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .user-pagination__btn--icon svg {
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .user-pagination__btn:hover:not(:disabled) {
@@ -344,15 +346,15 @@
 }
 
 .user-pagination__page {
-    min-width: 28px;
-    height: 28px;
+    min-width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1px solid #d5d9d9;
     border-radius: 4px;
     background: #fff;
-    font-size: 12px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
