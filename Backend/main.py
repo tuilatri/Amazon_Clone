@@ -1842,7 +1842,117 @@ async def get_order_status_counts(db: Session = Depends(get_db)):
     return result
 
 
+@app.get("/admin/users")
+async def get_admin_users(
+    page: int = 1,
+    per_page: int = 20,
+    search: str = "",
+    status: str = "",
+    role: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all users for admin user management with pagination and filters.
+    - search: Search by username or email
+    - status: Filter by status (active, locked, disabled) - empty = all
+    - role: Filter by role (0 = all, 1 = Admin, 2 = User, 3 = Supplier, 4 = Delivery)
+    """
+    query = db.query(SiteUser)
+    
+    # Apply role filter (0 means all roles)
+    if role > 0:
+        query = query.filter(SiteUser.role == role)
+    
+    # Apply status filter (empty means all statuses)
+    if status and status in ['active', 'locked', 'disabled']:
+        query = query.filter(SiteUser.status == status)
+    
+    # Apply search filter (search by username or email)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (SiteUser.user_name.ilike(search_pattern)) |
+            (SiteUser.email_address.ilike(search_pattern))
+        )
+    
+    # Get total count
+    total = query.count()
+    
+    # Sort by newest first (user_id desc) and paginate
+    users = query.order_by(SiteUser.user_id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    
+    # Role mapping
+    role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
+    
+    user_list = []
+    for user in users:
+        user_list.append({
+            "user_id": user.user_id,
+            "user_name": user.user_name or "No Name",
+            "email_address": user.email_address,
+            "phone_number": user.phone_number,
+            "role": role_mapping.get(user.role, 'User'),
+            "role_id": user.role or 2,
+            "status": user.status or 'active',
+            "created_at": user.created_at.strftime("%d/%m/%Y %H:%M") if user.created_at else None,
+            "last_login_at": user.last_login_at.strftime("%d/%m/%Y %H:%M") if user.last_login_at else None
+        })
+    
+    return {
+        "users": user_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if total > 0 else 1
+    }
+
+
+@app.put("/admin/users/{user_id}/status")
+async def update_user_status(
+    user_id: int,
+    status_update: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a user's status.
+    Body: { "status": "active" | "locked" | "disabled" }
+    """
+    # Validate status
+    new_status = status_update.get("status", "").lower()
+    if new_status not in ['active', 'locked', 'disabled']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status. Must be 'active', 'locked', or 'disabled'"
+        )
+    
+    # Find user
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Don't allow changing admin status (security)
+    if user.role == 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot change admin user status"
+        )
+    
+    # Update status
+    user.status = new_status
+    db.commit()
+    
+    return {
+        "message": f"User status updated to '{new_status}'",
+        "user_id": user_id,
+        "status": new_status
+    }
+
+
 @app.get("/admin/trending-products")
+
 
 async def get_trending_products(
     page: int = 1,
