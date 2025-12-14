@@ -13,6 +13,8 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import CloseIcon from '@mui/icons-material/Close';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 const UserManagement = () => {
     // Users state
@@ -38,6 +40,9 @@ const UserManagement = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
     const [newUser, setNewUser] = useState({
         user_name: '',
         email_address: '',
@@ -62,12 +67,19 @@ const UserManagement = () => {
             city: ''
         });
         setFormError('');
+        setFieldErrors({});
+        setShowPassword(false);
+        setShowConfirmPassword(false);
     };
 
     // Handle form input change
     const handleFormChange = (e) => {
         const { name, value } = e.target;
         setNewUser(prev => ({ ...prev, [name]: value }));
+        // Clear specific field error when user types
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => ({ ...prev, [name]: '' }));
+        }
         if (formError) setFormError('');
     };
 
@@ -75,30 +87,42 @@ const UserManagement = () => {
     const handleAddUser = async (e) => {
         e.preventDefault();
         setFormError('');
+        setFieldErrors({});
 
-        // Validation
+        // Validation with inline errors
+        const errors = {};
+
         if (!newUser.user_name.trim()) {
-            setFormError('Username is required');
-            return;
+            errors.user_name = 'Username is required';
         }
+
         if (!newUser.email_address.trim()) {
-            setFormError('Email is required');
-            return;
+            errors.email_address = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email_address)) {
+            errors.email_address = 'Please enter a valid email address';
         }
+
         if (!newUser.phone_number.trim()) {
-            setFormError('Phone number is required');
-            return;
+            errors.phone_number = 'Phone number is required';
+        } else if (newUser.phone_number.length !== 10 || !/^\d+$/.test(newUser.phone_number)) {
+            errors.phone_number = 'Phone number must be exactly 10 digits';
         }
-        if (newUser.phone_number.length !== 10 || !/^\d+$/.test(newUser.phone_number)) {
-            setFormError('Phone number must be 10 digits');
-            return;
+
+        if (!newUser.password) {
+            errors.password = 'Password is required';
+        } else if (newUser.password.length < 8) {
+            errors.password = 'Password must be at least 8 characters';
         }
-        if (!newUser.password || newUser.password.length < 8) {
-            setFormError('Password must be at least 8 characters');
-            return;
+
+        if (!newUser.confirmPassword) {
+            errors.confirmPassword = 'Please confirm your password';
+        } else if (newUser.password !== newUser.confirmPassword) {
+            errors.confirmPassword = 'Passwords do not match';
         }
-        if (newUser.password !== newUser.confirmPassword) {
-            setFormError('Passwords do not match');
+
+        // If there are any errors, set them and return
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
             return;
         }
 
@@ -581,7 +605,7 @@ const UserManagement = () => {
                                     {formError}
                                 </div>
                             )}
-                            <div className="add-user-modal__field">
+                            <div className={`add-user-modal__field ${fieldErrors.user_name ? 'has-error' : ''}`}>
                                 <label>Username *</label>
                                 <input
                                     type="text"
@@ -591,8 +615,9 @@ const UserManagement = () => {
                                     placeholder="Enter username"
                                     disabled={formLoading}
                                 />
+                                {fieldErrors.user_name && <span className="field-error">{fieldErrors.user_name}</span>}
                             </div>
-                            <div className="add-user-modal__field">
+                            <div className={`add-user-modal__field ${fieldErrors.email_address ? 'has-error' : ''}`}>
                                 <label>Email *</label>
                                 <input
                                     type="email"
@@ -602,8 +627,9 @@ const UserManagement = () => {
                                     placeholder="Enter email address"
                                     disabled={formLoading}
                                 />
+                                {fieldErrors.email_address && <span className="field-error">{fieldErrors.email_address}</span>}
                             </div>
-                            <div className="add-user-modal__field">
+                            <div className={`add-user-modal__field ${fieldErrors.phone_number ? 'has-error' : ''}`}>
                                 <label>Phone Number *</label>
                                 <input
                                     type="text"
@@ -614,29 +640,52 @@ const UserManagement = () => {
                                     maxLength={10}
                                     disabled={formLoading}
                                 />
+                                {fieldErrors.phone_number && <span className="field-error">{fieldErrors.phone_number}</span>}
                             </div>
                             <div className="add-user-modal__row">
-                                <div className="add-user-modal__field">
+                                <div className={`add-user-modal__field ${fieldErrors.password ? 'has-error' : ''}`}>
                                     <label>Password *</label>
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        value={newUser.password}
-                                        onChange={handleFormChange}
-                                        placeholder="Min 8 characters"
-                                        disabled={formLoading}
-                                    />
+                                    <div className="password-wrapper">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            name="password"
+                                            value={newUser.password}
+                                            onChange={handleFormChange}
+                                            placeholder="Min 8 characters"
+                                            disabled={formLoading}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            tabIndex={-1}
+                                        >
+                                            {showPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                                        </button>
+                                    </div>
+                                    {fieldErrors.password && <span className="field-error">{fieldErrors.password}</span>}
                                 </div>
-                                <div className="add-user-modal__field">
+                                <div className={`add-user-modal__field ${fieldErrors.confirmPassword ? 'has-error' : ''}`}>
                                     <label>Confirm Password *</label>
-                                    <input
-                                        type="password"
-                                        name="confirmPassword"
-                                        value={newUser.confirmPassword}
-                                        onChange={handleFormChange}
-                                        placeholder="Confirm password"
-                                        disabled={formLoading}
-                                    />
+                                    <div className="password-wrapper">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            name="confirmPassword"
+                                            value={newUser.confirmPassword}
+                                            onChange={handleFormChange}
+                                            placeholder="Confirm password"
+                                            disabled={formLoading}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="password-toggle"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            tabIndex={-1}
+                                        >
+                                            {showConfirmPassword ? <VisibilityIcon /> : <VisibilityOffIcon />}
+                                        </button>
+                                    </div>
+                                    {fieldErrors.confirmPassword && <span className="field-error">{fieldErrors.confirmPassword}</span>}
                                 </div>
                             </div>
                             <div className="add-user-modal__row">
