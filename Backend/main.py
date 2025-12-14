@@ -2046,11 +2046,13 @@ async def get_admin_user_detail(
 async def get_admin_user_orders(
     user_id: int,
     period: str = "",  # day, week, month, year
+    status: str = "",  # Filter by order status
     db: Session = Depends(get_db)
 ):
     """
-    Get order history for a specific user with optional date filtering.
+    Get order history for a specific user with optional date and status filtering.
     - period: Filter by day, week, month, year (from current date)
+    - status: Filter by order status (empty = all)
     """
     from datetime import datetime, timedelta
     
@@ -2077,6 +2079,10 @@ async def get_admin_user_orders(
         start_date = now - timedelta(days=365)
         query = query.filter(ShopOrder.order_date >= start_date.date())
     
+    # Apply status filter
+    if status:
+        query = query.join(OrderStatus).filter(OrderStatus.status.ilike(status))
+    
     # Order by newest first
     orders = query.order_by(ShopOrder.order_date.desc()).all()
     
@@ -2102,7 +2108,8 @@ async def get_admin_user_orders(
         "orders": order_list,
         "total_orders": len(order_list),
         "total_spent": round(total_spent, 2),
-        "period": period or "all"
+        "period": period or "all",
+        "status_filter": status or "all"
     }
 
 

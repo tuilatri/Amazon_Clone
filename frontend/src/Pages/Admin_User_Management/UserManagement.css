@@ -949,6 +949,44 @@
     color: #fff;
 }
 
+/* Order Status Filter */
+.order-status-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: #f7f8f9;
+    border-radius: 6px;
+}
+
+.order-status-filter label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #565959;
+}
+
+.status-filter-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d5d9d9;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #0f1111;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.status-filter-select:focus {
+    outline: none;
+    border-color: #e77600;
+}
+
+.status-filter-select:hover {
+    border-color: #a88734;
+}
+
 /* Order Stats */
 .order-stats {
     display: grid;

@@ -60,6 +60,7 @@ const UserManagement = () => {
     const [userOrders, setUserOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [orderPeriod, setOrderPeriod] = useState('');
+    const [orderStatusFilter, setOrderStatusFilter] = useState('');
     const [orderStats, setOrderStats] = useState({ total_orders: 0, total_spent: 0 });
     const [profileLoading, setProfileLoading] = useState(false);
 
@@ -71,7 +72,7 @@ const UserManagement = () => {
             setSelectedUser(response.data);
             setShowProfileModal(true);
             // Also fetch orders
-            fetchUserOrders(userId, '');
+            fetchUserOrders(userId, '', '');
         } catch (error) {
             console.error('Error fetching user detail:', error);
             alert('Failed to fetch user details');
@@ -81,15 +82,22 @@ const UserManagement = () => {
     };
 
     // Fetch user orders
-    const fetchUserOrders = async (userId, period) => {
+    const fetchUserOrders = async (userId, period, status) => {
         setOrdersLoading(true);
         try {
-            const params = new URLSearchParams({ period });
+            const params = new URLSearchParams({ period, status });
             const response = await axios.get(`http://localhost:8000/admin/users/${userId}/orders?${params}`);
-            setUserOrders(response.data.orders);
+            const orders = response.data.orders;
+            setUserOrders(orders);
+
+            // Calculate total spent from DELIVERED orders only
+            const deliveredTotal = orders
+                .filter(o => o.status?.toLowerCase() === 'delivered')
+                .reduce((sum, o) => sum + (o.order_total || 0), 0);
+
             setOrderStats({
                 total_orders: response.data.total_orders,
-                total_spent: response.data.total_spent
+                total_spent: deliveredTotal
             });
         } catch (error) {
             console.error('Error fetching user orders:', error);
@@ -102,7 +110,15 @@ const UserManagement = () => {
     const handleOrderPeriodChange = (period) => {
         setOrderPeriod(period);
         if (selectedUser) {
-            fetchUserOrders(selectedUser.user_id, period);
+            fetchUserOrders(selectedUser.user_id, period, orderStatusFilter);
+        }
+    };
+
+    // Handle order status filter change
+    const handleOrderStatusChange = (status) => {
+        setOrderStatusFilter(status);
+        if (selectedUser) {
+            fetchUserOrders(selectedUser.user_id, orderPeriod, status);
         }
     };
 
@@ -112,6 +128,7 @@ const UserManagement = () => {
         setSelectedUser(null);
         setUserOrders([]);
         setOrderPeriod('');
+        setOrderStatusFilter('');
         setOrderStats({ total_orders: 0, total_spent: 0 });
     };
 
@@ -876,21 +893,6 @@ const UserManagement = () => {
                                         <span className="profile-info__value">{selectedUser.last_login_at || '—'}</span>
                                     </div>
                                 </div>
-
-                                {/* Addresses */}
-                                {selectedUser.addresses && selectedUser.addresses.length > 0 && (
-                                    <div className="profile-addresses">
-                                        <h5>Addresses</h5>
-                                        {selectedUser.addresses.map((addr, idx) => (
-                                            <div key={idx} className="profile-address">
-                                                {addr.is_default && <span className="address-default">Default</span>}
-                                                <p>{addr.address_line1}</p>
-                                                {addr.address_line2 && <p>{addr.address_line2}</p>}
-                                                <p>{addr.region} {addr.postal_code}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
 
                             {/* Right Side - Order History */}
@@ -931,6 +933,23 @@ const UserManagement = () => {
                                     </div>
                                 </div>
 
+                                {/* Status Filter Dropdown */}
+                                <div className="order-status-filter">
+                                    <label>Filter by Status:</label>
+                                    <select
+                                        value={orderStatusFilter}
+                                        onChange={(e) => handleOrderStatusChange(e.target.value)}
+                                        className="status-filter-select"
+                                    >
+                                        <option value="">All Statuses</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Processing">Processing</option>
+                                        <option value="Shipped">Shipped</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+
                                 <div className="order-stats">
                                     <div className="order-stat">
                                         <span className="order-stat__value">{orderStats.total_orders}</span>
@@ -938,7 +957,7 @@ const UserManagement = () => {
                                     </div>
                                     <div className="order-stat">
                                         <span className="order-stat__value">${orderStats.total_spent.toLocaleString()}</span>
-                                        <span className="order-stat__label">Total Spent</span>
+                                        <span className="order-stat__label">Total Spent (Delivered)</span>
                                     </div>
                                 </div>
 
