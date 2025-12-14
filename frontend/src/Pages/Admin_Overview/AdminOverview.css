@@ -810,3 +810,302 @@
         margin: 0 15px;
     }
 }
+
+/* ================================
+   NEW ADMIN OVERVIEW FEATURES
+   ================================ */
+
+/* Refresh Bar */
+.admin-page__refresh-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f7f8fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.refresh-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+    border: 1px solid #a88734;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111;
+    transition: all 0.2s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+.refresh-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.refresh-btn .spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Auto-refresh Toggle */
+.auto-refresh-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.auto-refresh-toggle input {
+    display: none;
+}
+
+.toggle-slider {
+    width: 40px;
+    height: 22px;
+    background: #ccc;
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.3s;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.auto-refresh-toggle input:checked+.toggle-slider {
+    background: #ff9900;
+}
+
+.auto-refresh-toggle input:checked+.toggle-slider::after {
+    transform: translateX(18px);
+}
+
+.toggle-label {
+    font-size: 13px;
+    color: #565959;
+}
+
+.last-updated {
+    font-size: 12px;
+    color: #888;
+}
+
+/* Today's Orders Indicator */
+.stat-card__today {
+    font-size: 12px;
+    color: #067d62;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+/* Revenue Breakdown */
+.stat-card__breakdown {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: #565959;
+    margin-top: 6px;
+    border-top: 1px solid #eee;
+    padding-top: 6px;
+}
+
+.stat-card__breakdown span {
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* Order Status Summary */
+.admin-page__status-summary {
+    margin-bottom: 24px;
+}
+
+.status-summary__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #232f3e;
+    margin-bottom: 12px;
+}
+
+.status-summary__cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.status-card svg {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.status-card__count {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.status-card__label {
+    font-size: 12px;
+    color: #565959;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Status Card Colors */
+.status-card--pending {
+    border-left: 4px solid #ff9900;
+}
+
+.status-card--pending svg {
+    color: #ff9900;
+}
+
+.status-card--processing {
+    border-left: 4px solid #007bff;
+}
+
+.status-card--processing svg {
+    color: #007bff;
+}
+
+.status-card--shipped {
+    border-left: 4px solid #6c5ce7;
+}
+
+.status-card--shipped svg {
+    color: #6c5ce7;
+}
+
+.status-card--delivered {
+    border-left: 4px solid #00b894;
+}
+
+.status-card--delivered svg {
+    color: #00b894;
+}
+
+/* Orders Filters */
+.orders-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-filter svg {
+    color: #565959;
+    font-size: 20px;
+}
+
+.status-filter__select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.status-filter__select:focus {
+    outline: none;
+    border-color: #ff9900;
+    box-shadow: 0 0 0 2px rgba(255, 153, 0, 0.2);
+}
+
+/* Responsive for Status Summary */
+@media (max-width: 768px) {
+    .status-summary__cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-page__refresh-bar {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .refresh-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .orders-filters {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .status-filter,
+    .orders-search {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .status-summary__cards {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .status-card {
+        padding: 12px 8px;
+    }
+
+    .status-card__count {
+        font-size: 20px;
+    }
+}

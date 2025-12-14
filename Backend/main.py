@@ -1634,22 +1634,59 @@ async def get_admin_stats(db: Session = Depends(get_db)):
     - Total customers (users with role=2)
     - Total orders
     - Total revenue (from Delivered orders only, status_id=4)
+    - Revenue breakdown by period (today, this week, this month)
+    - Today's orders count
     """
+    from datetime import datetime, timedelta
+    
+    today = datetime.now().date()
+    start_of_week = today - timedelta(days=today.weekday())  # Monday
+    start_of_month = today.replace(day=1)
+    
     # Total customers (role = 2 for normal users)
     total_customers = db.query(SiteUser).filter(SiteUser.role == 2).count()
     
     # Total orders
     total_orders = db.query(ShopOrder).count()
     
-    # Total revenue from Delivered orders only (status_id = 4)
+    # Today's orders
+    orders_today = db.query(ShopOrder).filter(ShopOrder.order_date == today).count()
+    
+    # All delivered orders for revenue calculations
     delivered_orders = db.query(ShopOrder).filter(ShopOrder.order_status_id == 4).all()
     total_revenue = sum(float(order.order_total or 0) for order in delivered_orders)
+    
+    # Revenue today (delivered orders placed today)
+    revenue_today = sum(
+        float(order.order_total or 0) 
+        for order in delivered_orders 
+        if order.order_date == today
+    )
+    
+    # Revenue this week
+    revenue_this_week = sum(
+        float(order.order_total or 0) 
+        for order in delivered_orders 
+        if order.order_date and order.order_date >= start_of_week
+    )
+    
+    # Revenue this month
+    revenue_this_month = sum(
+        float(order.order_total or 0) 
+        for order in delivered_orders 
+        if order.order_date and order.order_date >= start_of_month
+    )
     
     return {
         "total_customers": total_customers,
         "total_orders": total_orders,
-        "total_revenue": round(total_revenue, 2)
+        "orders_today": orders_today,
+        "total_revenue": round(total_revenue, 2),
+        "revenue_today": round(revenue_today, 2),
+        "revenue_this_week": round(revenue_this_week, 2),
+        "revenue_this_month": round(revenue_this_month, 2)
     }
+
 
 
 @app.get("/admin/orders")
@@ -1657,13 +1694,18 @@ async def get_admin_orders(
     page: int = 1,
     per_page: int = 10,
     search: str = "",
+    status: int = 0,
     db: Session = Depends(get_db)
 ):
     """
-    Get all orders for admin dashboard with pagination and search.
-    Search by order_id or user_id.
+    Get all orders for admin dashboard with pagination, search, and status filter.
+    Search by order_id or user_id. Filter by status_id (0 = all statuses).
     """
     query = db.query(ShopOrder)
+    
+    # Apply status filter (0 means all statuses)
+    if status > 0:
+        query = query.filter(ShopOrder.order_status_id == status)
     
     # Apply search filter
     if search:
@@ -1723,7 +1765,45 @@ async def get_admin_orders(
     }
 
 
+@app.get("/admin/order-status-counts")
+async def get_order_status_counts(db: Session = Depends(get_db)):
+    """
+    Get count of orders grouped by status for admin dashboard.
+    Returns counts for each status: Pending, Processing, Shipped, Delivered, Cancelled, Returned.
+    """
+    from sqlalchemy import func
+    
+    status_mapping = {1: 'pending', 2: 'processing', 3: 'shipped', 4: 'delivered', 5: 'cancelled', 6: 'returned'}
+    
+    # Query order counts grouped by status
+    status_counts = db.query(
+        ShopOrder.order_status_id, 
+        func.count(ShopOrder.order_id)
+    ).group_by(ShopOrder.order_status_id).all()
+    
+    # Build response with all statuses (default to 0)
+    result = {
+        "pending": 0,
+        "processing": 0,
+        "shipped": 0,
+        "delivered": 0,
+        "cancelled": 0,
+        "returned": 0
+    }
+    
+    for status_id, count in status_counts:
+        status_key = status_mapping.get(status_id)
+        if status_key:
+            result[status_key] = count
+    
+    # Also include total for convenience
+    result["total"] = sum(result.values())
+    
+    return result
+
+
 @app.get("/admin/trending-products")
+
 async def get_trending_products(
     page: int = 1,
     per_page: int = 5,

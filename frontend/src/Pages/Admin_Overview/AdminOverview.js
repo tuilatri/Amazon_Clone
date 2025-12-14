@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
@@ -11,6 +11,12 @@ import LegendToggleIcon from '@mui/icons-material/LegendToggle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
 import CloseIcon from '@mui/icons-material/Close';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const AdminOverview = () => {
     const { isAuthenticated, user } = useAuth();
@@ -28,13 +34,29 @@ const AdminOverview = () => {
         'Sales Analytics'
     ];
 
-    // Statistics state
+    // Statistics state (extended with period-based data)
     const [stats, setStats] = useState({
         total_customers: 0,
         total_orders: 0,
-        total_revenue: 0
+        orders_today: 0,
+        total_revenue: 0,
+        revenue_today: 0,
+        revenue_this_week: 0,
+        revenue_this_month: 0
     });
     const [statsLoading, setStatsLoading] = useState(true);
+
+    // Order status counts state
+    const [statusCounts, setStatusCounts] = useState({
+        pending: 0,
+        processing: 0,
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0,
+        returned: 0,
+        total: 0
+    });
+    const [statusCountsLoading, setStatusCountsLoading] = useState(true);
 
     // Trending products state
     const [trendingProducts, setTrendingProducts] = useState([]);
@@ -49,11 +71,17 @@ const AdminOverview = () => {
     const [ordersTotal, setOrdersTotal] = useState(0);
     const [ordersLoading, setOrdersLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState(0); // 0 = All statuses
 
     // Order detail modal state
     const [showOrderDetail, setShowOrderDetail] = useState(false);
     const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
     const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+
+    // Refresh and auto-refresh state
+    const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [autoRefresh, setAutoRefresh] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Payment and shipping method mappings
     const paymentMethods = {
@@ -79,6 +107,19 @@ const AdminOverview = () => {
         }
     };
 
+    // Fetch order status counts
+    const fetchStatusCounts = async () => {
+        try {
+            setStatusCountsLoading(true);
+            const response = await axios.get('http://localhost:8000/admin/order-status-counts');
+            setStatusCounts(response.data);
+        } catch (error) {
+            console.error('Error fetching status counts:', error);
+        } finally {
+            setStatusCountsLoading(false);
+        }
+    };
+
     // Fetch trending products
     const fetchTrendingProducts = async (page = 1) => {
         try {
@@ -94,12 +135,12 @@ const AdminOverview = () => {
         }
     };
 
-    // Fetch orders
-    const fetchOrders = async (page = 1, search = '') => {
+    // Fetch orders with status filter
+    const fetchOrders = async (page = 1, search = '', status = 0) => {
         try {
             setOrdersLoading(true);
             const response = await axios.get(
-                `http://localhost:8000/admin/orders?page=${page}&per_page=10&search=${search}`
+                `http://localhost:8000/admin/orders?page=${page}&per_page=10&search=${search}&status=${status}`
             );
             setOrders(response.data.orders);
             setOrdersTotalPages(response.data.total_pages);
@@ -133,28 +174,73 @@ const AdminOverview = () => {
         setSelectedOrderDetail(null);
     };
 
+    // Refresh all data
+    const refreshAll = useCallback(async () => {
+        setIsRefreshing(true);
+        await Promise.all([
+            fetchStats(),
+            fetchStatusCounts(),
+            fetchTrendingProducts(trendingPage),
+            fetchOrders(ordersPage, searchQuery, statusFilter)
+        ]);
+        setLastUpdated(new Date());
+        setIsRefreshing(false);
+    }, [trendingPage, ordersPage, searchQuery, statusFilter]);
+
     // Load data on mount
     useEffect(() => {
         if (isAuthenticated && user?.role === 1) {
             fetchStats();
+            fetchStatusCounts();
             fetchTrendingProducts();
-            fetchOrders();
+            fetchOrders(1, '', statusFilter);
+            setLastUpdated(new Date());
         }
     }, [isAuthenticated, user?.role]);
+
+    // Auto-refresh effect
+    useEffect(() => {
+        let intervalId;
+        if (autoRefresh && isAuthenticated && user?.role === 1) {
+            intervalId = setInterval(() => {
+                refreshAll();
+            }, 30000); // 30 seconds
+        }
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [autoRefresh, isAuthenticated, user?.role, refreshAll]);
 
     // Handle search
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchOrders(1, searchQuery);
+        fetchOrders(1, searchQuery, statusFilter);
+    };
+
+    // Handle status filter change
+    const handleStatusFilterChange = (e) => {
+        const newStatus = parseInt(e.target.value);
+        setStatusFilter(newStatus);
+        fetchOrders(1, searchQuery, newStatus);
     };
 
     // Handle search input change with debounce
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
-            fetchOrders(1, searchQuery);
+            fetchOrders(1, searchQuery, statusFilter);
         }, 500);
         return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery]);
+    }, [searchQuery, statusFilter]);
+
+    // Format relative time
+    const getRelativeTime = (date) => {
+        const seconds = Math.floor((new Date() - date) / 1000);
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        return `${hours} hr ago`;
+    };
 
     // Redirect if not admin
     if (!isAuthenticated) {
@@ -201,6 +287,32 @@ const AdminOverview = () => {
 
         return (
             <div className="admin-page__overview">
+                {/* Refresh Controls */}
+                <div className="admin-page__refresh-bar">
+                    <div className="refresh-controls">
+                        <button
+                            className={`refresh-btn ${isRefreshing ? 'refreshing' : ''}`}
+                            onClick={refreshAll}
+                            disabled={isRefreshing}
+                        >
+                            <RefreshIcon className={isRefreshing ? 'spin' : ''} />
+                            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                        </button>
+                        <label className="auto-refresh-toggle">
+                            <input
+                                type="checkbox"
+                                checked={autoRefresh}
+                                onChange={(e) => setAutoRefresh(e.target.checked)}
+                            />
+                            <span className="toggle-slider"></span>
+                            <span className="toggle-label">Auto-refresh (30s)</span>
+                        </label>
+                    </div>
+                    <div className="last-updated">
+                        Last updated: {getRelativeTime(lastUpdated)}
+                    </div>
+                </div>
+
                 {/* Statistics Cards Section */}
                 <div className="admin-page__stats">
                     <div className="stat-card">
@@ -224,6 +336,9 @@ const AdminOverview = () => {
                             <div className="stat-card__value">
                                 {statsLoading ? '...' : stats.total_orders.toLocaleString()}
                             </div>
+                            {!statsLoading && stats.orders_today > 0 && (
+                                <div className="stat-card__today">+{stats.orders_today} today</div>
+                            )}
                         </div>
                     </div>
 
@@ -237,6 +352,59 @@ const AdminOverview = () => {
                             <div className="stat-card__value">
                                 ${statsLoading ? '...' : stats.total_revenue.toLocaleString()}
                             </div>
+                            {!statsLoading && (
+                                <div className="stat-card__breakdown">
+                                    <span>Week: ${stats.revenue_this_week.toLocaleString()}</span>
+                                    <span>Month: ${stats.revenue_this_month.toLocaleString()}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Order Status Summary */}
+                <div className="admin-page__status-summary">
+                    <h3 className="status-summary__title">Order Status Overview</h3>
+                    <div className="status-summary__cards">
+                        <div
+                            className="status-card status-card--pending"
+                            onClick={() => { setStatusFilter(1); fetchOrders(1, searchQuery, 1); }}
+                        >
+                            <PendingActionsIcon />
+                            <div className="status-card__count">
+                                {statusCountsLoading ? '...' : statusCounts.pending}
+                            </div>
+                            <div className="status-card__label">Pending</div>
+                        </div>
+                        <div
+                            className="status-card status-card--processing"
+                            onClick={() => { setStatusFilter(2); fetchOrders(1, searchQuery, 2); }}
+                        >
+                            <AutorenewIcon />
+                            <div className="status-card__count">
+                                {statusCountsLoading ? '...' : statusCounts.processing}
+                            </div>
+                            <div className="status-card__label">Processing</div>
+                        </div>
+                        <div
+                            className="status-card status-card--shipped"
+                            onClick={() => { setStatusFilter(3); fetchOrders(1, searchQuery, 3); }}
+                        >
+                            <LocalShippingIcon />
+                            <div className="status-card__count">
+                                {statusCountsLoading ? '...' : statusCounts.shipped}
+                            </div>
+                            <div className="status-card__label">Shipped</div>
+                        </div>
+                        <div
+                            className="status-card status-card--delivered"
+                            onClick={() => { setStatusFilter(4); fetchOrders(1, searchQuery, 4); }}
+                        >
+                            <CheckCircleIcon />
+                            <div className="status-card__count">
+                                {statusCountsLoading ? '...' : statusCounts.delivered}
+                            </div>
+                            <div className="status-card__label">Delivered</div>
                         </div>
                     </div>
                 </div>
@@ -353,15 +521,33 @@ const AdminOverview = () => {
                 <div className="admin-page__orders-section">
                     <div className="orders-header">
                         <h3>Last Orders</h3>
-                        <form onSubmit={handleSearch} className="orders-search">
-                            <input
-                                type="text"
-                                placeholder="Search by order ID, user ID, or email..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="orders-search__input"
-                            />
-                        </form>
+                        <div className="orders-filters">
+                            <div className="status-filter">
+                                <FilterListIcon />
+                                <select
+                                    value={statusFilter}
+                                    onChange={handleStatusFilterChange}
+                                    className="status-filter__select"
+                                >
+                                    <option value={0}>All Status</option>
+                                    <option value={1}>Pending</option>
+                                    <option value={2}>Processing</option>
+                                    <option value={3}>Shipped</option>
+                                    <option value={4}>Delivered</option>
+                                    <option value={5}>Cancelled</option>
+                                    <option value={6}>Returned</option>
+                                </select>
+                            </div>
+                            <form onSubmit={handleSearch} className="orders-search">
+                                <input
+                                    type="text"
+                                    placeholder="Search by order ID, user ID, or email..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="orders-search__input"
+                                />
+                            </form>
+                        </div>
                     </div>
 
                     <div className="orders-table-container">
@@ -428,7 +614,7 @@ const AdminOverview = () => {
                             <button
                                 className="pagination__btn"
                                 disabled={ordersPage === 1}
-                                onClick={() => fetchOrders(ordersPage - 1, searchQuery)}
+                                onClick={() => fetchOrders(ordersPage - 1, searchQuery, statusFilter)}
                             >
                                 Previous
                             </button>
@@ -438,10 +624,11 @@ const AdminOverview = () => {
                             <button
                                 className="pagination__btn"
                                 disabled={ordersPage === ordersTotalPages}
-                                onClick={() => fetchOrders(ordersPage + 1, searchQuery)}
+                                onClick={() => fetchOrders(ordersPage + 1, searchQuery, statusFilter)}
                             >
                                 Next
                             </button>
+
                         </div>
                     )}
                 </div>
