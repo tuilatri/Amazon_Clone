@@ -165,6 +165,12 @@ const UserManagement = () => {
                             />
                         </div>
                     </div>
+                    <div className="user-table__cell user-table__cell--email">
+                        <span className="user-table__header-label">Email</span>
+                    </div>
+                    <div className="user-table__cell user-table__cell--phone">
+                        <span className="user-table__header-label">Phone Number</span>
+                    </div>
                     <div className="user-table__cell user-table__cell--registered">
                         <span className="user-table__header-label">Registered</span>
                     </div>
@@ -204,9 +210,14 @@ const UserManagement = () => {
                                         </div>
                                         <div className="user-details">
                                             <span className="user-name">{user.user_name}</span>
-                                            <span className="user-email">{user.email_address}</span>
                                         </div>
                                     </div>
+                                </div>
+                                <div className="user-table__cell user-table__cell--email">
+                                    <span className="cell-text">{user.email_address || '—'}</span>
+                                </div>
+                                <div className="user-table__cell user-table__cell--phone">
+                                    <span className="cell-text">{user.phone_number || '—'}</span>
                                 </div>
                                 <div className="user-table__cell user-table__cell--registered">
                                     {user.created_at || '—'}

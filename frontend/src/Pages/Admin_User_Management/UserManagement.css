@@ -17,7 +17,7 @@
 
 .user-table__header {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 1.2fr 1fr 50px;
+    grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 0.8fr 40px;
     background: #f7f8f9;
     border-bottom: 1px solid #e0e0e0;
     padding: 10px 14px;
@@ -55,7 +55,8 @@
 }
 
 .user-table__search {
-    width: 100%;
+    width: 50%;
+    max-width: 150px;
     padding: 7px 10px 7px 32px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
@@ -94,7 +95,7 @@
 
 .user-table__row {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 1.2fr 1fr 50px;
+    grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 0.8fr 40px;
     padding: 10px 14px;
     gap: 8px;
     align-items: center;
@@ -159,6 +160,16 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Cell text for Email and Phone columns */
+.cell-text {
+    font-size: 12px;
+    color: #0f1111;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
 }
 
 /* Status Badge - Compact */
@@ -357,15 +368,27 @@
 }
 
 /* Responsive */
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
 
     .user-table__header,
     .user-table__row {
-        grid-template-columns: 2fr 1fr 50px;
+        grid-template-columns: 1.5fr 1.5fr 1fr 0.8fr 40px;
     }
 
     .user-table__cell--registered,
     .user-table__cell--lastactive {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .user-table__header,
+    .user-table__row {
+        grid-template-columns: 1.5fr 1.5fr 0.8fr 40px;
+    }
+
+    .user-table__cell--phone {
         display: none;
     }
 }
