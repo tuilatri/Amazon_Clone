@@ -27,7 +27,7 @@ const AdminOverview = () => {
     const [activeTab, setActiveTab] = useState('Overview');
     const tabs = [
         'Overview',
-        'User Management',
+        'Customer Management',
         'Supplier Management',
         'Delivery Person Management',
         'Product Management',
@@ -281,7 +281,7 @@ const AdminOverview = () => {
 
     // Render tab content based on active tab
     const renderTabContent = () => {
-        if (activeTab === 'User Management') {
+        if (activeTab === 'Customer Management') {
             return <UserManagement />;
         }
 
