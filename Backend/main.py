@@ -1992,6 +1992,120 @@ async def update_user_status(
     }
 
 
+@app.get("/admin/users/{user_id}/detail")
+async def get_admin_user_detail(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed user information including addresses for admin user profile popup.
+    Does NOT return password.
+    """
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user addresses
+    addresses = []
+    user_addresses = db.query(UserAddress).filter(UserAddress.user_id == user_id).all()
+    for ua in user_addresses:
+        addr = ua.address
+        if addr:
+            addresses.append({
+                "address_id": addr.address_id,
+                "unit_number": addr.unit_number,
+                "street_number": addr.street_number,
+                "address_line1": addr.address_line1,
+                "address_line2": addr.address_line2,
+                "region": addr.region,
+                "postal_code": addr.postal_code,
+                "is_default": ua.is_default
+            })
+    
+    # Role mapping
+    role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
+    
+    return {
+        "user_id": user.user_id,
+        "user_name": user.user_name or "No Name",
+        "email_address": user.email_address,
+        "phone_number": user.phone_number,
+        "age": user.age,
+        "gender": user.gender,
+        "city": user.city,
+        "role": role_mapping.get(user.role, 'User'),
+        "role_id": user.role or 2,
+        "status": user.status or 'active',
+        "created_at": user.created_at.strftime("%d/%m/%Y %H:%M") if user.created_at else None,
+        "last_login_at": user.last_login_at.strftime("%d/%m/%Y %H:%M") if user.last_login_at else None,
+        "addresses": addresses
+    }
+
+
+@app.get("/admin/users/{user_id}/orders")
+async def get_admin_user_orders(
+    user_id: int,
+    period: str = "",  # day, week, month, year
+    db: Session = Depends(get_db)
+):
+    """
+    Get order history for a specific user with optional date filtering.
+    - period: Filter by day, week, month, year (from current date)
+    """
+    from datetime import datetime, timedelta
+    
+    # Verify user exists
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Build query
+    query = db.query(ShopOrder).filter(ShopOrder.user_id == user_id)
+    
+    # Apply date filter
+    now = datetime.now()
+    if period == "day":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    elif period == "week":
+        start_date = now - timedelta(days=7)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    elif period == "month":
+        start_date = now - timedelta(days=30)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    elif period == "year":
+        start_date = now - timedelta(days=365)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    
+    # Order by newest first
+    orders = query.order_by(ShopOrder.order_date.desc()).all()
+    
+    # Format orders
+    order_list = []
+    total_spent = 0
+    for order in orders:
+        status_name = order.order_status.status if order.order_status else "Unknown"
+        order_total = float(order.order_total) if order.order_total else 0
+        total_spent += order_total
+        
+        order_list.append({
+            "order_id": order.order_id,
+            "order_date": order.order_date.strftime("%d/%m/%Y") if order.order_date else None,
+            "order_total": order_total,
+            "status": status_name,
+            "payment_method": order.payment_method.payment_type_name if order.payment_method else None,
+            "shipping_method": order.shipping_method.method_name if order.shipping_method else None
+        })
+    
+    return {
+        "user_id": user_id,
+        "orders": order_list,
+        "total_orders": len(order_list),
+        "total_spent": round(total_spent, 2),
+        "period": period or "all"
+    }
+
+
 @app.get("/admin/trending-products")
 
 

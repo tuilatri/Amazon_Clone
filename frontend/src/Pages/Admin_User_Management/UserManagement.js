@@ -54,6 +54,67 @@ const UserManagement = () => {
         city: ''
     });
 
+    // User Profile Modal state
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userOrders, setUserOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [orderPeriod, setOrderPeriod] = useState('');
+    const [orderStats, setOrderStats] = useState({ total_orders: 0, total_spent: 0 });
+    const [profileLoading, setProfileLoading] = useState(false);
+
+    // Fetch user detail
+    const fetchUserDetail = async (userId) => {
+        setProfileLoading(true);
+        try {
+            const response = await axios.get(`http://localhost:8000/admin/users/${userId}/detail`);
+            setSelectedUser(response.data);
+            setShowProfileModal(true);
+            // Also fetch orders
+            fetchUserOrders(userId, '');
+        } catch (error) {
+            console.error('Error fetching user detail:', error);
+            alert('Failed to fetch user details');
+        } finally {
+            setProfileLoading(false);
+        }
+    };
+
+    // Fetch user orders
+    const fetchUserOrders = async (userId, period) => {
+        setOrdersLoading(true);
+        try {
+            const params = new URLSearchParams({ period });
+            const response = await axios.get(`http://localhost:8000/admin/users/${userId}/orders?${params}`);
+            setUserOrders(response.data.orders);
+            setOrderStats({
+                total_orders: response.data.total_orders,
+                total_spent: response.data.total_spent
+            });
+        } catch (error) {
+            console.error('Error fetching user orders:', error);
+        } finally {
+            setOrdersLoading(false);
+        }
+    };
+
+    // Handle order period filter change
+    const handleOrderPeriodChange = (period) => {
+        setOrderPeriod(period);
+        if (selectedUser) {
+            fetchUserOrders(selectedUser.user_id, period);
+        }
+    };
+
+    // Close profile modal
+    const closeProfileModal = () => {
+        setShowProfileModal(false);
+        setSelectedUser(null);
+        setUserOrders([]);
+        setOrderPeriod('');
+        setOrderStats({ total_orders: 0, total_spent: 0 });
+    };
+
     // Reset form
     const resetForm = () => {
         setNewUser({
@@ -447,7 +508,12 @@ const UserManagement = () => {
                                             <PersonIcon />
                                         </div>
                                         <div className="user-details">
-                                            <span className="user-name">{user.user_name}</span>
+                                            <span
+                                                className="user-name user-name--clickable"
+                                                onClick={() => fetchUserDetail(user.user_id)}
+                                            >
+                                                {user.user_name}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -745,6 +811,167 @@ const UserManagement = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* User Profile Modal */}
+            {showProfileModal && selectedUser && (
+                <div className="user-profile-overlay" onClick={closeProfileModal}>
+                    <div className="user-profile-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="user-profile-modal__header">
+                            <h3>User Profile</h3>
+                            <button className="user-profile-modal__close" onClick={closeProfileModal}>
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="user-profile-modal__content">
+                            {/* Left Side - User Information */}
+                            <div className="user-profile-modal__left">
+                                <div className="profile-section">
+                                    <div className="profile-avatar">
+                                        <PersonIcon />
+                                    </div>
+                                    <h4 className="profile-name">{selectedUser.user_name}</h4>
+                                    <span className={`profile-status ${getStatusClass(selectedUser.status)}`}>
+                                        {selectedUser.status}
+                                    </span>
+                                </div>
+
+                                <div className="profile-info">
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">User ID</span>
+                                        <span className="profile-info__value">#{selectedUser.user_id}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Email</span>
+                                        <span className="profile-info__value">{selectedUser.email_address || '—'}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Phone</span>
+                                        <span className="profile-info__value">{selectedUser.phone_number || '—'}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Role</span>
+                                        <span className="profile-info__value">{selectedUser.role}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Age</span>
+                                        <span className="profile-info__value">{selectedUser.age || '—'}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Gender</span>
+                                        <span className="profile-info__value">{selectedUser.gender || '—'}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">City</span>
+                                        <span className="profile-info__value">{selectedUser.city || '—'}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Registered</span>
+                                        <span className="profile-info__value">{selectedUser.created_at || '—'}</span>
+                                    </div>
+                                    <div className="profile-info__item">
+                                        <span className="profile-info__label">Last Active</span>
+                                        <span className="profile-info__value">{selectedUser.last_login_at || '—'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Addresses */}
+                                {selectedUser.addresses && selectedUser.addresses.length > 0 && (
+                                    <div className="profile-addresses">
+                                        <h5>Addresses</h5>
+                                        {selectedUser.addresses.map((addr, idx) => (
+                                            <div key={idx} className="profile-address">
+                                                {addr.is_default && <span className="address-default">Default</span>}
+                                                <p>{addr.address_line1}</p>
+                                                {addr.address_line2 && <p>{addr.address_line2}</p>}
+                                                <p>{addr.region} {addr.postal_code}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Side - Order History */}
+                            <div className="user-profile-modal__right">
+                                <div className="order-history-header">
+                                    <h4>Order History</h4>
+                                    <div className="order-period-tabs">
+                                        <button
+                                            className={`period-tab ${orderPeriod === '' ? 'active' : ''}`}
+                                            onClick={() => handleOrderPeriodChange('')}
+                                        >
+                                            All
+                                        </button>
+                                        <button
+                                            className={`period-tab ${orderPeriod === 'day' ? 'active' : ''}`}
+                                            onClick={() => handleOrderPeriodChange('day')}
+                                        >
+                                            Day
+                                        </button>
+                                        <button
+                                            className={`period-tab ${orderPeriod === 'week' ? 'active' : ''}`}
+                                            onClick={() => handleOrderPeriodChange('week')}
+                                        >
+                                            Week
+                                        </button>
+                                        <button
+                                            className={`period-tab ${orderPeriod === 'month' ? 'active' : ''}`}
+                                            onClick={() => handleOrderPeriodChange('month')}
+                                        >
+                                            Month
+                                        </button>
+                                        <button
+                                            className={`period-tab ${orderPeriod === 'year' ? 'active' : ''}`}
+                                            onClick={() => handleOrderPeriodChange('year')}
+                                        >
+                                            Year
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="order-stats">
+                                    <div className="order-stat">
+                                        <span className="order-stat__value">{orderStats.total_orders}</span>
+                                        <span className="order-stat__label">Orders</span>
+                                    </div>
+                                    <div className="order-stat">
+                                        <span className="order-stat__value">${orderStats.total_spent.toLocaleString()}</span>
+                                        <span className="order-stat__label">Total Spent</span>
+                                    </div>
+                                </div>
+
+                                <div className="order-list">
+                                    {ordersLoading ? (
+                                        <div className="order-list__loading">Loading orders...</div>
+                                    ) : userOrders.length === 0 ? (
+                                        <div className="order-list__empty">No orders found</div>
+                                    ) : (
+                                        userOrders.map((order) => (
+                                            <div key={order.order_id} className="order-item">
+                                                <div className="order-item__header">
+                                                    <span className="order-item__id">#{order.order_id}</span>
+                                                    <span className="order-item__date">{order.order_date}</span>
+                                                </div>
+                                                <div className="order-item__body">
+                                                    <span className="order-item__total">${order.order_total.toLocaleString()}</span>
+                                                    <span className={`order-item__status order-item__status--${order.status?.toLowerCase()}`}>
+                                                        {order.status}
+                                                    </span>
+                                                </div>
+                                                {order.payment_method && (
+                                                    <div className="order-item__meta">
+                                                        <span>{order.payment_method}</span>
+                                                        {order.shipping_method && <span> • {order.shipping_method}</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
