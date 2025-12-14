@@ -170,6 +170,7 @@ const UserManagement = () => {
     const [editMode, setEditMode] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [editLoading, setEditLoading] = useState(false);
+    const [editErrors, setEditErrors] = useState({});
 
     // Initialize edit form with current user data
     const startEditMode = () => {
@@ -182,6 +183,7 @@ const UserManagement = () => {
                 gender: selectedUser.gender || '',
                 city: selectedUser.city || ''
             });
+            setEditErrors({});
             setEditMode(true);
         }
     };
@@ -190,11 +192,60 @@ const UserManagement = () => {
     const handleEditChange = (e) => {
         const { name, value } = e.target;
         setEditForm(prev => ({ ...prev, [name]: value }));
+        // Clear error for this field when user starts typing
+        if (editErrors[name]) {
+            setEditErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    // Validate edit form (matching SignUp validation)
+    const validateEditForm = () => {
+        const errors = {};
+
+        // Username validation: 2-50 characters
+        if (!editForm.user_name || editForm.user_name.trim().length < 2) {
+            errors.user_name = 'Name must be at least 2 characters.';
+        } else if (editForm.user_name.trim().length > 50) {
+            errors.user_name = 'Name must be 50 characters or less.';
+        }
+
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!editForm.email_address || !emailRegex.test(editForm.email_address)) {
+            errors.email_address = 'Please enter a valid email address.';
+        }
+
+        // Phone validation: 10 digits
+        if (editForm.phone_number && !/^\d{10}$/.test(editForm.phone_number)) {
+            errors.phone_number = 'Phone number must be exactly 10 digits.';
+        }
+
+        // Age validation: 0-122
+        if (editForm.age !== '' && editForm.age !== null) {
+            const ageNum = parseInt(editForm.age, 10);
+            if (isNaN(ageNum) || ageNum < 0 || ageNum > 122) {
+                errors.age = 'Age must be between 0 and 122.';
+            }
+        }
+
+        // City validation (optional but if provided, check length)
+        if (editForm.city && editForm.city.length > 100) {
+            errors.city = 'City name is too long.';
+        }
+
+        setEditErrors(errors);
+        return Object.keys(errors).length === 0;
     };
 
     // Submit user update
     const handleUserUpdate = async () => {
         if (!selectedUser) return;
+
+        // Validate before submitting
+        if (!validateEditForm()) {
+            return;
+        }
+
         setEditLoading(true);
         try {
             const response = await axios.put(
@@ -208,6 +259,7 @@ const UserManagement = () => {
                     ...response.data.user
                 }));
                 setEditMode(false);
+                setEditErrors({});
                 alert('User updated successfully!');
             }
         } catch (error) {
@@ -222,6 +274,7 @@ const UserManagement = () => {
     const cancelEditMode = () => {
         setEditMode(false);
         setEditForm({});
+        setEditErrors({});
     };
 
 
@@ -1006,41 +1059,51 @@ const UserManagement = () => {
                                         </button>
                                     </div>
                                     <div className="edit-panel-content">
-                                        <div className="edit-form-field">
-                                            <label>Username</label>
+                                        <div className={`edit-form-field ${editErrors.user_name ? 'has-error' : ''}`}>
+                                            <label>Username <span className="required">*</span></label>
                                             <input
                                                 type="text"
                                                 name="user_name"
                                                 value={editForm.user_name}
                                                 onChange={handleEditChange}
+                                                placeholder="2-50 characters"
                                             />
+                                            {editErrors.user_name && <span className="field-error">{editErrors.user_name}</span>}
                                         </div>
-                                        <div className="edit-form-field">
-                                            <label>Email</label>
+                                        <div className={`edit-form-field ${editErrors.email_address ? 'has-error' : ''}`}>
+                                            <label>Email <span className="required">*</span></label>
                                             <input
                                                 type="email"
                                                 name="email_address"
                                                 value={editForm.email_address}
                                                 onChange={handleEditChange}
+                                                placeholder="Valid email address"
                                             />
+                                            {editErrors.email_address && <span className="field-error">{editErrors.email_address}</span>}
                                         </div>
-                                        <div className="edit-form-field">
+                                        <div className={`edit-form-field ${editErrors.phone_number ? 'has-error' : ''}`}>
                                             <label>Phone</label>
                                             <input
                                                 type="text"
                                                 name="phone_number"
                                                 value={editForm.phone_number}
                                                 onChange={handleEditChange}
+                                                placeholder="10 digits"
                                             />
+                                            {editErrors.phone_number && <span className="field-error">{editErrors.phone_number}</span>}
                                         </div>
-                                        <div className="edit-form-field">
+                                        <div className={`edit-form-field ${editErrors.age ? 'has-error' : ''}`}>
                                             <label>Age</label>
                                             <input
                                                 type="number"
                                                 name="age"
                                                 value={editForm.age}
                                                 onChange={handleEditChange}
+                                                placeholder="0-122"
+                                                min="0"
+                                                max="122"
                                             />
+                                            {editErrors.age && <span className="field-error">{editErrors.age}</span>}
                                         </div>
                                         <div className="edit-form-field">
                                             <label>Gender</label>
@@ -1055,14 +1118,16 @@ const UserManagement = () => {
                                                 <option value="Other">Other</option>
                                             </select>
                                         </div>
-                                        <div className="edit-form-field">
+                                        <div className={`edit-form-field ${editErrors.city ? 'has-error' : ''}`}>
                                             <label>City</label>
                                             <input
                                                 type="text"
                                                 name="city"
                                                 value={editForm.city}
                                                 onChange={handleEditChange}
+                                                placeholder="City name"
                                             />
+                                            {editErrors.city && <span className="field-error">{editErrors.city}</span>}
                                         </div>
 
                                         <div className="edit-panel-actions">

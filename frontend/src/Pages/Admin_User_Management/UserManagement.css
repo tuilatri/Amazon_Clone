@@ -872,6 +872,64 @@
     overflow-y: auto;
 }
 
+/* Edit Form Fields */
+.edit-form-field {
+    margin-bottom: 16px;
+}
+
+.edit-form-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f1111;
+    margin-bottom: 6px;
+}
+
+.edit-form-field .required {
+    color: #c40000;
+}
+
+.edit-form-field input,
+.edit-form-field select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #a6a6a6;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.edit-form-field input:focus,
+.edit-form-field select:focus {
+    outline: none;
+    border-color: #e77600;
+    box-shadow: 0 0 3px 2px rgb(228 121 17 / 50%);
+}
+
+.edit-form-field input::placeholder {
+    color: #888;
+    font-size: 12px;
+}
+
+/* Error states */
+.edit-form-field.has-error input,
+.edit-form-field.has-error select {
+    border-color: #c40000;
+    background-color: #fff8f8;
+}
+
+.edit-form-field.has-error input:focus,
+.edit-form-field.has-error select:focus {
+    box-shadow: 0 0 3px 2px rgba(196, 0, 0, 0.3);
+}
+
+.field-error {
+    display: block;
+    color: #c40000;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
 .edit-panel-actions {
     display: flex;
     gap: 10px;
