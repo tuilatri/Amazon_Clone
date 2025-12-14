@@ -88,10 +88,13 @@ const UserManagement = () => {
             const params = new URLSearchParams({ period, status });
             const response = await axios.get(`http://localhost:8000/admin/users/${userId}/orders?${params}`);
             const orders = response.data.orders;
-            setUserOrders(orders);
+
+            // Sort orders by order_id descending (newest first)
+            const sortedOrders = [...orders].sort((a, b) => b.order_id - a.order_id);
+            setUserOrders(sortedOrders);
 
             // Calculate total spent from DELIVERED orders only
-            const deliveredTotal = orders
+            const deliveredTotal = sortedOrders
                 .filter(o => o.status?.toLowerCase() === 'delivered')
                 .reduce((sum, o) => sum + (o.order_total || 0), 0);
 
@@ -130,7 +133,69 @@ const UserManagement = () => {
         setOrderPeriod('');
         setOrderStatusFilter('');
         setOrderStats({ total_orders: 0, total_spent: 0 });
+        setEditMode(false);
+        setEditForm({});
+        setEditLoading(false);
     };
+
+    // Edit user state
+    const [editMode, setEditMode] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [editLoading, setEditLoading] = useState(false);
+
+    // Initialize edit form with current user data
+    const startEditMode = () => {
+        if (selectedUser) {
+            setEditForm({
+                user_name: selectedUser.user_name || '',
+                email_address: selectedUser.email_address || '',
+                phone_number: selectedUser.phone_number || '',
+                age: selectedUser.age || '',
+                gender: selectedUser.gender || '',
+                city: selectedUser.city || ''
+            });
+            setEditMode(true);
+        }
+    };
+
+    // Handle edit form changes
+    const handleEditChange = (e) => {
+        const { name, value } = e.target;
+        setEditForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Submit user update
+    const handleUserUpdate = async () => {
+        if (!selectedUser) return;
+        setEditLoading(true);
+        try {
+            const response = await axios.put(
+                `http://localhost:8000/admin/users/${selectedUser.user_id}/update`,
+                editForm
+            );
+            if (response.data.success) {
+                // Update selectedUser with new data
+                setSelectedUser(prev => ({
+                    ...prev,
+                    ...response.data.user
+                }));
+                setEditMode(false);
+                alert('User updated successfully!');
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+            alert('Failed to update user: ' + (error.response?.data?.detail || error.message));
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
+    // Cancel edit mode
+    const cancelEditMode = () => {
+        setEditMode(false);
+        setEditForm({});
+    };
+
 
     // Reset form
     const resetForm = () => {
@@ -893,6 +958,94 @@ const UserManagement = () => {
                                         <span className="profile-info__value">{selectedUser.last_login_at || '—'}</span>
                                     </div>
                                 </div>
+
+                                {/* Edit User Section */}
+                                {!editMode ? (
+                                    <button className="edit-user-btn" onClick={startEditMode}>
+                                        Edit User Information
+                                    </button>
+                                ) : (
+                                    <div className="edit-user-form">
+                                        <h5>Edit User Information</h5>
+                                        <p className="edit-form-hint">Original values shown above. Update fields below:</p>
+
+                                        <div className="edit-form-field">
+                                            <label>Username</label>
+                                            <input
+                                                type="text"
+                                                name="user_name"
+                                                value={editForm.user_name}
+                                                onChange={handleEditChange}
+                                            />
+                                        </div>
+                                        <div className="edit-form-field">
+                                            <label>Email</label>
+                                            <input
+                                                type="email"
+                                                name="email_address"
+                                                value={editForm.email_address}
+                                                onChange={handleEditChange}
+                                            />
+                                        </div>
+                                        <div className="edit-form-field">
+                                            <label>Phone</label>
+                                            <input
+                                                type="text"
+                                                name="phone_number"
+                                                value={editForm.phone_number}
+                                                onChange={handleEditChange}
+                                            />
+                                        </div>
+                                        <div className="edit-form-field">
+                                            <label>Age</label>
+                                            <input
+                                                type="number"
+                                                name="age"
+                                                value={editForm.age}
+                                                onChange={handleEditChange}
+                                            />
+                                        </div>
+                                        <div className="edit-form-field">
+                                            <label>Gender</label>
+                                            <select
+                                                name="gender"
+                                                value={editForm.gender}
+                                                onChange={handleEditChange}
+                                            >
+                                                <option value="">Select</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="edit-form-field">
+                                            <label>City</label>
+                                            <input
+                                                type="text"
+                                                name="city"
+                                                value={editForm.city}
+                                                onChange={handleEditChange}
+                                            />
+                                        </div>
+
+                                        <div className="edit-form-actions">
+                                            <button
+                                                className="edit-save-btn"
+                                                onClick={handleUserUpdate}
+                                                disabled={editLoading}
+                                            >
+                                                {editLoading ? 'Saving...' : 'Save Changes'}
+                                            </button>
+                                            <button
+                                                className="edit-cancel-btn"
+                                                onClick={cancelEditMode}
+                                                disabled={editLoading}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Right Side - Order History */}

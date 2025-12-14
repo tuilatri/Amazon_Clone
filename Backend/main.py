@@ -2042,6 +2042,54 @@ async def get_admin_user_detail(
     }
 
 
+@app.put("/admin/users/{user_id}/update")
+async def update_admin_user(
+    user_id: int,
+    user_data: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update user information from admin panel.
+    Does NOT allow password or role changes for security.
+    """
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Fields that can be updated (NO password, NO role for security)
+    allowed_fields = ['user_name', 'email_address', 'phone_number', 'age', 'gender', 'city']
+    
+    for field in allowed_fields:
+        if field in user_data and user_data[field] is not None:
+            setattr(user, field, user_data[field])
+    
+    try:
+        db.commit()
+        db.refresh(user)
+        
+        # Role mapping
+        role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
+        
+        return {
+            "success": True,
+            "message": "User updated successfully",
+            "user": {
+                "user_id": user.user_id,
+                "user_name": user.user_name,
+                "email_address": user.email_address,
+                "phone_number": user.phone_number,
+                "age": user.age,
+                "gender": user.gender,
+                "city": user.city,
+                "role": role_mapping.get(user.role, 'User'),
+                "status": user.status
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
+
+
 @app.get("/admin/users/{user_id}/orders")
 async def get_admin_user_orders(
     user_id: int,
