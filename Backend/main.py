@@ -428,6 +428,11 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         role=existing_user.role if existing_user.role else 2  # Default to Normal User
     )
 
+    # Update last_login_at timestamp
+    from datetime import datetime
+    existing_user.last_login_at = datetime.utcnow()
+    db.commit()
+
     # return {
     #     "message": "Email sent successfully. Please check your email for verification.",
     #     "user": user_response
@@ -436,6 +441,7 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         "message": "Login successful",
         "user": user_response
     }
+
 
 @app.post("/postLogin/")
 async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
@@ -465,7 +471,13 @@ async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
         password = existing_user.password
     )
 
+    # Update last_login_at timestamp
+    from datetime import datetime
+    existing_user.last_login_at = datetime.utcnow()
+    db.commit()
+
     return {"message": "Login successful", "user": user_response}
+
 
 
 # -------------------------------
@@ -1621,6 +1633,256 @@ async def process_payment(order_id: int = Body(..., embed=True), db: Session = D
     db.commit()
 
     return {"message": "Payment processed successfully", "order_id": order.order_id}
+
+
+# ------------------------------
+# Admin Dashboard APIs
+# ------------------------------
+
+@app.get("/admin/stats")
+async def get_admin_stats(db: Session = Depends(get_db)):
+    """
+    Get admin dashboard statistics:
+    - Total customers (users with role=2)
+    - Total orders
+    - Total revenue (from Delivered orders only, status_id=4)
+    - Revenue breakdown by period (today, this week, this month)
+    - Today's orders count
+    """
+    from datetime import datetime, timedelta
+    
+    today = datetime.now().date()
+    start_of_week = today - timedelta(days=today.weekday())  # Monday
+    start_of_month = today.replace(day=1)
+    
+    # Total customers (role = 2 for normal users)
+    total_customers = db.query(SiteUser).filter(SiteUser.role == 2).count()
+    
+    # Total orders
+    total_orders = db.query(ShopOrder).count()
+    
+    # Today's orders
+    orders_today = db.query(ShopOrder).filter(ShopOrder.order_date == today).count()
+    
+    # All delivered orders for revenue calculations
+    delivered_orders = db.query(ShopOrder).filter(ShopOrder.order_status_id == 4).all()
+    total_revenue = sum(float(order.order_total or 0) for order in delivered_orders)
+    
+    # Revenue today (delivered orders placed today)
+    revenue_today = sum(
+        float(order.order_total or 0) 
+        for order in delivered_orders 
+        if order.order_date == today
+    )
+    
+    # Revenue this week
+    revenue_this_week = sum(
+        float(order.order_total or 0) 
+        for order in delivered_orders 
+        if order.order_date and order.order_date >= start_of_week
+    )
+    
+    # Revenue this month
+    revenue_this_month = sum(
+        float(order.order_total or 0) 
+        for order in delivered_orders 
+        if order.order_date and order.order_date >= start_of_month
+    )
+    
+    # New customers today (registered today, role=2)
+    # Using created_at field that was added to SiteUser
+    from sqlalchemy import cast, Date as SQLDate
+    
+    new_customers_today = db.query(SiteUser).filter(
+        SiteUser.role == 2,
+        SiteUser.created_at != None,
+        cast(SiteUser.created_at, SQLDate) == today
+    ).count()
+    
+    # Active users today (users who logged in today)
+    # Using last_login_at field that was added to SiteUser
+    active_users_today = db.query(SiteUser).filter(
+        SiteUser.role == 2,
+        SiteUser.last_login_at != None,
+        cast(SiteUser.last_login_at, SQLDate) == today
+    ).count()
+    
+    # Users who placed orders today
+    from sqlalchemy import distinct
+    users_ordered_today = db.query(distinct(ShopOrder.user_id)).filter(
+        ShopOrder.order_date == today
+    ).count()
+    
+    return {
+        "total_customers": total_customers,
+        "total_orders": total_orders,
+        "orders_today": orders_today,
+        "total_revenue": round(total_revenue, 2),
+        "revenue_today": round(revenue_today, 2),
+        "revenue_this_week": round(revenue_this_week, 2),
+        "revenue_this_month": round(revenue_this_month, 2),
+        "new_customers_today": new_customers_today,
+        "active_users_today": active_users_today,
+        "users_ordered_today": users_ordered_today
+    }
+
+
+
+
+@app.get("/admin/orders")
+async def get_admin_orders(
+    page: int = 1,
+    per_page: int = 10,
+    search: str = "",
+    status: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all orders for admin dashboard with pagination, search, and status filter.
+    Search by order_id or user_id. Filter by status_id (0 = all statuses).
+    """
+    query = db.query(ShopOrder)
+    
+    # Apply status filter (0 means all statuses)
+    if status > 0:
+        query = query.filter(ShopOrder.order_status_id == status)
+    
+    # Apply search filter
+    if search:
+        try:
+            search_int = int(search)
+            query = query.filter(
+                (ShopOrder.order_id == search_int) | 
+                (ShopOrder.user_id == search_int)
+            )
+        except ValueError:
+            # If search is not a number, try to search by user email
+            user_ids = db.query(SiteUser.user_id).filter(
+                SiteUser.email_address.ilike(f"%{search}%")
+            ).all()
+            user_id_list = [u[0] for u in user_ids]
+            if user_id_list:
+                query = query.filter(ShopOrder.user_id.in_(user_id_list))
+            else:
+                # No matching users, return empty
+                return {
+                    "orders": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                }
+    
+    # Get total count
+    total = query.count()
+    
+    # Sort by newest first and paginate
+    orders = query.order_by(ShopOrder.order_id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    
+    # Get status mapping
+    status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    
+    order_list = []
+    for order in orders:
+        # Get user info
+        user = db.query(SiteUser).filter(SiteUser.user_id == order.user_id).first()
+        order_list.append({
+            "order_id": order.order_id,
+            "user_id": order.user_id,
+            "user_name": user.user_name if user else "Unknown",
+            "order_date": order.order_date.isoformat() if order.order_date else None,
+            "order_total": float(order.order_total) if order.order_total else 0,
+            "status": status_mapping.get(order.order_status_id, "Unknown"),
+            "status_id": order.order_status_id
+        })
+    
+    return {
+        "orders": order_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page
+    }
+
+
+@app.get("/admin/order-status-counts")
+async def get_order_status_counts(db: Session = Depends(get_db)):
+    """
+    Get count of orders grouped by status for admin dashboard.
+    Returns counts for each status: Pending, Processing, Shipped, Delivered, Cancelled, Returned.
+    """
+    from sqlalchemy import func
+    
+    status_mapping = {1: 'pending', 2: 'processing', 3: 'shipped', 4: 'delivered', 5: 'cancelled', 6: 'returned'}
+    
+    # Query order counts grouped by status
+    status_counts = db.query(
+        ShopOrder.order_status_id, 
+        func.count(ShopOrder.order_id)
+    ).group_by(ShopOrder.order_status_id).all()
+    
+    # Build response with all statuses (default to 0)
+    result = {
+        "pending": 0,
+        "processing": 0,
+        "shipped": 0,
+        "delivered": 0,
+        "cancelled": 0,
+        "returned": 0
+    }
+    
+    for status_id, count in status_counts:
+        status_key = status_mapping.get(status_id)
+        if status_key:
+            result[status_key] = count
+    
+    # Also include total for convenience
+    result["total"] = sum(result.values())
+    
+    return result
+
+
+@app.get("/admin/trending-products")
+
+async def get_trending_products(
+    page: int = 1,
+    per_page: int = 5,
+    db: Session = Depends(get_db)
+):
+    """
+    Get trending products sorted by highest rating and number of ratings.
+    """
+    # Query all products and sort by average_rating (highest first), then by no_of_ratings
+    # Handle NULL values by treating them as 0
+    products = db.query(Product).order_by(
+        Product.average_rating.desc().nullslast(),
+        Product.no_of_ratings.desc().nullslast()
+    ).all()
+    
+    total = len(products)
+    
+    # Paginate
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_products = products[start:end]
+    
+    product_list = []
+    for product in paginated_products:
+        product_list.append({
+            "product_id": product.product_id,
+            "product_name": product.product_name[:80] + "..." if len(product.product_name) > 80 else product.product_name,
+            "ratings": float(product.average_rating) if product.average_rating else 0,
+            "no_of_ratings": product.no_of_ratings or 0,
+            "image": product.product_image
+        })
+    
+    return {
+        "products": product_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page
+    }
 
 
 # 4 Search products page

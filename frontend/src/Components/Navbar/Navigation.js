@@ -6,6 +6,7 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import ArrowDropDownOutlinedIcon from '@mui/icons-material/ArrowDropDownOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
+import SettingsIcon from '@mui/icons-material/Settings';
 import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
 import { Link, useLocation, useNavigate, createSearchParams } from 'react-router-dom';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -358,7 +359,7 @@ const NavBar = () => {
                     </div>
 
                     {/* tĂ i khoáº£n */}
-                    <div className="account">
+                    <div className="account" onClick={toggleDropdown}>
                         <div className="account__left">
                             <div className="account__up">
                                 {isAuthenticated && user ? `Hello, ${user.user_name}` : "Hello, Sign in"}
@@ -367,7 +368,7 @@ const NavBar = () => {
                                 Accounts & Lists
                             </div>
                         </div>
-                        <div className="account__right" onClick={toggleDropdown}>
+                        <div className="account__right">
                             <ArrowDropDownOutlinedIcon sx={{ fontSize: 16 }} className="account__dropdown" />
                         </div>
 
@@ -389,11 +390,6 @@ const NavBar = () => {
                                 </>
                             ) : (
                                 <div>
-                                    {user?.role === 1 && (
-                                        <div className="account__dropdownOption account__dropdownOption--admin">
-                                            System Management
-                                        </div>
-                                    )}
                                     <div onClick={handleProfileClick} className="account__dropdownOption">
                                         Your Profile
                                     </div>
@@ -406,30 +402,47 @@ const NavBar = () => {
                     </div>
 
                     {/* hoĂ n tráº£ */}
-                    <Link to="/Orders" className="return">
-                        <div className="return__up">
-                            Returns
-                        </div>
-                        <div className="return__down">
-                            & Orders
-                        </div>
-                    </Link>
+                    {/* Conditional rendering based on role */}
+                    {isAuthenticated && user?.role === 1 ? (
+                        /* Admin UI - System Management replaces Return and Cart */
+                        <Link to="/admin/overview" className="admin-nav-link">
+                            <div className="admin-nav-content">
+                                <SettingsIcon className="admin-nav-icon" />
+                                <div className="admin-nav-text">
+                                    <div className="admin-nav-label">System</div>
+                                    <div className="admin-nav-title">Management</div>
+                                </div>
+                            </div>
+                        </Link>
+                    ) : (
+                        /* Normal User / Supplier UI - Return and Cart */
+                        <>
+                            <Link to="/Orders" className="return">
+                                <div className="return__up">
+                                    Returns
+                                </div>
+                                <div className="return__down">
+                                    & Orders
+                                </div>
+                            </Link>
 
-                    {/* giá» hĂ ng */}
-                    <Link
-                        to="/Cart" // Pass userData via state
-                        className="cart"
-                    >
-                        <span className="cart__up">
-                            {cartCount}
-                        </span>
-                        <div className="cart__down">
-                            <ShoppingCartOutlinedIcon className="cart__icon" />
-                        </div>
-                        <div className="cart__title">
-                            Cart
-                        </div>
-                    </Link>
+                            {/* giá» hĂ ng */}
+                            <Link
+                                to="/Cart" // Pass userData via state
+                                className="cart"
+                            >
+                                <span className="cart__up">
+                                    {cartCount}
+                                </span>
+                                <div className="cart__down">
+                                    <ShoppingCartOutlinedIcon className="cart__icon" />
+                                </div>
+                                <div className="cart__title">
+                                    Cart
+                                </div>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
 

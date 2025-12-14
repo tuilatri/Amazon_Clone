@@ -18,6 +18,7 @@ import CategoryPage from './Pages/CategoryPage/CategoryPage';
 import UserPage from './Pages/UserPage/UserPage';
 import ChangeUserInfo from './Pages/UserPage/ChangeUserInfo';
 import Order from './Pages/OrderPage/Order';
+import AdminOverview from './Pages/Admin_Overview/AdminOverview';
 import { AuthProvider } from './Context/AuthContext';
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
           <Route path="/UserPage" element={<UserPage />} />
           <Route path="/ChangeUserInfo" element={<ChangeUserInfo />} />
           <Route path="/Orders" element={<Order />} />
+          <Route path="/admin/overview" element={<AdminOverview />} />
         </Routes>
       </div>
     </AuthProvider>
