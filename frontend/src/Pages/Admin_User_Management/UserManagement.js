@@ -1211,27 +1211,6 @@ const UserManagement = () => {
                                         <div className="order-detail-loading">Loading order details...</div>
                                     ) : selectedOrderDetail ? (
                                         <div className="order-detail-content">
-                                            <div className="order-detail-info">
-                                                <div className="detail-info-item">
-                                                    <span className="detail-label">Date:</span>
-                                                    <span className="detail-value">{selectedOrderDetail.order_date || 'N/A'}</span>
-                                                </div>
-                                                <div className="detail-info-item">
-                                                    <span className="detail-label">Status:</span>
-                                                    <span className={`order-status order-status--${selectedOrderDetail.status?.toLowerCase()}`}>
-                                                        {selectedOrderDetail.status}
-                                                    </span>
-                                                </div>
-                                                <div className="detail-info-item">
-                                                    <span className="detail-label">Payment:</span>
-                                                    <span className="detail-value">{selectedOrderDetail.payment_method || '—'}</span>
-                                                </div>
-                                                <div className="detail-info-item">
-                                                    <span className="detail-label">Shipping:</span>
-                                                    <span className="detail-value">{selectedOrderDetail.shipping_method || '—'}</span>
-                                                </div>
-                                            </div>
-
                                             <div className="order-products">
                                                 <h5>Products</h5>
                                                 {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
@@ -1260,11 +1239,6 @@ const UserManagement = () => {
                                                 ) : (
                                                     <p className="no-products">No product details available</p>
                                                 )}
-                                            </div>
-
-                                            <div className="order-detail-total">
-                                                <span>Total:</span>
-                                                <span className="total-amount">${(selectedOrderDetail.order_total || 0).toFixed(2)}</span>
                                             </div>
                                         </div>
                                     ) : (
