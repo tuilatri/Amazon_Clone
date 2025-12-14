@@ -136,6 +136,34 @@ const UserManagement = () => {
         setEditMode(false);
         setEditForm({});
         setEditLoading(false);
+        setSelectedOrderDetail(null);
+        setShowOrderDetail(false);
+    };
+
+    // Order detail state
+    const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+    const [showOrderDetail, setShowOrderDetail] = useState(false);
+    const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+
+    // Fetch order detail
+    const fetchOrderDetail = async (orderId) => {
+        setOrderDetailLoading(true);
+        try {
+            const response = await axios.get(`http://localhost:8000/order/${orderId}`);
+            setSelectedOrderDetail(response.data);
+            setShowOrderDetail(true);
+        } catch (error) {
+            console.error('Error fetching order detail:', error);
+            alert('Failed to fetch order details');
+        } finally {
+            setOrderDetailLoading(false);
+        }
+    };
+
+    // Close order detail panel
+    const closeOrderDetail = () => {
+        setShowOrderDetail(false);
+        setSelectedOrderDetail(null);
     };
 
     // Edit user state
@@ -900,7 +928,10 @@ const UserManagement = () => {
             {/* User Profile Modal */}
             {showProfileModal && selectedUser && (
                 <div className="user-profile-overlay" onClick={closeProfileModal}>
-                    <div className="user-profile-modal" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className={`user-profile-modal ${editMode ? 'edit-expanded' : ''} ${showOrderDetail ? 'detail-expanded' : ''}`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="user-profile-modal__header">
                             <h3>User Profile</h3>
                             <button className="user-profile-modal__close" onClick={closeProfileModal}>
@@ -1134,8 +1165,15 @@ const UserManagement = () => {
                                                 </thead>
                                                 <tbody>
                                                     {userOrders.map((order) => (
-                                                        <tr key={order.order_id}>
-                                                            <td>#{order.order_id}</td>
+                                                        <tr key={order.order_id} className={selectedOrderDetail?.order_id === order.order_id ? 'selected-row' : ''}>
+                                                            <td>
+                                                                <span
+                                                                    className="clickable-order-id"
+                                                                    onClick={() => fetchOrderDetail(order.order_id)}
+                                                                >
+                                                                    #{order.order_id}
+                                                                </span>
+                                                            </td>
                                                             <td>{order.order_date || 'N/A'}</td>
                                                             <td>
                                                                 <span className={`order-status order-status--${order.status?.toLowerCase()}`}>
@@ -1153,6 +1191,68 @@ const UserManagement = () => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Order Detail Panel */}
+                            {showOrderDetail && (
+                                <div className="user-profile-modal__detail">
+                                    <div className="order-detail-header">
+                                        <h4>Order #{selectedOrderDetail?.order_id}</h4>
+                                        <button className="close-detail-btn" onClick={closeOrderDetail}>
+                                            <CloseIcon />
+                                        </button>
+                                    </div>
+                                    {orderDetailLoading ? (
+                                        <div className="order-detail-loading">Loading order details...</div>
+                                    ) : selectedOrderDetail ? (
+                                        <div className="order-detail-content">
+                                            <div className="order-detail-info">
+                                                <div className="detail-info-item">
+                                                    <span className="detail-label">Date:</span>
+                                                    <span className="detail-value">{selectedOrderDetail.order_date || 'N/A'}</span>
+                                                </div>
+                                                <div className="detail-info-item">
+                                                    <span className="detail-label">Status:</span>
+                                                    <span className={`order-status order-status--${selectedOrderDetail.status?.toLowerCase()}`}>
+                                                        {selectedOrderDetail.status}
+                                                    </span>
+                                                </div>
+                                                <div className="detail-info-item">
+                                                    <span className="detail-label">Payment:</span>
+                                                    <span className="detail-value">{selectedOrderDetail.payment_method || '—'}</span>
+                                                </div>
+                                                <div className="detail-info-item">
+                                                    <span className="detail-label">Shipping:</span>
+                                                    <span className="detail-value">{selectedOrderDetail.shipping_method || '—'}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="order-products">
+                                                <h5>Products</h5>
+                                                {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
+                                                    selectedOrderDetail.items.map((item, idx) => (
+                                                        <div key={idx} className="order-product-item">
+                                                            <div className="product-info">
+                                                                <span className="product-name">{item.product_name || `Product #${item.product_id}`}</span>
+                                                                <span className="product-qty">x{item.quantity || 1}</span>
+                                                            </div>
+                                                            <span className="product-price">${(item.price || 0).toFixed(2)}</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <p className="no-products">No product details available</p>
+                                                )}
+                                            </div>
+
+                                            <div className="order-detail-total">
+                                                <span>Total:</span>
+                                                <span className="total-amount">${(selectedOrderDetail.order_total || 0).toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="order-detail-empty">No order selected</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
