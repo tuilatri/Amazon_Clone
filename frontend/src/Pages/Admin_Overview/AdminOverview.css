@@ -1109,3 +1109,101 @@
         font-size: 20px;
     }
 }
+
+/* ================================
+   USER ACTIVITY TODAY SECTION
+   ================================ */
+
+.admin-page__user-activity {
+    margin-bottom: 24px;
+    background: white;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.user-activity__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #232f3e;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.user-activity__metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.activity-metric {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e8e8e8;
+}
+
+.activity-metric__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.activity-metric__icon svg {
+    font-size: 24px;
+    color: white;
+}
+
+.activity-metric__icon--active {
+    background: linear-gradient(135deg, #00b894, #00cec9);
+}
+
+.activity-metric__icon--orders {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+}
+
+.activity-metric__content {
+    flex: 1;
+}
+
+.activity-metric__value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #232f3e;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.activity-metric__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #444;
+}
+
+.activity-metric__sublabel {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+/* Responsive for User Activity */
+@media (max-width: 600px) {
+    .user-activity__metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .activity-metric {
+        padding: 12px;
+    }
+
+    .activity-metric__value {
+        font-size: 24px;
+    }
+}

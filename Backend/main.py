@@ -1689,6 +1689,30 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         if order.order_date and order.order_date >= start_of_month
     )
     
+    # New customers today (registered today, role=2)
+    # Using created_at field that was added to SiteUser
+    from sqlalchemy import cast, Date as SQLDate
+    
+    new_customers_today = db.query(SiteUser).filter(
+        SiteUser.role == 2,
+        SiteUser.created_at != None,
+        cast(SiteUser.created_at, SQLDate) == today
+    ).count()
+    
+    # Active users today (users who logged in today)
+    # Using last_login_at field that was added to SiteUser
+    active_users_today = db.query(SiteUser).filter(
+        SiteUser.role == 2,
+        SiteUser.last_login_at != None,
+        cast(SiteUser.last_login_at, SQLDate) == today
+    ).count()
+    
+    # Users who placed orders today
+    from sqlalchemy import distinct
+    users_ordered_today = db.query(distinct(ShopOrder.user_id)).filter(
+        ShopOrder.order_date == today
+    ).count()
+    
     return {
         "total_customers": total_customers,
         "total_orders": total_orders,
@@ -1696,8 +1720,12 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         "total_revenue": round(total_revenue, 2),
         "revenue_today": round(revenue_today, 2),
         "revenue_this_week": round(revenue_this_week, 2),
-        "revenue_this_month": round(revenue_this_month, 2)
+        "revenue_this_month": round(revenue_this_month, 2),
+        "new_customers_today": new_customers_today,
+        "active_users_today": active_users_today,
+        "users_ordered_today": users_ordered_today
     }
+
 
 
 

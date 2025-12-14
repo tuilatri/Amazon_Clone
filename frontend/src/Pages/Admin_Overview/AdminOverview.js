@@ -34,7 +34,7 @@ const AdminOverview = () => {
         'Sales Analytics'
     ];
 
-    // Statistics state (extended with period-based data)
+    // Statistics state (extended with period-based data and user activity)
     const [stats, setStats] = useState({
         total_customers: 0,
         total_orders: 0,
@@ -42,8 +42,12 @@ const AdminOverview = () => {
         total_revenue: 0,
         revenue_today: 0,
         revenue_this_week: 0,
-        revenue_this_month: 0
+        revenue_this_month: 0,
+        new_customers_today: 0,
+        active_users_today: 0,
+        users_ordered_today: 0
     });
+
     const [statsLoading, setStatsLoading] = useState(true);
 
     // Order status counts state
@@ -324,8 +328,12 @@ const AdminOverview = () => {
                             <div className="stat-card__value">
                                 {statsLoading ? '...' : stats.total_customers.toLocaleString()}
                             </div>
+                            {!statsLoading && stats.new_customers_today > 0 && (
+                                <div className="stat-card__today">+{stats.new_customers_today} new today</div>
+                            )}
                         </div>
                     </div>
+
 
                     <div className="stat-card">
                         <div className="stat-card__icon stat-card__icon--orders">
@@ -409,7 +417,39 @@ const AdminOverview = () => {
                     </div>
                 </div>
 
+                {/* User Activity Today - Quick activity snapshot */}
+                <div className="admin-page__user-activity">
+                    <h3 className="user-activity__title">User Activity Today</h3>
+                    <div className="user-activity__metrics">
+                        <div className="activity-metric">
+                            <div className="activity-metric__icon activity-metric__icon--active">
+                                <PeopleAltIcon />
+                            </div>
+                            <div className="activity-metric__content">
+                                <div className="activity-metric__value">
+                                    {statsLoading ? '...' : stats.active_users_today}
+                                </div>
+                                <div className="activity-metric__label">Active Users Today</div>
+                                <div className="activity-metric__sublabel">Logged in today</div>
+                            </div>
+                        </div>
+                        <div className="activity-metric">
+                            <div className="activity-metric__icon activity-metric__icon--orders">
+                                <ShoppingCartIcon />
+                            </div>
+                            <div className="activity-metric__content">
+                                <div className="activity-metric__value">
+                                    {statsLoading ? '...' : stats.users_ordered_today}
+                                </div>
+                                <div className="activity-metric__label">Customers Ordered</div>
+                                <div className="activity-metric__sublabel">Placed orders today</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Trending Products Section - Separate from stats */}
+
                 <div className="admin-page__trending">
                     <div className="trending-header">
                         <TrendingUpIcon />
