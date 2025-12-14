@@ -317,29 +317,45 @@ const AdminOverview = () => {
                     </div>
                 </div>
 
-                {/* Statistics Cards Section */}
+                {/* Statistics Cards Section - Horizontal Layout */}
                 <div className="admin-page__stats">
-                    <div className="stat-card">
-                        <div className="stat-card__icon stat-card__icon--customers">
-                            <PeopleAltIcon />
-                        </div>
-                        <div className="stat-card__content">
-                            <div className="stat-card__label">Total Customers</div>
-                            <div className="stat-card__value">
-                                {statsLoading ? '...' : stats.total_customers.toLocaleString()}
+                    {/* Total Customers - Two Column Layout */}
+                    <div className="stat-card stat-card--wide">
+                        <div className="stat-card__left">
+                            <div className="stat-card__icon stat-card__icon--customers">
+                                <PeopleAltIcon />
                             </div>
-                            {!statsLoading && stats.new_customers_today > 0 && (
-                                <div className="stat-card__today">+{stats.new_customers_today} new today</div>
-                            )}
+                            <div className="stat-card__primary">
+                                <div className="stat-card__label">Total Customers</div>
+                                <div className="stat-card__value">
+                                    {statsLoading ? '...' : stats.total_customers.toLocaleString()}
+                                </div>
+                            </div>
                         </div>
+                        {!statsLoading && (
+                            <div className="stat-card__right">
+                                <div className="stat-card__metric">
+                                    <span className="stat-card__metric-label">New today</span>
+                                    <span className="stat-card__metric-value stat-card__metric-value--green">+{stats.new_customers_today}</span>
+                                </div>
+                                <div className="stat-card__metric">
+                                    <span className="stat-card__metric-label">Active today</span>
+                                    <span className="stat-card__metric-value">{stats.active_users_today}</span>
+                                </div>
+                                <div className="stat-card__metric">
+                                    <span className="stat-card__metric-label">Ordered today</span>
+                                    <span className="stat-card__metric-value">{stats.users_ordered_today}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-
-                    <div className="stat-card">
+                    {/* Total Orders - Compact Single Column */}
+                    <div className="stat-card stat-card--compact">
                         <div className="stat-card__icon stat-card__icon--orders">
                             <ShoppingCartIcon />
                         </div>
-                        <div className="stat-card__content">
+                        <div className="stat-card__primary">
                             <div className="stat-card__label">Total Orders</div>
                             <div className="stat-card__value">
                                 {statsLoading ? '...' : stats.total_orders.toLocaleString()}
@@ -350,23 +366,32 @@ const AdminOverview = () => {
                         </div>
                     </div>
 
-                    <div className="stat-card">
-                        <div className="stat-card__icon stat-card__icon--revenue">
-                            <LegendToggleIcon />
-                        </div>
-                        <div className="stat-card__content">
-                            <div className="stat-card__label">Total Revenue</div>
-                            <div className="stat-card__sublabel">(Delivered Orders)</div>
-                            <div className="stat-card__value">
-                                ${statsLoading ? '...' : stats.total_revenue.toLocaleString()}
+                    {/* Total Revenue - Two Column Layout */}
+                    <div className="stat-card stat-card--wide">
+                        <div className="stat-card__left">
+                            <div className="stat-card__icon stat-card__icon--revenue">
+                                <LegendToggleIcon />
                             </div>
-                            {!statsLoading && (
-                                <div className="stat-card__breakdown">
-                                    <span>Week: ${stats.revenue_this_week.toLocaleString()}</span>
-                                    <span>Month: ${stats.revenue_this_month.toLocaleString()}</span>
+                            <div className="stat-card__primary">
+                                <div className="stat-card__label">Total Revenue</div>
+                                <div className="stat-card__sublabel">(Delivered Orders)</div>
+                                <div className="stat-card__value">
+                                    ${statsLoading ? '...' : stats.total_revenue.toLocaleString()}
                                 </div>
-                            )}
+                            </div>
                         </div>
+                        {!statsLoading && (
+                            <div className="stat-card__right">
+                                <div className="stat-card__metric">
+                                    <span className="stat-card__metric-label">Week</span>
+                                    <span className="stat-card__metric-value">${stats.revenue_this_week.toLocaleString()}</span>
+                                </div>
+                                <div className="stat-card__metric">
+                                    <span className="stat-card__metric-label">Month</span>
+                                    <span className="stat-card__metric-value">${stats.revenue_this_month.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -413,37 +438,6 @@ const AdminOverview = () => {
                                 {statusCountsLoading ? '...' : statusCounts.delivered}
                             </div>
                             <div className="status-card__label">Delivered</div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* User Activity Today - Quick activity snapshot */}
-                <div className="admin-page__user-activity">
-                    <h3 className="user-activity__title">User Activity Today</h3>
-                    <div className="user-activity__metrics">
-                        <div className="activity-metric">
-                            <div className="activity-metric__icon activity-metric__icon--active">
-                                <PeopleAltIcon />
-                            </div>
-                            <div className="activity-metric__content">
-                                <div className="activity-metric__value">
-                                    {statsLoading ? '...' : stats.active_users_today}
-                                </div>
-                                <div className="activity-metric__label">Active Users Today</div>
-                                <div className="activity-metric__sublabel">Logged in today</div>
-                            </div>
-                        </div>
-                        <div className="activity-metric">
-                            <div className="activity-metric__icon activity-metric__icon--orders">
-                                <ShoppingCartIcon />
-                            </div>
-                            <div className="activity-metric__content">
-                                <div className="activity-metric__value">
-                                    {statsLoading ? '...' : stats.users_ordered_today}
-                                </div>
-                                <div className="activity-metric__label">Customers Ordered</div>
-                                <div className="activity-metric__sublabel">Placed orders today</div>
-                            </div>
                         </div>
                     </div>
                 </div>

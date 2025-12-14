@@ -189,7 +189,69 @@
     margin-top: 5px;
 }
 
+/* Wide stat card (two-column horizontal layout) */
+.stat-card--wide {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.stat-card__left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
+.stat-card__primary {
+    flex: 1;
+}
+
+.stat-card__right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    padding-left: 20px;
+    border-left: 1px solid #e8e8e8;
+    min-width: 140px;
+}
+
+.stat-card__metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.stat-card__metric-label {
+    font-size: 12px;
+    color: #565959;
+    font-weight: 500;
+}
+
+.stat-card__metric-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #232f3e;
+}
+
+.stat-card__metric-value--green {
+    color: #067d62;
+}
+
+/* Compact stat card (single column) */
+.stat-card--compact {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+
+
 /* Trending Products */
+
 .admin-page__trending {
     background: #fff;
     border: 1px solid #d5d9d9;
