@@ -428,6 +428,11 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         role=existing_user.role if existing_user.role else 2  # Default to Normal User
     )
 
+    # Update last_login_at timestamp
+    from datetime import datetime
+    existing_user.last_login_at = datetime.utcnow()
+    db.commit()
+
     # return {
     #     "message": "Email sent successfully. Please check your email for verification.",
     #     "user": user_response
@@ -436,6 +441,7 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         "message": "Login successful",
         "user": user_response
     }
+
 
 @app.post("/postLogin/")
 async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
@@ -465,7 +471,13 @@ async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
         password = existing_user.password
     )
 
+    # Update last_login_at timestamp
+    from datetime import datetime
+    existing_user.last_login_at = datetime.utcnow()
+    db.commit()
+
     return {"message": "Login successful", "user": user_response}
+
 
 
 # -------------------------------

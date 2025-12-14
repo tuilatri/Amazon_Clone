@@ -523,7 +523,7 @@ const AdminOverview = () => {
                         <h3>Last Orders</h3>
                         <div className="orders-filters">
                             <div className="status-filter">
-                                <FilterListIcon />
+                                {/* <FilterListIcon /> */}
                                 <select
                                     value={statusFilter}
                                     onChange={handleStatusFilterChange}

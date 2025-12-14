@@ -1,6 +1,7 @@
-from sqlalchemy import (Column, Integer, String, ForeignKey, Boolean, Text, Date, DECIMAL, UniqueConstraint, Float)
+from sqlalchemy import (Column, Integer, String, ForeignKey, Boolean, Text, Date, DECIMAL, UniqueConstraint, Float, DateTime)
 from sqlalchemy.orm import relationship
 from database import Base
+from datetime import datetime
 
 # Location Tables
     
@@ -31,6 +32,11 @@ class SiteUser(Base):
     password = Column(String(255), nullable=True)
     role = Column(Integer, default=2)  # 1=Admin, 2=Normal User, 3=Supplier, 4=Delivery Person
     
+    # New timestamp and status fields for analytics
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)  # When user registered
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)  # Last profile update
+    last_login_at = Column(DateTime, nullable=True)  # Last successful login
+    status = Column(String(20), default='active', nullable=True)  # active, locked, disabled
 
     # Other Relationships
     addresses = relationship("UserAddress", back_populates="user")
