@@ -798,8 +798,86 @@
     transition: grid-template-columns 0.3s ease;
 }
 
+/* Edit panel expanded - adds column on left */
+.edit-expanded .user-profile-modal__content {
+    grid-template-columns: 280px 320px 1fr;
+}
+
+/* Detail panel expanded - adds column on right */
 .detail-expanded .user-profile-modal__content {
     grid-template-columns: 320px 1fr 320px;
+}
+
+/* Both edit and detail expanded */
+.edit-expanded.detail-expanded .user-profile-modal__content {
+    grid-template-columns: 280px 320px 1fr 320px;
+}
+
+/* Edit Panel (Left) */
+.user-profile-modal__edit {
+    background: #fff;
+    border-right: 1px solid #e0e0e0;
+    padding: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    animation: slideInLeft 0.3s ease;
+    order: -1;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.edit-panel-header {
+    padding: 16px 20px;
+    background: #f7f8f9;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.edit-panel-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f1111;
+}
+
+.close-edit-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #565959;
+    transition: color 0.2s;
+}
+
+.close-edit-btn:hover {
+    color: #0f1111;
+}
+
+.edit-panel-content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.edit-panel-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0e0;
 }
 
 /* Left Side - Profile Info */
@@ -913,15 +991,44 @@
 .order-product-item {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     padding: 10px 0;
     border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
+}
+
+.product-image-wrapper {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #f7f8f9;
+}
+
+.product-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0e0e0;
+    color: #888;
+    font-size: 10px;
 }
 
 .product-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
+    min-width: 0;
 }
 
 .product-name {

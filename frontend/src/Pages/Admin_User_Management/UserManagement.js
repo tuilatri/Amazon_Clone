@@ -990,16 +990,22 @@ const UserManagement = () => {
                                     </div>
                                 </div>
 
-                                {/* Edit User Section */}
-                                {!editMode ? (
-                                    <button className="edit-user-btn" onClick={startEditMode}>
-                                        Edit User Information
-                                    </button>
-                                ) : (
-                                    <div className="edit-user-form">
-                                        <h5>Edit User Information</h5>
-                                        <p className="edit-form-hint">Original values shown above. Update fields below:</p>
+                                {/* Edit User Button */}
+                                <button className="edit-user-btn" onClick={startEditMode}>
+                                    {editMode ? 'Editing...' : 'Edit User Information'}
+                                </button>
+                            </div>
 
+                            {/* Edit Form Panel (Left side - appears when editing) */}
+                            {editMode && (
+                                <div className="user-profile-modal__edit">
+                                    <div className="edit-panel-header">
+                                        <h4>Edit User</h4>
+                                        <button className="close-edit-btn" onClick={cancelEditMode}>
+                                            <CloseIcon />
+                                        </button>
+                                    </div>
+                                    <div className="edit-panel-content">
                                         <div className="edit-form-field">
                                             <label>Username</label>
                                             <input
@@ -1059,7 +1065,7 @@ const UserManagement = () => {
                                             />
                                         </div>
 
-                                        <div className="edit-form-actions">
+                                        <div className="edit-panel-actions">
                                             <button
                                                 className="edit-save-btn"
                                                 onClick={handleUserUpdate}
@@ -1076,8 +1082,8 @@ const UserManagement = () => {
                                             </button>
                                         </div>
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
 
                             {/* Right Side - Order History */}
                             <div className="user-profile-modal__right">
@@ -1231,9 +1237,22 @@ const UserManagement = () => {
                                                 {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
                                                     selectedOrderDetail.items.map((item, idx) => (
                                                         <div key={idx} className="order-product-item">
+                                                            <div className="product-image-wrapper">
+                                                                {item.product_image ? (
+                                                                    <img
+                                                                        src={item.product_image}
+                                                                        alt={item.product_name || 'Product'}
+                                                                        className="product-thumbnail"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="product-image-placeholder">
+                                                                        <span>No Image</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             <div className="product-info">
                                                                 <span className="product-name">{item.product_name || `Product #${item.product_id}`}</span>
-                                                                <span className="product-qty">x{item.quantity || 1}</span>
+                                                                <span className="product-qty">Qty: {item.quantity || 1}</span>
                                                             </div>
                                                             <span className="product-price">${(item.price || 0).toFixed(2)}</span>
                                                         </div>
