@@ -10,6 +10,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import LastPageIcon from '@mui/icons-material/LastPage';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const UserManagement = () => {
     // Users state
@@ -278,6 +279,30 @@ const UserManagement = () => {
                         </select>
                     </div>
                     <div className="user-table__cell user-table__cell--actions">
+                        <button
+                            className="reset-filters-btn"
+                            onClick={() => {
+                                setSearchQuery('');
+                                setEmailSearch('');
+                                setPhoneSearch('');
+                                setRegisteredDate('');
+                                setLastActiveDate('');
+                                setStatusFilter('');
+                                setPerPage(20);
+                                fetchUsers(1, {
+                                    search: '',
+                                    emailSearch: '',
+                                    phoneSearch: '',
+                                    status: '',
+                                    registeredDate: '',
+                                    lastActiveDate: '',
+                                    perPage: 20
+                                });
+                            }}
+                            title="Reset all filters"
+                        >
+                            <RestartAltIcon />
+                        </button>
                     </div>
                 </div>
 

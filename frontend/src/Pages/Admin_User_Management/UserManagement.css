@@ -99,6 +99,35 @@
     border-color: #e77600;
 }
 
+/* Reset Filters Button */
+.reset-filters-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: #fff;
+    border: 1px solid #d5d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #565959;
+    transition: all 0.2s ease;
+}
+
+.reset-filters-btn:hover {
+    background: #f7f8f9;
+    color: #0f1111;
+    border-color: #c45500;
+}
+
+.reset-filters-btn:active {
+    background: #e8e8e8;
+}
+
+.reset-filters-btn svg {
+    font-size: 20px;
+}
+
 /* Table Body */
 .user-table__body {
     max-height: calc(100vh - 350px);
