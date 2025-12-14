@@ -9,6 +9,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import LockIcon from '@mui/icons-material/Lock';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import LastPageIcon from '@mui/icons-material/LastPage';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
 const UserManagement = () => {
     // Users state
@@ -17,24 +18,35 @@ const UserManagement = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
-    const [perPage, setPerPage] = useState(20); // Now dynamic
+    const [perPage, setPerPage] = useState(20);
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
+    const [emailSearch, setEmailSearch] = useState('');
+    const [phoneSearch, setPhoneSearch] = useState('');
+    const [registeredDate, setRegisteredDate] = useState('');
+    const [lastActiveDate, setLastActiveDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
 
     // Fetch users - always filter by role=2 (User only)
-    const fetchUsers = useCallback(async (pageNum = 1, search = '', status = '', itemsPerPage = 20) => {
+    const fetchUsers = useCallback(async (
+        pageNum = 1,
+        filters = {}
+    ) => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
                 page: pageNum,
-                per_page: itemsPerPage,
-                search: search,
-                status: status,
+                per_page: filters.perPage || perPage,
+                search: filters.search ?? searchQuery,
+                email_search: filters.emailSearch ?? emailSearch,
+                phone_search: filters.phoneSearch ?? phoneSearch,
+                status: filters.status ?? statusFilter,
+                registered_date: filters.registeredDate ?? registeredDate,
+                last_active_date: filters.lastActiveDate ?? lastActiveDate,
                 role: 2 // Always filter by Role = 2 (User only)
             });
             const response = await axios.get(`http://localhost:8000/admin/users?${params}`);
@@ -47,60 +59,97 @@ const UserManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [perPage, searchQuery, emailSearch, phoneSearch, statusFilter, registeredDate, lastActiveDate]);
 
     // Initial fetch
     useEffect(() => {
-        fetchUsers(1, searchQuery, statusFilter, perPage);
-    }, [fetchUsers, perPage]);
+        fetchUsers(1);
+    }, []);
 
-    // Handle search
+    // Refetch when perPage changes
+    useEffect(() => {
+        fetchUsers(1);
+    }, [perPage]);
+
+    // Handle username search
     const handleSearch = (e) => {
         const value = e.target.value;
         setSearchQuery(value);
-        // Debounce search
         const timeoutId = setTimeout(() => {
-            fetchUsers(1, value, statusFilter, perPage);
+            fetchUsers(1, { search: value });
         }, 500);
         return () => clearTimeout(timeoutId);
+    };
+
+    // Handle email search
+    const handleEmailSearch = (e) => {
+        const value = e.target.value;
+        setEmailSearch(value);
+        const timeoutId = setTimeout(() => {
+            fetchUsers(1, { emailSearch: value });
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    };
+
+    // Handle phone search
+    const handlePhoneSearch = (e) => {
+        const value = e.target.value;
+        setPhoneSearch(value);
+        const timeoutId = setTimeout(() => {
+            fetchUsers(1, { phoneSearch: value });
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    };
+
+    // Handle registered date filter
+    const handleRegisteredDate = (e) => {
+        const value = e.target.value;
+        setRegisteredDate(value);
+        fetchUsers(1, { registeredDate: value });
+    };
+
+    // Handle last active date filter
+    const handleLastActiveDate = (e) => {
+        const value = e.target.value;
+        setLastActiveDate(value);
+        fetchUsers(1, { lastActiveDate: value });
     };
 
     // Handle status filter change
     const handleStatusFilter = (e) => {
         const value = e.target.value;
         setStatusFilter(value);
-        fetchUsers(1, searchQuery, value, perPage);
+        fetchUsers(1, { status: value });
     };
 
     // Handle items per page change
     const handlePerPageChange = (e) => {
         const value = parseInt(e.target.value);
         setPerPage(value);
-        fetchUsers(1, searchQuery, statusFilter, value);
     };
 
     // Handle pagination
     const handleFirstPage = () => {
         if (page > 1) {
-            fetchUsers(1, searchQuery, statusFilter, perPage);
+            fetchUsers(1);
         }
     };
 
     const handlePrevPage = () => {
         if (page > 1) {
-            fetchUsers(page - 1, searchQuery, statusFilter, perPage);
+            fetchUsers(page - 1);
         }
     };
 
     const handleNextPage = () => {
         if (page < totalPages) {
-            fetchUsers(page + 1, searchQuery, statusFilter, perPage);
+            fetchUsers(page + 1);
         }
     };
 
     const handleLastPage = () => {
         if (page < totalPages) {
-            fetchUsers(totalPages, searchQuery, statusFilter, perPage);
+            fetchUsers(totalPages);
         }
     };
 
@@ -111,7 +160,7 @@ const UserManagement = () => {
                 status: newStatus
             });
             // Refresh the list
-            fetchUsers(page, searchQuery, statusFilter, perPage);
+            fetchUsers(page);
             setActiveMenu(null);
         } catch (error) {
             console.error('Error updating user status:', error);
@@ -167,15 +216,53 @@ const UserManagement = () => {
                     </div>
                     <div className="user-table__cell user-table__cell--email">
                         <span className="user-table__header-label">Email</span>
+                        <div className="user-table__filter">
+                            <SearchIcon className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={emailSearch}
+                                onChange={handleEmailSearch}
+                                className="user-table__search"
+                            />
+                        </div>
                     </div>
                     <div className="user-table__cell user-table__cell--phone">
                         <span className="user-table__header-label">Phone Number</span>
+                        <div className="user-table__filter">
+                            <SearchIcon className="search-icon" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={phoneSearch}
+                                onChange={handlePhoneSearch}
+                                className="user-table__search"
+                            />
+                        </div>
                     </div>
                     <div className="user-table__cell user-table__cell--registered">
                         <span className="user-table__header-label">Registered</span>
+                        <div className="user-table__filter user-table__filter--date">
+                            <CalendarTodayIcon className="search-icon" />
+                            <input
+                                type="date"
+                                value={registeredDate}
+                                onChange={handleRegisteredDate}
+                                className="user-table__search user-table__search--date"
+                            />
+                        </div>
                     </div>
                     <div className="user-table__cell user-table__cell--lastactive">
                         <span className="user-table__header-label">Last active</span>
+                        <div className="user-table__filter user-table__filter--date">
+                            <CalendarTodayIcon className="search-icon" />
+                            <input
+                                type="date"
+                                value={lastActiveDate}
+                                onChange={handleLastActiveDate}
+                                className="user-table__search user-table__search--date"
+                            />
+                        </div>
                     </div>
                     <div className="user-table__cell user-table__cell--status">
                         <span className="user-table__header-label">Status</span>

@@ -1847,16 +1847,26 @@ async def get_admin_users(
     page: int = 1,
     per_page: int = 20,
     search: str = "",
+    email_search: str = "",
+    phone_search: str = "",
     status: str = "",
     role: int = 0,
+    registered_date: str = "",
+    last_active_date: str = "",
     db: Session = Depends(get_db)
 ):
     """
     Get all users for admin user management with pagination and filters.
-    - search: Search by username or email
+    - search: Search by username
+    - email_search: Search by email address
+    - phone_search: Search by phone number
     - status: Filter by status (active, locked, disabled) - empty = all
     - role: Filter by role (0 = all, 1 = Admin, 2 = User, 3 = Supplier, 4 = Delivery)
+    - registered_date: Filter by registration date (format: YYYY-MM-DD)
+    - last_active_date: Filter by last active date (format: YYYY-MM-DD)
     """
+    from datetime import datetime, timedelta
+    
     query = db.query(SiteUser)
     
     # Apply role filter (0 means all roles)
@@ -1867,13 +1877,44 @@ async def get_admin_users(
     if status and status in ['active', 'locked', 'disabled']:
         query = query.filter(SiteUser.status == status)
     
-    # Apply search filter (search by username or email)
+    # Apply username search filter
     if search:
         search_pattern = f"%{search}%"
-        query = query.filter(
-            (SiteUser.user_name.ilike(search_pattern)) |
-            (SiteUser.email_address.ilike(search_pattern))
-        )
+        query = query.filter(SiteUser.user_name.ilike(search_pattern))
+    
+    # Apply email search filter
+    if email_search:
+        email_pattern = f"%{email_search}%"
+        query = query.filter(SiteUser.email_address.ilike(email_pattern))
+    
+    # Apply phone search filter
+    if phone_search:
+        phone_pattern = f"%{phone_search}%"
+        query = query.filter(SiteUser.phone_number.ilike(phone_pattern))
+    
+    # Apply registered date filter
+    if registered_date:
+        try:
+            date_obj = datetime.strptime(registered_date, "%Y-%m-%d")
+            next_day = date_obj + timedelta(days=1)
+            query = query.filter(
+                SiteUser.created_at >= date_obj,
+                SiteUser.created_at < next_day
+            )
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+    
+    # Apply last active date filter
+    if last_active_date:
+        try:
+            date_obj = datetime.strptime(last_active_date, "%Y-%m-%d")
+            next_day = date_obj + timedelta(days=1)
+            query = query.filter(
+                SiteUser.last_login_at >= date_obj,
+                SiteUser.last_login_at < next_day
+            )
+        except ValueError:
+            pass  # Invalid date format, ignore filter
     
     # Get total count
     total = query.count()
