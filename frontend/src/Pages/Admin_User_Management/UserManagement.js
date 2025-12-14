@@ -961,32 +961,42 @@ const UserManagement = () => {
                                     </div>
                                 </div>
 
-                                <div className="order-list">
+                                <div className="profile-order-list">
                                     {ordersLoading ? (
-                                        <div className="order-list__loading">Loading orders...</div>
+                                        <div className="orders-loading">Loading orders...</div>
                                     ) : userOrders.length === 0 ? (
-                                        <div className="order-list__empty">No orders found</div>
+                                        <div className="orders-empty">No orders found</div>
                                     ) : (
-                                        userOrders.map((order) => (
-                                            <div key={order.order_id} className="order-item">
-                                                <div className="order-item__header">
-                                                    <span className="order-item__id">#{order.order_id}</span>
-                                                    <span className="order-item__date">{order.order_date}</span>
-                                                </div>
-                                                <div className="order-item__body">
-                                                    <span className="order-item__total">${order.order_total.toLocaleString()}</span>
-                                                    <span className={`order-item__status order-item__status--${order.status?.toLowerCase()}`}>
-                                                        {order.status}
-                                                    </span>
-                                                </div>
-                                                {order.payment_method && (
-                                                    <div className="order-item__meta">
-                                                        <span>{order.payment_method}</span>
-                                                        {order.shipping_method && <span> • {order.shipping_method}</span>}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))
+                                        <div className="orders-table-container">
+                                            <table className="orders-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th>Date</th>
+                                                        <th>Status</th>
+                                                        <th>Amount</th>
+                                                        <th>Payment</th>
+                                                        <th>Shipping</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {userOrders.map((order) => (
+                                                        <tr key={order.order_id}>
+                                                            <td>#{order.order_id}</td>
+                                                            <td>{order.order_date || 'N/A'}</td>
+                                                            <td>
+                                                                <span className={`order-status order-status--${order.status?.toLowerCase()}`}>
+                                                                    {order.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="order-amount">${order.order_total?.toFixed(2) || '0.00'}</td>
+                                                            <td>{order.payment_method || '—'}</td>
+                                                            <td>{order.shipping_method || '—'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     )}
                                 </div>
                             </div>
