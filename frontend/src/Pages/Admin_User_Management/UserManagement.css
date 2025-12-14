@@ -23,7 +23,7 @@
     background: #f7f8f9;
     border-bottom: 1px solid #e0e0e0;
     padding: 14px 20px;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
 }
 
@@ -141,6 +141,7 @@
     cursor: pointer;
     color: #111;
     transition: all 0.2s ease;
+    margin-bottom: 6px;
 }
 
 .add-user-btn:hover {
@@ -337,7 +338,7 @@
     display: grid;
     grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 0.8fr 40px;
     padding: 14px 20px;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
     border-bottom: 1px solid #f0f0f0;
     transition: background 0.2s ease;
