@@ -7,6 +7,8 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BlockIcon from '@mui/icons-material/Block';
 import LockIcon from '@mui/icons-material/Lock';
+import FirstPageIcon from '@mui/icons-material/FirstPage';
+import LastPageIcon from '@mui/icons-material/LastPage';
 
 const UserManagement = () => {
     // Users state
@@ -15,26 +17,25 @@ const UserManagement = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
-    const perPage = 20;
+    const [perPage, setPerPage] = useState(20); // Now dynamic
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    const [roleFilter, setRoleFilter] = useState(0);
 
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
 
-    // Fetch users
-    const fetchUsers = useCallback(async (pageNum = 1, search = '', status = '', role = 0) => {
+    // Fetch users - always filter by role=2 (User only)
+    const fetchUsers = useCallback(async (pageNum = 1, search = '', status = '', itemsPerPage = 20) => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
                 page: pageNum,
-                per_page: perPage,
+                per_page: itemsPerPage,
                 search: search,
                 status: status,
-                role: role
+                role: 2 // Always filter by Role = 2 (User only)
             });
             const response = await axios.get(`http://localhost:8000/admin/users?${params}`);
             setUsers(response.data.users);
@@ -50,8 +51,8 @@ const UserManagement = () => {
 
     // Initial fetch
     useEffect(() => {
-        fetchUsers(1, searchQuery, statusFilter, roleFilter);
-    }, [fetchUsers]);
+        fetchUsers(1, searchQuery, statusFilter, perPage);
+    }, [fetchUsers, perPage]);
 
     // Handle search
     const handleSearch = (e) => {
@@ -59,7 +60,7 @@ const UserManagement = () => {
         setSearchQuery(value);
         // Debounce search
         const timeoutId = setTimeout(() => {
-            fetchUsers(1, value, statusFilter, roleFilter);
+            fetchUsers(1, value, statusFilter, perPage);
         }, 500);
         return () => clearTimeout(timeoutId);
     };
@@ -68,26 +69,38 @@ const UserManagement = () => {
     const handleStatusFilter = (e) => {
         const value = e.target.value;
         setStatusFilter(value);
-        fetchUsers(1, searchQuery, value, roleFilter);
+        fetchUsers(1, searchQuery, value, perPage);
     };
 
-    // Handle role filter change
-    const handleRoleFilter = (e) => {
+    // Handle items per page change
+    const handlePerPageChange = (e) => {
         const value = parseInt(e.target.value);
-        setRoleFilter(value);
+        setPerPage(value);
         fetchUsers(1, searchQuery, statusFilter, value);
     };
 
     // Handle pagination
+    const handleFirstPage = () => {
+        if (page > 1) {
+            fetchUsers(1, searchQuery, statusFilter, perPage);
+        }
+    };
+
     const handlePrevPage = () => {
         if (page > 1) {
-            fetchUsers(page - 1, searchQuery, statusFilter, roleFilter);
+            fetchUsers(page - 1, searchQuery, statusFilter, perPage);
         }
     };
 
     const handleNextPage = () => {
         if (page < totalPages) {
-            fetchUsers(page + 1, searchQuery, statusFilter, roleFilter);
+            fetchUsers(page + 1, searchQuery, statusFilter, perPage);
+        }
+    };
+
+    const handleLastPage = () => {
+        if (page < totalPages) {
+            fetchUsers(totalPages, searchQuery, statusFilter, perPage);
         }
     };
 
@@ -98,7 +111,7 @@ const UserManagement = () => {
                 status: newStatus
             });
             // Refresh the list
-            fetchUsers(page, searchQuery, statusFilter, roleFilter);
+            fetchUsers(page, searchQuery, statusFilter, perPage);
             setActiveMenu(null);
         } catch (error) {
             console.error('Error updating user status:', error);
@@ -131,7 +144,7 @@ const UserManagement = () => {
     };
 
     // Calculate displayed range
-    const startItem = (page - 1) * perPage + 1;
+    const startItem = total > 0 ? (page - 1) * perPage + 1 : 0;
     const endItem = Math.min(page * perPage, total);
 
     return (
@@ -151,19 +164,6 @@ const UserManagement = () => {
                                 className="user-table__search"
                             />
                         </div>
-                    </div>
-                    <div className="user-table__cell user-table__cell--role">
-                        <span className="user-table__header-label">Role</span>
-                        <select
-                            value={roleFilter}
-                            onChange={handleRoleFilter}
-                            className="user-table__select"
-                        >
-                            <option value={0}>All</option>
-                            <option value={2}>User</option>
-                            <option value={3}>Supplier</option>
-                            <option value={4}>Delivery</option>
-                        </select>
                     </div>
                     <div className="user-table__cell user-table__cell--registered">
                         <span className="user-table__header-label">Registered</span>
@@ -208,9 +208,6 @@ const UserManagement = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="user-table__cell user-table__cell--role">
-                                    <span className="role-label">{user.role}</span>
-                                </div>
                                 <div className="user-table__cell user-table__cell--registered">
                                     {user.created_at || '—'}
                                 </div>
@@ -223,44 +220,42 @@ const UserManagement = () => {
                                     </span>
                                 </div>
                                 <div className="user-table__cell user-table__cell--actions">
-                                    {user.role !== 'Admin' && (
-                                        <div className="action-menu-container">
-                                            <button
-                                                className="action-menu-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleMenu(user.user_id);
-                                                }}
-                                            >
-                                                <MoreVertIcon />
-                                            </button>
-                                            {activeMenu === user.user_id && (
-                                                <div className="action-menu" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        className="action-menu__item action-menu__item--active"
-                                                        onClick={() => handleStatusUpdate(user.user_id, 'active')}
-                                                        disabled={user.status === 'active'}
-                                                    >
-                                                        <CheckCircleIcon /> Set Active
-                                                    </button>
-                                                    <button
-                                                        className="action-menu__item action-menu__item--locked"
-                                                        onClick={() => handleStatusUpdate(user.user_id, 'locked')}
-                                                        disabled={user.status === 'locked'}
-                                                    >
-                                                        <LockIcon /> Lock Account
-                                                    </button>
-                                                    <button
-                                                        className="action-menu__item action-menu__item--disabled"
-                                                        onClick={() => handleStatusUpdate(user.user_id, 'disabled')}
-                                                        disabled={user.status === 'disabled'}
-                                                    >
-                                                        <BlockIcon /> Disable Account
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                    <div className="action-menu-container">
+                                        <button
+                                            className="action-menu-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleMenu(user.user_id);
+                                            }}
+                                        >
+                                            <MoreVertIcon />
+                                        </button>
+                                        {activeMenu === user.user_id && (
+                                            <div className="action-menu" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    className="action-menu__item action-menu__item--active"
+                                                    onClick={() => handleStatusUpdate(user.user_id, 'active')}
+                                                    disabled={user.status === 'active'}
+                                                >
+                                                    <CheckCircleIcon /> Set Active
+                                                </button>
+                                                <button
+                                                    className="action-menu__item action-menu__item--locked"
+                                                    onClick={() => handleStatusUpdate(user.user_id, 'locked')}
+                                                    disabled={user.status === 'locked'}
+                                                >
+                                                    <LockIcon /> Lock Account
+                                                </button>
+                                                <button
+                                                    className="action-menu__item action-menu__item--disabled"
+                                                    onClick={() => handleStatusUpdate(user.user_id, 'disabled')}
+                                                    disabled={user.status === 'disabled'}
+                                                >
+                                                    <BlockIcon /> Disable Account
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))
@@ -271,12 +266,31 @@ const UserManagement = () => {
             {/* Pagination */}
             <div className="user-pagination">
                 <div className="user-pagination__info">
-                    <span>Items per page: <strong>{perPage}</strong></span>
+                    <span className="user-pagination__per-page">
+                        Items per page:
+                        <select
+                            value={perPage}
+                            onChange={handlePerPageChange}
+                            className="user-pagination__select"
+                        >
+                            <option value={20}>20</option>
+                            <option value={40}>40</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </span>
                     <span className="user-pagination__range">
-                        items displayed: <strong>{startItem}-{endItem}</strong> of <strong>{total}</strong>
+                        {startItem}-{endItem} of {total}
                     </span>
                 </div>
                 <div className="user-pagination__controls">
+                    <button
+                        className="user-pagination__btn user-pagination__btn--icon"
+                        onClick={handleFirstPage}
+                        disabled={page <= 1}
+                        title="First page"
+                    >
+                        <FirstPageIcon />
+                    </button>
                     <button
                         className="user-pagination__btn"
                         onClick={handlePrevPage}
@@ -299,7 +313,7 @@ const UserManagement = () => {
                             <button
                                 key={pageNum}
                                 className={`user-pagination__page ${page === pageNum ? 'user-pagination__page--active' : ''}`}
-                                onClick={() => fetchUsers(pageNum, searchQuery, statusFilter, roleFilter)}
+                                onClick={() => fetchUsers(pageNum, searchQuery, statusFilter, perPage)}
                             >
                                 {pageNum}
                             </button>
@@ -311,6 +325,14 @@ const UserManagement = () => {
                         disabled={page >= totalPages}
                     >
                         Next
+                    </button>
+                    <button
+                        className="user-pagination__btn user-pagination__btn--icon"
+                        onClick={handleLastPage}
+                        disabled={page >= totalPages}
+                        title="Last page"
+                    >
+                        <LastPageIcon />
                     </button>
                 </div>
             </div>
