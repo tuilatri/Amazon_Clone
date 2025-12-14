@@ -493,6 +493,14 @@ const AdminOverview = () => {
                                     {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
                                         selectedOrderDetail.items.map((item, index) => (
                                             <div key={index} className="order-detail-modal__product">
+                                                <div className="product-image-container">
+                                                    <img
+                                                        src={item.product_image || 'https://via.placeholder.com/60x60?text=No+Image'}
+                                                        alt={item.product_name}
+                                                        className="product-image"
+                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/60x60?text=No+Image'; }}
+                                                    />
+                                                </div>
                                                 <div className="product-info">
                                                     <span className="product-name">{item.product_name}</span>
                                                     <div className="product-meta">
@@ -548,3 +556,4 @@ const AdminOverview = () => {
 };
 
 export default AdminOverview;
+

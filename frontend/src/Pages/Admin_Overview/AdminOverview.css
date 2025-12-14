@@ -731,6 +731,22 @@
     color: #565959;
 }
 
+/* Product Image in Order Detail Modal */
+.product-image-container {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    background: #fff;
+}
+
 .order-detail-modal__info {
     display: flex;
     flex-direction: column;
