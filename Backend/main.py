@@ -2099,8 +2099,8 @@ async def get_admin_user_orders(
             "order_date": order.order_date.strftime("%d/%m/%Y") if order.order_date else None,
             "order_total": order_total,
             "status": status_name,
-            "payment_method": order.payment_method.payment_type_name if order.payment_method else None,
-            "shipping_method": order.shipping_method.method_name if order.shipping_method else None
+            "payment_method": order.payment_method.payment_name if order.payment_method else None,
+            "shipping_method": order.shipping_method.type if order.shipping_method else None
         })
     
     return {
