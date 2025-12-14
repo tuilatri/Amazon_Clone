@@ -128,6 +128,205 @@
     font-size: 20px;
 }
 
+/* Add User Button */
+.add-user-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+    border: 1px solid #a88734;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #111;
+    transition: all 0.2s ease;
+}
+
+.add-user-btn:hover {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+.add-user-btn:active {
+    background: #e6a917;
+}
+
+.add-user-btn svg {
+    font-size: 20px;
+}
+
+/* Add User Modal Overlay */
+.add-user-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Add User Modal */
+.add-user-modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 450px;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.add-user-modal__header {
+    padding: 16px 20px;
+    background: #232f3e;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.add-user-modal__header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.add-user-modal__close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-user-modal__close:hover {
+    opacity: 0.8;
+}
+
+.add-user-modal__body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.add-user-modal__error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.add-user-modal__field {
+    margin-bottom: 16px;
+}
+
+.add-user-modal__field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f1111;
+    margin-bottom: 6px;
+}
+
+.add-user-modal__field input,
+.add-user-modal__field select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d5d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.add-user-modal__field input:focus,
+.add-user-modal__field select:focus {
+    outline: none;
+    border-color: #e77600;
+    box-shadow: 0 0 0 2px rgba(231, 118, 0, 0.15);
+}
+
+.add-user-modal__field input:disabled,
+.add-user-modal__field select:disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.add-user-modal__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.add-user-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    margin-top: 8px;
+}
+
+.add-user-modal__cancel {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f1111;
+    background: #fff;
+    border: 1px solid #d5d9d9;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-user-modal__cancel:hover {
+    background: #f7f8f9;
+}
+
+.add-user-modal__submit {
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #111;
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+    border: 1px solid #a88734;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-user-modal__submit:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+.add-user-modal__submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 /* Table Body */
 .user-table__body {
     max-height: calc(100vh - 350px);

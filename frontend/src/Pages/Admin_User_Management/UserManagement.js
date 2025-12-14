@@ -11,6 +11,8 @@ import FirstPageIcon from '@mui/icons-material/FirstPage';
 import LastPageIcon from '@mui/icons-material/LastPage';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import CloseIcon from '@mui/icons-material/Close';
 
 const UserManagement = () => {
     // Users state
@@ -31,6 +33,99 @@ const UserManagement = () => {
 
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
+
+    // Add User Modal state
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [formLoading, setFormLoading] = useState(false);
+    const [formError, setFormError] = useState('');
+    const [newUser, setNewUser] = useState({
+        user_name: '',
+        email_address: '',
+        phone_number: '',
+        password: '',
+        confirmPassword: '',
+        age: '',
+        gender: 'Male',
+        city: ''
+    });
+
+    // Reset form
+    const resetForm = () => {
+        setNewUser({
+            user_name: '',
+            email_address: '',
+            phone_number: '',
+            password: '',
+            confirmPassword: '',
+            age: '',
+            gender: 'Male',
+            city: ''
+        });
+        setFormError('');
+    };
+
+    // Handle form input change
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setNewUser(prev => ({ ...prev, [name]: value }));
+        if (formError) setFormError('');
+    };
+
+    // Handle add user submit
+    const handleAddUser = async (e) => {
+        e.preventDefault();
+        setFormError('');
+
+        // Validation
+        if (!newUser.user_name.trim()) {
+            setFormError('Username is required');
+            return;
+        }
+        if (!newUser.email_address.trim()) {
+            setFormError('Email is required');
+            return;
+        }
+        if (!newUser.phone_number.trim()) {
+            setFormError('Phone number is required');
+            return;
+        }
+        if (newUser.phone_number.length !== 10 || !/^\d+$/.test(newUser.phone_number)) {
+            setFormError('Phone number must be 10 digits');
+            return;
+        }
+        if (!newUser.password || newUser.password.length < 8) {
+            setFormError('Password must be at least 8 characters');
+            return;
+        }
+        if (newUser.password !== newUser.confirmPassword) {
+            setFormError('Passwords do not match');
+            return;
+        }
+
+        setFormLoading(true);
+        try {
+            await axios.post('http://localhost:8000/postRegister/', {
+                user_name: newUser.user_name.trim(),
+                email_address: newUser.email_address.trim(),
+                phone_number: newUser.phone_number.trim(),
+                password: newUser.password,
+                age: parseInt(newUser.age) || 0,
+                gender: newUser.gender,
+                city: newUser.city.trim(),
+                role: 2 // Always create as normal user
+            });
+
+            // Success - close modal and refresh list
+            setShowAddModal(false);
+            resetForm();
+            fetchUsers(1); // Refresh to show new user at top
+        } catch (error) {
+            console.error('Error adding user:', error);
+            setFormError(error.response?.data?.detail || 'Failed to add user. Please try again.');
+        } finally {
+            setFormLoading(false);
+        }
+    };
 
     // Fetch users - always filter by role=2 (User only)
     const fetchUsers = useCallback(async (
@@ -280,6 +375,13 @@ const UserManagement = () => {
                     </div>
                     <div className="user-table__cell user-table__cell--actions">
                         <button
+                            className="add-user-btn"
+                            onClick={() => setShowAddModal(true)}
+                            title="Add new user"
+                        >
+                            <PersonAddAlt1Icon />
+                        </button>
+                        <button
                             className="reset-filters-btn"
                             onClick={() => {
                                 setSearchQuery('');
@@ -459,6 +561,144 @@ const UserManagement = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Add User Modal */}
+            {showAddModal && (
+                <div className="add-user-overlay" onClick={() => { setShowAddModal(false); resetForm(); }}>
+                    <div className="add-user-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="add-user-modal__header">
+                            <h3>Add New User</h3>
+                            <button
+                                className="add-user-modal__close"
+                                onClick={() => { setShowAddModal(false); resetForm(); }}
+                            >
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddUser} className="add-user-modal__body">
+                            {formError && (
+                                <div className="add-user-modal__error">
+                                    {formError}
+                                </div>
+                            )}
+                            <div className="add-user-modal__field">
+                                <label>Username *</label>
+                                <input
+                                    type="text"
+                                    name="user_name"
+                                    value={newUser.user_name}
+                                    onChange={handleFormChange}
+                                    placeholder="Enter username"
+                                    disabled={formLoading}
+                                />
+                            </div>
+                            <div className="add-user-modal__field">
+                                <label>Email *</label>
+                                <input
+                                    type="email"
+                                    name="email_address"
+                                    value={newUser.email_address}
+                                    onChange={handleFormChange}
+                                    placeholder="Enter email address"
+                                    disabled={formLoading}
+                                />
+                            </div>
+                            <div className="add-user-modal__field">
+                                <label>Phone Number *</label>
+                                <input
+                                    type="text"
+                                    name="phone_number"
+                                    value={newUser.phone_number}
+                                    onChange={handleFormChange}
+                                    placeholder="10-digit phone number"
+                                    maxLength={10}
+                                    disabled={formLoading}
+                                />
+                            </div>
+                            <div className="add-user-modal__row">
+                                <div className="add-user-modal__field">
+                                    <label>Password *</label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        value={newUser.password}
+                                        onChange={handleFormChange}
+                                        placeholder="Min 8 characters"
+                                        disabled={formLoading}
+                                    />
+                                </div>
+                                <div className="add-user-modal__field">
+                                    <label>Confirm Password *</label>
+                                    <input
+                                        type="password"
+                                        name="confirmPassword"
+                                        value={newUser.confirmPassword}
+                                        onChange={handleFormChange}
+                                        placeholder="Confirm password"
+                                        disabled={formLoading}
+                                    />
+                                </div>
+                            </div>
+                            <div className="add-user-modal__row">
+                                <div className="add-user-modal__field">
+                                    <label>Age</label>
+                                    <input
+                                        type="number"
+                                        name="age"
+                                        value={newUser.age}
+                                        onChange={handleFormChange}
+                                        placeholder="Age"
+                                        min={1}
+                                        max={120}
+                                        disabled={formLoading}
+                                    />
+                                </div>
+                                <div className="add-user-modal__field">
+                                    <label>Gender</label>
+                                    <select
+                                        name="gender"
+                                        value={newUser.gender}
+                                        onChange={handleFormChange}
+                                        disabled={formLoading}
+                                    >
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="add-user-modal__field">
+                                <label>City</label>
+                                <input
+                                    type="text"
+                                    name="city"
+                                    value={newUser.city}
+                                    onChange={handleFormChange}
+                                    placeholder="Enter city"
+                                    disabled={formLoading}
+                                />
+                            </div>
+                            <div className="add-user-modal__footer">
+                                <button
+                                    type="button"
+                                    className="add-user-modal__cancel"
+                                    onClick={() => { setShowAddModal(false); resetForm(); }}
+                                    disabled={formLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="add-user-modal__submit"
+                                    disabled={formLoading}
+                                >
+                                    {formLoading ? 'Adding...' : 'Add User'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
