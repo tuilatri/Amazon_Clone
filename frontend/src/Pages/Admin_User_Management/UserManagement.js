@@ -1116,7 +1116,7 @@ const UserManagement = () => {
                             <button
                                 key={pageNum}
                                 className={`user-pagination__page ${page === pageNum ? 'user-pagination__page--active' : ''}`}
-                                onClick={() => fetchUsers(pageNum, searchQuery, statusFilter, perPage)}
+                                onClick={() => fetchUsers(pageNum)}
                             >
                                 {pageNum}
                             </button>
