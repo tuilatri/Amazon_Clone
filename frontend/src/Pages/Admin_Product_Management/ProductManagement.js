@@ -145,17 +145,39 @@ const ProductManagement = () => {
         setSelectAll(newSelected.size === products.length);
     };
 
-    // Handle reset filters
+    // Handle reset filters (including sorting)
     const handleResetFilters = () => {
         setSearchQuery('');
         setMainCategoryFilter('');
         setSubCategoryFilter('');
+        // Reset sorting to default
+        setSortBy('average_rating');
+        setSortOrder('desc');
     };
 
-    // Handle export
-    const handleExport = () => {
-        console.log('Export products clicked');
-        // TODO: Implement backend export functionality
+    // Handle export - downloads CSV from backend
+    const handleExport = async () => {
+        try {
+            const params = new URLSearchParams({
+                sort_by: sortBy,
+                sort_order: sortOrder
+            });
+
+            const response = await axios.get(`http://localhost:8000/admin/products/export?${params}`, {
+                responseType: 'blob'
+            });
+
+            // Create download link
+            const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        } catch (error) {
+            console.error('Error exporting products:', error);
+            alert('Failed to export products. Please try again.');
+        }
     };
 
     // Pagination handlers

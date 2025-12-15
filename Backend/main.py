@@ -2543,6 +2543,83 @@ async def get_product_categories_for_admin(db: Session = Depends(get_db)):
     }
 
 
+@app.get("/admin/products/export")
+async def export_products_csv(
+    sort_by: str = "average_rating",
+    sort_order: str = "desc",
+    db: Session = Depends(get_db)
+):
+    """
+    Export all products to CSV file.
+    Returns a downloadable CSV file with product data.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    from datetime import datetime
+    
+    # Build query with sorting
+    query = db.query(Product)
+    
+    # Apply sorting
+    sort_columns = {
+        'product_name': Product.product_name,
+        'main_category': Product.main_category,
+        'sub_category': Product.sub_category,
+        'average_rating': Product.average_rating,
+        'no_of_ratings': Product.no_of_ratings,
+        'discount_price_usd': Product.discount_price_usd,
+        'actual_price_usd': Product.actual_price_usd
+    }
+    sort_column = sort_columns.get(sort_by, Product.average_rating)
+    
+    if sort_order == 'asc':
+        query = query.order_by(sort_column.asc().nullslast())
+    else:
+        query = query.order_by(sort_column.desc().nullslast())
+    
+    products = query.all()
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header (matching table column order)
+    writer.writerow([
+        'Product Name',
+        'Main Category',
+        'Sub Category',
+        'Average Rating',
+        'Number of Ratings',
+        'Discount Price (USD)',
+        'Actual Price (USD)'
+    ])
+    
+    # Write product data
+    for product in products:
+        writer.writerow([
+            product.product_name or '',
+            product.main_category or '',
+            product.sub_category or '',
+            float(product.average_rating) if product.average_rating else 0.0,
+            product.no_of_ratings or 0,
+            float(product.discount_price_usd) if product.discount_price_usd else '',
+            float(product.actual_price_usd) if product.actual_price_usd else ''
+        ])
+    
+    # Reset stream position
+    output.seek(0)
+    
+    # Generate filename with current date
+    filename = f"products_export_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 # 4 Search products page
     # products display
 
