@@ -301,10 +301,12 @@
     height: 100%;
 }
 
-/* Table Body */
+/* Table Body - Scrollable like user-table__body */
 .product-table__body {
     background: #fff;
     min-height: 200px;
+    max-height: calc(100vh - 350px);
+    overflow-y: auto;
 }
 
 .product-table__loading,
