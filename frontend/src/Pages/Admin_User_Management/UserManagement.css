@@ -19,7 +19,7 @@
 
 .user-table__header {
     display: grid;
-    grid-template-columns: 40px 1fr 1fr 1fr 1fr 1fr 1fr 100px;
+    grid-template-columns: 40px 1fr 1fr 1fr 0.9fr 0.9fr 1fr 125px;
     background: #f7f8f9;
     border-bottom: 1px solid #e0e0e0;
     padding: 14px 16px;
@@ -401,7 +401,7 @@
 
 .user-table__row {
     display: grid;
-    grid-template-columns: 40px 1fr 1fr 1fr 1fr 1fr 1fr 100px;
+    grid-template-columns: 40px 1fr 1fr 1fr 0.9fr 0.9fr 1fr 100px;
     padding: 14px 16px;
     gap: 12px;
     align-items: center;
