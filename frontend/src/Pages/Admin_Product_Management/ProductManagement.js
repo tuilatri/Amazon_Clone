@@ -11,74 +11,84 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import CategoryIcon from '@mui/icons-material/Category';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import LastPageIcon from '@mui/icons-material/LastPage';
+import StarIcon from '@mui/icons-material/Star';
 
 /**
  * ProductManagement - Admin tab for managing products
  * UI skeleton matching Customer Management layout structure
  * 
- * NOTE: This is a UI-only implementation. No backend API calls yet.
+ * Table columns based on database Product model:
+ * - product_name
+ * - main_category
+ * - sub_category
+ * - average_rating
+ * - no_of_ratings
+ * - discount_price_usd
+ * - actual_price_usd
  */
 const ProductManagement = () => {
-    // Sample static data for UI demonstration
+    // Sample static data matching database fields
     const [products] = useState([
         {
             product_id: 'P001',
-            product_name: 'Sample Product 1',
-            category: 'Electronics',
-            price: 99.99,
-            stock: 150,
-            status: 'active',
-            created_at: '2024-01-15'
+            product_name: 'Wireless Bluetooth Headphones',
+            main_category: 'Electronics',
+            sub_category: 'Audio',
+            average_rating: 4.5,
+            no_of_ratings: 1250,
+            discount_price_usd: 79.99,
+            actual_price_usd: 129.99
         },
         {
             product_id: 'P002',
-            product_name: 'Sample Product 2',
-            category: 'Clothing',
-            price: 49.99,
-            stock: 0,
-            status: 'out_of_stock',
-            created_at: '2024-02-20'
+            product_name: 'Cotton T-Shirt Premium',
+            main_category: 'Clothing',
+            sub_category: 'Men\'s Fashion',
+            average_rating: 4.2,
+            no_of_ratings: 856,
+            discount_price_usd: 24.99,
+            actual_price_usd: 39.99
         },
         {
             product_id: 'P003',
-            product_name: 'Sample Product 3',
-            category: 'Home & Kitchen',
-            price: 199.99,
-            stock: 25,
-            status: 'active',
-            created_at: '2024-03-10'
+            product_name: 'Stainless Steel Cookware Set',
+            main_category: 'Home & Kitchen',
+            sub_category: 'Cookware',
+            average_rating: 4.7,
+            no_of_ratings: 2340,
+            discount_price_usd: 149.99,
+            actual_price_usd: 249.99
         },
         {
             product_id: 'P004',
-            product_name: 'Sample Product 4',
-            category: 'Electronics',
-            price: 299.99,
-            stock: 10,
-            status: 'low_stock',
-            created_at: '2024-03-15'
+            product_name: 'Smartphone Fast Charger',
+            main_category: 'Electronics',
+            sub_category: 'Accessories',
+            average_rating: 4.3,
+            no_of_ratings: 3120,
+            discount_price_usd: 19.99,
+            actual_price_usd: 34.99
         },
         {
             product_id: 'P005',
-            product_name: 'Sample Product 5',
-            category: 'Books',
-            price: 19.99,
-            stock: 500,
-            status: 'active',
-            created_at: '2024-04-01'
+            product_name: 'Programming Guide Book',
+            main_category: 'Books',
+            sub_category: 'Technology',
+            average_rating: 4.8,
+            no_of_ratings: 567,
+            discount_price_usd: 29.99,
+            actual_price_usd: 49.99
         }
     ]);
 
-    // Filter states (UI only, no actual filtering)
+    // Filter states
     const [searchQuery, setSearchQuery] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
-    const [sortBy, setSortBy] = useState('product_id');
-    const [sortOrder, setSortOrder] = useState('desc');
+    const [mainCategoryFilter, setMainCategoryFilter] = useState('');
+    const [subCategoryFilter, setSubCategoryFilter] = useState('');
+    const [sortBy, setSortBy] = useState('product_name');
+    const [sortOrder, setSortOrder] = useState('asc');
 
     // Selection states
     const [selectedProducts, setSelectedProducts] = useState(new Set());
@@ -90,13 +100,6 @@ const ProductManagement = () => {
 
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
-
-    // Static stats for UI demonstration
-    const stats = {
-        total_products: 1250,
-        active_listings: 1180,
-        low_stock_count: 45
-    };
 
     // Handle sort
     const handleSort = (column) => {
@@ -131,33 +134,17 @@ const ProductManagement = () => {
         setSelectAll(newSelected.size === products.length);
     };
 
-    // Get status badge class
-    const getStatusBadgeClass = (status) => {
-        switch (status) {
-            case 'active': return 'status-badge status-badge--active';
-            case 'out_of_stock': return 'status-badge status-badge--out-of-stock';
-            case 'low_stock': return 'status-badge status-badge--low-stock';
-            case 'discontinued': return 'status-badge status-badge--discontinued';
-            default: return 'status-badge';
-        }
-    };
-
-    // Get status label
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'active': return 'Active';
-            case 'out_of_stock': return 'Out of Stock';
-            case 'low_stock': return 'Low Stock';
-            case 'discontinued': return 'Discontinued';
-            default: return status;
-        }
-    };
-
     // Handle reset filters
     const handleResetFilters = () => {
         setSearchQuery('');
-        setCategoryFilter('');
-        setStatusFilter('');
+        setMainCategoryFilter('');
+        setSubCategoryFilter('');
+    };
+
+    // Handle export (placeholder)
+    const handleExport = () => {
+        console.log('Export products clicked');
+        // TODO: Implement backend export functionality
     };
 
     // Compute active filters
@@ -166,44 +153,29 @@ const ProductManagement = () => {
         if (searchQuery) {
             filters.push({ key: 'search', label: `Name: "${searchQuery}"`, clear: () => setSearchQuery('') });
         }
-        if (categoryFilter) {
-            filters.push({ key: 'category', label: `Category: ${categoryFilter}`, clear: () => setCategoryFilter('') });
+        if (mainCategoryFilter) {
+            filters.push({ key: 'main_category', label: `Main: ${mainCategoryFilter}`, clear: () => setMainCategoryFilter('') });
         }
-        if (statusFilter) {
-            filters.push({ key: 'status', label: `Status: ${getStatusLabel(statusFilter)}`, clear: () => setStatusFilter('') });
+        if (subCategoryFilter) {
+            filters.push({ key: 'sub_category', label: `Sub: ${subCategoryFilter}`, clear: () => setSubCategoryFilter('') });
         }
         return filters;
     };
 
     const activeFilters = getActiveFilters();
 
+    // Render star rating
+    const renderRating = (rating) => {
+        return (
+            <div className="rating-display">
+                <StarIcon className="rating-star" />
+                <span className="rating-value">{rating.toFixed(1)}</span>
+            </div>
+        );
+    };
+
     return (
         <div className="admin-page__productmanagement">
-            {/* Quick Stats Bar */}
-            <div className="quick-stats-bar">
-                <div className="stat-card">
-                    <CategoryIcon className="stat-icon" />
-                    <div className="stat-content">
-                        <span className="stat-value">{stats.total_products}</span>
-                        <span className="stat-label">Total Products</span>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <TrendingUpIcon className="stat-icon stat-icon--active" />
-                    <div className="stat-content">
-                        <span className="stat-value">{stats.active_listings}</span>
-                        <span className="stat-label">Active Listings</span>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <NewReleasesIcon className="stat-icon stat-icon--warning" />
-                    <div className="stat-content">
-                        <span className="stat-value">{stats.low_stock_count}</span>
-                        <span className="stat-label">Low Stock Items</span>
-                    </div>
-                </div>
-            </div>
-
             {/* Filter Pills */}
             {activeFilters.length > 0 && (
                 <div className="filter-pills-container">
@@ -246,7 +218,7 @@ const ProductManagement = () => {
                 </div>
             )}
 
-            {/* Table Header with Filters */}
+            {/* Product Table */}
             <div className="product-table">
                 <div className="product-table__header">
                     {/* Checkbox Column */}
@@ -279,17 +251,17 @@ const ProductManagement = () => {
                         </div>
                     </div>
 
-                    {/* Category Column */}
-                    <div className="product-table__cell product-table__cell--category">
-                        <div className="sortable-header" onClick={() => handleSort('category')}>
-                            <span className="product-table__header-label">Category</span>
-                            {sortBy === 'category' && (
+                    {/* Main Category Column */}
+                    <div className="product-table__cell product-table__cell--main-category">
+                        <div className="sortable-header" onClick={() => handleSort('main_category')}>
+                            <span className="product-table__header-label">Main Category</span>
+                            {sortBy === 'main_category' && (
                                 sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
                             )}
                         </div>
                         <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            value={mainCategoryFilter}
+                            onChange={(e) => setMainCategoryFilter(e.target.value)}
                             className="product-table__select"
                         >
                             <option value="">All</option>
@@ -300,40 +272,61 @@ const ProductManagement = () => {
                         </select>
                     </div>
 
-                    {/* Price Column */}
-                    <div className="product-table__cell product-table__cell--price">
-                        <div className="sortable-header" onClick={() => handleSort('price')}>
-                            <span className="product-table__header-label">Price</span>
-                            {sortBy === 'price' && (
+                    {/* Sub Category Column */}
+                    <div className="product-table__cell product-table__cell--sub-category">
+                        <div className="sortable-header" onClick={() => handleSort('sub_category')}>
+                            <span className="product-table__header-label">Sub Category</span>
+                            {sortBy === 'sub_category' && (
                                 sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
                             )}
                         </div>
-                    </div>
-
-                    {/* Stock Column */}
-                    <div className="product-table__cell product-table__cell--stock">
-                        <div className="sortable-header" onClick={() => handleSort('stock')}>
-                            <span className="product-table__header-label">Stock</span>
-                            {sortBy === 'stock' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Status Column */}
-                    <div className="product-table__cell product-table__cell--status">
-                        <span className="product-table__header-label">Status</span>
                         <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                            value={subCategoryFilter}
+                            onChange={(e) => setSubCategoryFilter(e.target.value)}
                             className="product-table__select"
                         >
                             <option value="">All</option>
-                            <option value="active">Active</option>
-                            <option value="low_stock">Low Stock</option>
-                            <option value="out_of_stock">Out of Stock</option>
-                            <option value="discontinued">Discontinued</option>
                         </select>
+                    </div>
+
+                    {/* Average Rating Column */}
+                    <div className="product-table__cell product-table__cell--rating">
+                        <div className="sortable-header" onClick={() => handleSort('average_rating')}>
+                            <span className="product-table__header-label">Avg Rating</span>
+                            {sortBy === 'average_rating' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Number of Ratings Column */}
+                    <div className="product-table__cell product-table__cell--num-ratings">
+                        <div className="sortable-header" onClick={() => handleSort('no_of_ratings')}>
+                            <span className="product-table__header-label"># Ratings</span>
+                            {sortBy === 'no_of_ratings' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Discount Price Column */}
+                    <div className="product-table__cell product-table__cell--discount-price">
+                        <div className="sortable-header" onClick={() => handleSort('discount_price_usd')}>
+                            <span className="product-table__header-label">Discount ($)</span>
+                            {sortBy === 'discount_price_usd' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Actual Price Column */}
+                    <div className="product-table__cell product-table__cell--actual-price">
+                        <div className="sortable-header" onClick={() => handleSort('actual_price_usd')}>
+                            <span className="product-table__header-label">Actual ($)</span>
+                            {sortBy === 'actual_price_usd' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
                     </div>
 
                     {/* Actions Column */}
@@ -343,9 +336,6 @@ const ProductManagement = () => {
                         </button>
                         <button className="add-product-btn" title="Add Product">
                             <AddIcon />
-                        </button>
-                        <button className="export-btn" title="Export Products">
-                            <FileDownloadIcon />
                         </button>
                     </div>
                 </div>
@@ -370,19 +360,23 @@ const ProductManagement = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="product-table__cell product-table__cell--category">
-                                {product.category}
+                            <div className="product-table__cell product-table__cell--main-category">
+                                {product.main_category}
                             </div>
-                            <div className="product-table__cell product-table__cell--price">
-                                ${product.price.toFixed(2)}
+                            <div className="product-table__cell product-table__cell--sub-category">
+                                {product.sub_category}
                             </div>
-                            <div className="product-table__cell product-table__cell--stock">
-                                {product.stock}
+                            <div className="product-table__cell product-table__cell--rating">
+                                {renderRating(product.average_rating)}
                             </div>
-                            <div className="product-table__cell product-table__cell--status">
-                                <span className={getStatusBadgeClass(product.status)}>
-                                    {getStatusLabel(product.status)}
-                                </span>
+                            <div className="product-table__cell product-table__cell--num-ratings">
+                                {product.no_of_ratings.toLocaleString()}
+                            </div>
+                            <div className="product-table__cell product-table__cell--discount-price">
+                                ${product.discount_price_usd.toFixed(2)}
+                            </div>
+                            <div className="product-table__cell product-table__cell--actual-price">
+                                ${product.actual_price_usd.toFixed(2)}
                             </div>
                             <div className="product-table__cell product-table__cell--actions">
                                 <button
@@ -441,6 +435,14 @@ const ProductManagement = () => {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Export Section - Below table */}
+            <div className="export-section">
+                <button className="export-btn" onClick={handleExport} title="Export Products to CSV">
+                    <FileDownloadIcon />
+                    <span>Export Products</span>
+                </button>
             </div>
         </div>
     );
