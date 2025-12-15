@@ -2454,6 +2454,177 @@ async def get_trending_products(
     }
 
 
+# ==================== ADMIN PRODUCT MANAGEMENT ====================
+
+@app.get("/admin/products")
+async def get_admin_products(
+    page: int = 1,
+    per_page: int = 20,
+    search: str = "",
+    main_category: str = "",
+    sub_category: str = "",
+    sort_by: str = "product_name",
+    sort_order: str = "asc",
+    db: Session = Depends(get_db)
+):
+    """
+    Get all products for admin product management with pagination, filters, and sorting.
+    """
+    query = db.query(Product)
+    
+    # Apply search filter
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(Product.product_name.ilike(search_pattern))
+    
+    # Apply main category filter
+    if main_category:
+        query = query.filter(Product.main_category == main_category)
+    
+    # Apply sub category filter
+    if sub_category:
+        query = query.filter(Product.sub_category == sub_category)
+    
+    # Get total count
+    total = query.count()
+    
+    # Dynamic sorting (only if sort_by is specified)
+    sort_columns = {
+        'product_name': Product.product_name,
+        'main_category': Product.main_category,
+        'sub_category': Product.sub_category,
+        'average_rating': Product.average_rating,
+        'no_of_ratings': Product.no_of_ratings,
+        'discount_price_usd': Product.discount_price_usd,
+        'actual_price_usd': Product.actual_price_usd
+    }
+    
+    # Only apply sorting if sort_by is valid, otherwise use default (product_id)
+    if sort_by and sort_by in sort_columns:
+        sort_column = sort_columns[sort_by]
+        if sort_order == 'asc':
+            query = query.order_by(sort_column.asc().nullslast())
+        else:
+            query = query.order_by(sort_column.desc().nullslast())
+    else:
+        # Default order: by product_id (natural database order)
+        query = query.order_by(Product.product_id.desc())
+    
+    # Paginate
+    products = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    product_list = []
+    for product in products:
+        product_list.append({
+            "product_id": product.product_id,
+            "product_name": product.product_name,
+            "product_image": product.product_image,
+            "main_category": product.main_category,
+            "sub_category": product.sub_category,
+            "average_rating": float(product.average_rating) if product.average_rating else 0.0,
+            "no_of_ratings": product.no_of_ratings or 0,
+            "discount_price_usd": float(product.discount_price_usd) if product.discount_price_usd else None,
+            "actual_price_usd": float(product.actual_price_usd) if product.actual_price_usd else None
+        })
+    
+    return {
+        "products": product_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if total > 0 else 1
+    }
+
+
+@app.get("/admin/products/categories")
+async def get_product_categories_for_admin(db: Session = Depends(get_db)):
+    """Get unique main categories and sub categories for filter dropdowns."""
+    main_categories = db.query(Product.main_category).distinct().all()
+    sub_categories = db.query(Product.sub_category).distinct().all()
+    
+    return {
+        "main_categories": [cat[0] for cat in main_categories if cat[0]],
+        "sub_categories": [cat[0] for cat in sub_categories if cat[0]]
+    }
+
+
+@app.get("/admin/products/export")
+async def export_products_csv(
+    sort_by: str = "average_rating",
+    sort_order: str = "desc",
+    db: Session = Depends(get_db)
+):
+    """
+    Export all products to CSV file.
+    Returns a downloadable CSV file with product data.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    from datetime import datetime
+    
+    # Build query with sorting
+    query = db.query(Product)
+    
+    # Apply sorting
+    sort_columns = {
+        'product_name': Product.product_name,
+        'main_category': Product.main_category,
+        'sub_category': Product.sub_category,
+        'average_rating': Product.average_rating,
+        'no_of_ratings': Product.no_of_ratings,
+        'discount_price_usd': Product.discount_price_usd,
+        'actual_price_usd': Product.actual_price_usd
+    }
+    sort_column = sort_columns.get(sort_by, Product.average_rating)
+    
+    if sort_order == 'asc':
+        query = query.order_by(sort_column.asc().nullslast())
+    else:
+        query = query.order_by(sort_column.desc().nullslast())
+    
+    products = query.all()
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header (matching table column order)
+    writer.writerow([
+        'Product Name',
+        'Main Category',
+        'Sub Category',
+        'Average Rating',
+        'Number of Ratings',
+        'Discount Price (USD)',
+        'Actual Price (USD)'
+    ])
+    
+    # Write product data
+    for product in products:
+        writer.writerow([
+            product.product_name or '',
+            product.main_category or '',
+            product.sub_category or '',
+            float(product.average_rating) if product.average_rating else 0.0,
+            product.no_of_ratings or 0,
+            float(product.discount_price_usd) if product.discount_price_usd else '',
+            float(product.actual_price_usd) if product.actual_price_usd else ''
+        ])
+    
+    # Reset stream position
+    output.seek(0)
+    
+    # Generate filename with current date
+    filename = f"products_export_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 # 4 Search products page
     # products display
 

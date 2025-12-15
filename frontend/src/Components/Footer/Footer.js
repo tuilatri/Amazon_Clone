@@ -545,7 +545,7 @@ const Footer = () => {
                     </div>
                     <div className="footer__bottom__down">
                         <p className="footer__bottom__down__text">
-                            © 1996 - 2024, Amazon.com, Inc, or its affiliates
+                            © 1996 - 2025, Amazon.com, Inc, or its affiliates
                         </p>
                     </div>
                 </div>

@@ -1980,7 +1980,7 @@
    ================================ */
 
 .sortable-header {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 4px;
     cursor: pointer;
@@ -1997,9 +1997,20 @@
     color: #0f1111;
 }
 
+/* Non-Sortable Header - No cursor/hover effects */
+.non-sortable-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+}
+
 .sort-icon {
     font-size: 16px !important;
     color: #c45500;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
 }
 
 /* ================================
