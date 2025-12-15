@@ -19,12 +19,12 @@
 
 .user-table__header {
     display: grid;
-    grid-template-columns: 40px 1.4fr 1.4fr 1fr 1.2fr 1.2fr 0.8fr 80px;
+    grid-template-columns: 40px 1.3fr 1.4fr 0.9fr 1fr 1fr 0.7fr 90px;
     background: #f7f8f9;
     border-bottom: 1px solid #e0e0e0;
-    padding: 14px 20px;
-    gap: 8px;
-    align-items: center;
+    padding: 14px 16px;
+    gap: 12px;
+    align-items: start;
 }
 
 .user-table__header-label {
@@ -392,9 +392,9 @@
 
 .user-table__row {
     display: grid;
-    grid-template-columns: 40px 1.4fr 1.4fr 1fr 1.2fr 1.2fr 0.8fr 80px;
-    padding: 14px 20px;
-    gap: 8px;
+    grid-template-columns: 40px 1.3fr 1.4fr 0.9fr 1fr 1fr 0.7fr 90px;
+    padding: 14px 16px;
+    gap: 12px;
     align-items: center;
     border-bottom: 1px solid #f0f0f0;
     transition: background 0.2s ease;
@@ -1611,56 +1611,73 @@
 
 /* ================================
    NEW FEATURES - QUICK STATS BAR
+   (Matching admin-page__stats style from Overview)
    ================================ */
 
 .quick-stats-bar {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
-    padding: 16px 20px;
-    background: linear-gradient(135deg, #232f3e 0%, #37475a 100%);
+    padding: 20px;
+    background: #f5f5f5;
     border-bottom: 1px solid #e0e0e0;
 }
 
 .stat-card {
+    background: #fff;
+    border: 1px solid #d5d9d9;
+    border-radius: 8px;
+    padding: 20px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    min-width: 160px;
+    gap: 15px;
+    transition: box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon {
-    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8f4fd;
+    color: #0066c0;
     font-size: 28px !important;
-    opacity: 0.9;
 }
 
 .stat-icon--active {
-    color: #4caf50;
+    background: #e6f4ea;
+    color: #137333;
 }
 
 .stat-icon--new {
-    color: #2196f3;
+    background: #fef3e8;
+    color: #c45500;
 }
 
 .stat-content {
     display: flex;
     flex-direction: column;
-}
-
-.stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: #fff;
+    flex: 1;
 }
 
 .stat-label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.8);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 13px;
+    color: #565959;
+    font-weight: 500;
+    order: -1;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f1111;
+    margin-top: 5px;
 }
 
 /* ================================
@@ -1840,24 +1857,24 @@
 }
 
 /* ================================
-   DATE RANGE INPUTS
+   DATE RANGE INPUTS (VERTICAL LAYOUT)
    ================================ */
 
 .user-table__filter--daterange {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 4px;
 }
 
 .date-separator {
-    color: #888;
-    font-size: 12px;
+    display: none;
 }
 
 .user-table__filter--daterange .user-table__search--date {
-    padding: 4px 6px;
-    font-size: 12px;
-    max-width: 100px;
+    padding: 3px 4px;
+    font-size: 11px;
+    width: 90px;
+    max-width: 90px;
 }
 
 /* ================================
@@ -1893,14 +1910,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
     background: #fff;
     cursor: pointer;
     color: #0f1111;
     transition: all 0.2s;
+    margin: 2px 0;
 }
 
 .export-btn:hover {
@@ -1909,7 +1927,7 @@
 }
 
 .export-btn svg {
-    font-size: 18px;
+    font-size: 20px;
 }
 
 /* ================================
