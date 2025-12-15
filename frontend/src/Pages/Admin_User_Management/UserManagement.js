@@ -933,13 +933,6 @@ const UserManagement = () => {
                             <PersonAddAlt1Icon />
                         </button>
                         <button
-                            className="export-btn"
-                            onClick={handleExport}
-                            title="Export to CSV"
-                        >
-                            <FileDownloadIcon />
-                        </button>
-                        <button
                             className="reset-filters-btn"
                             onClick={handleResetFilters}
                             title="Reset all filters"
@@ -1114,6 +1107,18 @@ const UserManagement = () => {
                         <LastPageIcon />
                     </button>
                 </div>
+            </div>
+
+            {/* Export Section */}
+            <div className="export-section">
+                <button
+                    className="export-btn"
+                    onClick={handleExport}
+                    title="Export to CSV"
+                >
+                    <FileDownloadIcon />
+                    <span>Export to CSV</span>
+                </button>
             </div>
 
             {/* Add User Modal */}

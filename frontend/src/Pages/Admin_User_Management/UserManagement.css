@@ -58,7 +58,7 @@
 
 .user-table__search {
     width: 100%;
-    max-width: 180px;
+    max-width: 150px;
     padding: 8px 12px 8px 34px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
@@ -1871,10 +1871,10 @@
 }
 
 .user-table__filter--daterange .user-table__search--date {
-    padding: 3px 4px;
-    font-size: 11px;
-    width: 90px;
-    max-width: 90px;
+    padding: 6px 8px;
+    font-size: 12px;
+    width: 100%;
+    max-width: 150px;
 }
 
 /* ================================
@@ -1903,27 +1903,36 @@
 }
 
 /* ================================
-   EXPORT BUTTON
+   EXPORT SECTION (Bottom of page)
    ================================ */
+
+.export-section {
+    display: flex;
+    justify-content: flex-end;
+    padding: 16px 20px;
+    background: #f7f8f9;
+    border-top: 1px solid #e0e0e0;
+}
 
 .export-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border: 1px solid #d5d9d9;
+    gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid #0066c0;
     border-radius: 6px;
     background: #fff;
     cursor: pointer;
-    color: #0f1111;
+    color: #0066c0;
+    font-size: 14px;
+    font-weight: 500;
     transition: all 0.2s;
-    margin: 2px 0;
 }
 
 .export-btn:hover {
-    background: #f0f0f0;
-    border-color: #c7c7c7;
+    background: #e8f4fd;
+    border-color: #004899;
+    color: #004899;
 }
 
 .export-btn svg {
