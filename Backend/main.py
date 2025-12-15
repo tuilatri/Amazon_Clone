@@ -1878,16 +1878,29 @@ async def get_admin_orders(
     # Get status mapping
     status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
     
+    # Payment and shipping method mappings
+    payment_mapping = {1: 'Cash On Delivery', 2: 'Credit Card'}
+    shipping_mapping = {1: 'Standard', 2: 'Express', 3: 'Same Day', 4: 'International'}
+    
     order_list = []
     for order in orders:
         # Get user info
         user = db.query(SiteUser).filter(SiteUser.user_id == order.user_id).first()
+        
+        # Get order quantity (sum of all order lines)
+        order_lines = db.query(OrderLine).filter(OrderLine.order_id == order.order_id).all()
+        total_qty = sum(line.qty for line in order_lines) if order_lines else 0
+        
         order_list.append({
             "order_id": order.order_id,
             "user_id": order.user_id,
             "user_name": user.user_name if user else "Unknown",
+            "phone_number": user.phone_number if user else "",
             "order_date": order.order_date.isoformat() if order.order_date else None,
             "order_total": float(order.order_total) if order.order_total else 0,
+            "quantity": total_qty,
+            "payment_method": payment_mapping.get(order.payment_method_id, "Unknown"),
+            "shipping_method": shipping_mapping.get(order.shipping_method_id, "Unknown"),
             "status": status_mapping.get(order.order_status_id, "Unknown"),
             "status_id": order.order_status_id
         })

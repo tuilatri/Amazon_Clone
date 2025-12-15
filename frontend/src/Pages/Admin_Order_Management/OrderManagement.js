@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import './OrderManagement.css';
 import SearchIcon from '@mui/icons-material/Search';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
@@ -9,66 +10,71 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // OrderManagement - Admin tab for managing orders
-// UI placeholder matching Product Management table layout
+// Fetches orders from database and displays in a table matching Product Management layout
 const OrderManagement = () => {
-    // State for filters (UI only - no API calls yet)
-    const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
-    const [paymentFilter, setPaymentFilter] = useState('');
-    const [shippingFilter, setShippingFilter] = useState('');
+    // Orders data state
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Pagination state (UI only)
+    // Filter state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState(0); // 0 = All statuses
+
+    // Pagination state
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(20);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
 
-    // Mock data for UI demonstration
-    const mockOrders = [
-        {
-            order_id: 1001,
-            customer_name: 'Hà Minh Trí',
-            phone_number: '0000000000',
-            quantity: 3,
-            amount: 129.99,
-            payment_method: 'Credit Card',
-            shipping_method: 'Standard',
-            status: 'Delivered'
-        },
-        {
-            order_id: 1002,
-            customer_name: 'John Doe',
-            phone_number: '0123456789',
-            quantity: 1,
-            amount: 49.50,
-            payment_method: 'Cash On Delivery',
-            shipping_method: 'Express',
-            status: 'Processing'
-        },
-        {
-            order_id: 1003,
-            customer_name: 'Jane Smith',
-            phone_number: '0987654321',
-            quantity: 5,
-            amount: 299.00,
-            payment_method: 'Credit Card',
-            shipping_method: 'Same Day',
-            status: 'Pending'
-        },
-        {
-            order_id: 1004,
-            customer_name: 'Test User',
-            phone_number: '1111111111',
-            quantity: 2,
-            amount: 79.99,
-            payment_method: 'Credit Card',
-            shipping_method: 'International',
-            status: 'Shipped'
-        }
+    // Status options for filter (numeric values for API)
+    const statusOptions = [
+        { value: 0, label: 'All' },
+        { value: 1, label: 'Pending' },
+        { value: 2, label: 'Processing' },
+        { value: 3, label: 'Shipped' },
+        { value: 4, label: 'Delivered' },
+        { value: 5, label: 'Cancelled' },
+        { value: 6, label: 'Returned' }
     ];
 
-    // Status options for filter
-    const statusOptions = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
-    const paymentOptions = ['Cash On Delivery', 'Credit Card'];
-    const shippingOptions = ['Standard', 'Express', 'Same Day', 'International'];
+    // Fetch orders from API
+    const fetchOrders = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get('http://localhost:8000/admin/orders', {
+                params: {
+                    page,
+                    per_page: perPage,
+                    search: searchQuery,
+                    status: statusFilter
+                }
+            });
+            setOrders(response.data.orders);
+            setTotal(response.data.total);
+            setTotalPages(response.data.total_pages);
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, perPage, searchQuery, statusFilter]);
+
+    // Fetch orders on mount and when dependencies change
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
+
+    // Debounced search
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (page !== 1) {
+                setPage(1);
+            } else {
+                fetchOrders();
+            }
+        }, 500);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
 
     // Get status badge class
     const getStatusClass = (status) => {
@@ -79,9 +85,20 @@ const OrderManagement = () => {
     // Handle reset filters
     const handleResetFilters = () => {
         setSearchQuery('');
-        setStatusFilter('');
-        setPaymentFilter('');
-        setShippingFilter('');
+        setStatusFilter(0);
+        setPage(1);
+    };
+
+    // Handle status filter change
+    const handleStatusFilterChange = (e) => {
+        setStatusFilter(parseInt(e.target.value));
+        setPage(1);
+    };
+
+    // Handle per page change
+    const handlePerPageChange = (e) => {
+        setPerPage(Number(e.target.value));
+        setPage(1);
     };
 
     // Handle export (placeholder)
@@ -90,9 +107,7 @@ const OrderManagement = () => {
     };
 
     // Calculate pagination info
-    const total = mockOrders.length;
-    const totalPages = Math.ceil(total / perPage);
-    const startIndex = (page - 1) * perPage + 1;
+    const startIndex = total > 0 ? (page - 1) * perPage + 1 : 0;
     const endIndex = Math.min(page * perPage, total);
 
     return (
@@ -128,14 +143,14 @@ const OrderManagement = () => {
                     {/* Phone Number Column */}
                     <div className="order-table__cell order-table__cell--phone">
                         <div className="non-sortable-header">
-                            <span className="order-table__header-label">Phone Number</span>
+                            <span className="order-table__header-label">Phone</span>
                         </div>
                     </div>
 
                     {/* Quantity Column */}
                     <div className="order-table__cell order-table__cell--quantity">
                         <div className="non-sortable-header">
-                            <span className="order-table__header-label">Quantity</span>
+                            <span className="order-table__header-label">Qty</span>
                         </div>
                     </div>
 
@@ -149,35 +164,15 @@ const OrderManagement = () => {
                     {/* Payment Method Column */}
                     <div className="order-table__cell order-table__cell--payment">
                         <div className="non-sortable-header">
-                            <span className="order-table__header-label">Payment Method</span>
+                            <span className="order-table__header-label">Payment</span>
                         </div>
-                        <select
-                            value={paymentFilter}
-                            onChange={(e) => setPaymentFilter(e.target.value)}
-                            className="order-table__select"
-                        >
-                            <option value="">All</option>
-                            {paymentOptions.map((opt) => (
-                                <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                        </select>
                     </div>
 
                     {/* Shipping Method Column */}
                     <div className="order-table__cell order-table__cell--shipping">
                         <div className="non-sortable-header">
-                            <span className="order-table__header-label">Shipping Method</span>
+                            <span className="order-table__header-label">Shipping</span>
                         </div>
-                        <select
-                            value={shippingFilter}
-                            onChange={(e) => setShippingFilter(e.target.value)}
-                            className="order-table__select"
-                        >
-                            <option value="">All</option>
-                            {shippingOptions.map((opt) => (
-                                <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                        </select>
                     </div>
 
                     {/* Status Column */}
@@ -187,12 +182,11 @@ const OrderManagement = () => {
                         </div>
                         <select
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
+                            onChange={handleStatusFilterChange}
                             className="order-table__select"
                         >
-                            <option value="">All</option>
                             {statusOptions.map((opt) => (
-                                <option key={opt} value={opt}>{opt}</option>
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                         </select>
                     </div>
@@ -207,10 +201,12 @@ const OrderManagement = () => {
 
                 {/* Table Body */}
                 <div className="order-table__body">
-                    {mockOrders.length === 0 ? (
+                    {loading ? (
+                        <div className="order-table__loading">Loading orders...</div>
+                    ) : orders.length === 0 ? (
                         <div className="order-table__empty">No orders found.</div>
                     ) : (
-                        mockOrders.map((order) => (
+                        orders.map((order) => (
                             <div key={order.order_id} className="order-table__row">
                                 {/* Order ID */}
                                 <div className="order-table__cell order-table__cell--id">
@@ -219,12 +215,12 @@ const OrderManagement = () => {
 
                                 {/* Customer */}
                                 <div className="order-table__cell order-table__cell--customer">
-                                    <span className="customer-name">{order.customer_name}</span>
+                                    <span className="customer-name">{order.user_name}</span>
                                 </div>
 
                                 {/* Phone Number */}
                                 <div className="order-table__cell order-table__cell--phone">
-                                    <span className="phone-number">{order.phone_number}</span>
+                                    <span className="phone-number">{order.phone_number || '-'}</span>
                                 </div>
 
                                 {/* Quantity */}
@@ -234,7 +230,7 @@ const OrderManagement = () => {
 
                                 {/* Amount */}
                                 <div className="order-table__cell order-table__cell--amount">
-                                    <span className="amount">${order.amount.toFixed(2)}</span>
+                                    <span className="amount">${order.order_total.toFixed(2)}</span>
                                 </div>
 
                                 {/* Payment Method */}
@@ -271,7 +267,7 @@ const OrderManagement = () => {
                         <span>Show</span>
                         <select
                             value={perPage}
-                            onChange={(e) => setPerPage(Number(e.target.value))}
+                            onChange={handlePerPageChange}
                             className="user-pagination__select"
                         >
                             <option value={10}>10</option>
@@ -302,7 +298,7 @@ const OrderManagement = () => {
                     </button>
 
                     {/* Page numbers */}
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    {totalPages > 0 && Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
                         if (totalPages <= 5) {
                             pageNum = i + 1;
@@ -326,14 +322,14 @@ const OrderManagement = () => {
 
                     <button
                         className="user-pagination__btn user-pagination__btn--icon"
-                        disabled={page === totalPages}
+                        disabled={page === totalPages || totalPages === 0}
                         onClick={() => setPage(page + 1)}
                     >
                         <ChevronRightIcon />
                     </button>
                     <button
                         className="user-pagination__btn user-pagination__btn--icon"
-                        disabled={page === totalPages}
+                        disabled={page === totalPages || totalPages === 0}
                         onClick={() => setPage(totalPages)}
                     >
                         <LastPageIcon />
