@@ -64,6 +64,40 @@ def get_db():
     finally:
         db.close()
 
+# Reusable dependency to verify user status is active
+# This is used to protect endpoints from locked/disabled users
+async def verify_active_user(user_email: str, db: Session):
+    """
+    Verify that the user with the given email has 'active' status.
+    Raises HTTP 403 Forbidden if user is locked or disabled.
+    """
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    user_status = (user.status or 'active').lower()
+    if user_status == 'locked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been locked. Please contact support for assistance."
+        )
+    elif user_status == 'disabled':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact support for assistance."
+        )
+    elif user_status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not active. Please contact support."
+        )
+    
+    return user
+
+
 # Password hashing utility
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -443,7 +477,8 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         age=existing_user.age,
         gender=existing_user.gender,
         city=existing_user.city,
-        role=existing_user.role if existing_user.role else 2  # Default to Normal User
+        role=existing_user.role if existing_user.role else 2,  # Default to Normal User
+        status=existing_user.status or 'active'  # Include user status
     )
 
     # Update last_login_at timestamp
@@ -504,7 +539,12 @@ async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
         user_name=existing_user.user_name,
         email_address=existing_user.email_address,
         phone_number=existing_user.phone_number,
-        password = existing_user.password
+        password=existing_user.password,
+        age=existing_user.age,
+        gender=existing_user.gender,
+        city=existing_user.city,
+        role=existing_user.role if existing_user.role else 2,
+        status=existing_user.status or 'active'
     )
 
     # Update last_login_at timestamp
@@ -913,6 +953,9 @@ async def related_item(product_id: str, db: Session = Depends(get_db)):
 
 @app.post("/addToCart/")
 async def add_to_cart(request: AddToCartRequest, db: Session = Depends(get_db)):
+    # Verify user status is active before allowing add to cart
+    await verify_active_user(request.user_email, db)
+    
     product_id = request.product_id.strip()  # Ensure no trailing spaces
     user_email = request.user_email
 
@@ -1124,6 +1167,9 @@ async def handle_cart(
     request: CartFetch,
     db: Session = Depends(get_db),
 ):
+    # Verify user status is active before allowing cart operations
+    await verify_active_user(request.user_email, db)
+    
     # Find user by email
     user = db.query(SiteUser).filter(SiteUser.email_address == request.user_email).first()
     if not user:
@@ -1301,6 +1347,9 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
     """
     from datetime import datetime
     
+    # Verify user status is active before allowing order creation
+    await verify_active_user(request.user_email, db)
+    
     # Find the user by email
     user = db.query(SiteUser).filter(SiteUser.email_address == request.user_email).first()
     if not user:
@@ -1385,6 +1434,9 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
 @app.post("/order/history")
 async def get_order_history(user_email: str = Body(..., embed=True), db: Session = Depends(get_db)):
     """Fetch all orders for a user by email."""
+    # Verify user status is active before allowing order history access
+    await verify_active_user(user_email, db)
+    
     # Find user by email
     user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
     if not user:
