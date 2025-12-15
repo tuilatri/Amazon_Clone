@@ -53,6 +53,10 @@ const UserManagement = () => {
     const [selectedUsers, setSelectedUsers] = useState(new Set());
     const [selectAll, setSelectAll] = useState(false);
 
+    // NEW: Bulk action confirmation modal state
+    const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+    const [pendingBulkStatus, setPendingBulkStatus] = useState('');
+
     // NEW: Quick stats state
     const [stats, setStats] = useState({
         total_customers: 0,
@@ -566,25 +570,52 @@ const UserManagement = () => {
         setSelectAll(newSelected.size === users.length);
     };
 
-    // NEW: Handle bulk status update
-    const handleBulkStatusUpdate = async (newStatus) => {
+    // NEW: Show bulk action confirmation modal
+    const showBulkConfirmation = (status) => {
         if (selectedUsers.size === 0) return;
+        setPendingBulkStatus(status);
+        setShowBulkConfirmModal(true);
+    };
 
-        if (!window.confirm(`Are you sure you want to set ${selectedUsers.size} user(s) to "${newStatus}"?`)) {
+    // NEW: Confirm and execute bulk status update
+    const confirmBulkAction = async () => {
+        if (selectedUsers.size === 0 || !pendingBulkStatus) {
+            setShowBulkConfirmModal(false);
             return;
         }
 
         try {
             const response = await axios.put('http://localhost:8000/admin/users/bulk-status', {
                 user_ids: Array.from(selectedUsers),
-                status: newStatus
+                status: pendingBulkStatus
             });
-            alert(response.data.message);
+            setShowBulkConfirmModal(false);
+            setPendingBulkStatus('');
+            setSelectedUsers(new Set());
+            setSelectAll(false);
             fetchUsers(page);
             fetchStats();
+            alert(response.data.message);
         } catch (error) {
             console.error('Error bulk updating status:', error);
             alert(error.response?.data?.detail || 'Failed to update user statuses');
+            setShowBulkConfirmModal(false);
+        }
+    };
+
+    // NEW: Cancel bulk action
+    const cancelBulkAction = () => {
+        setShowBulkConfirmModal(false);
+        setPendingBulkStatus('');
+    };
+
+    // Get status label for display
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'active': return 'Active';
+            case 'locked': return 'Locked';
+            case 'disabled': return 'Disabled';
+            default: return status;
         }
     };
 
@@ -774,19 +805,19 @@ const UserManagement = () => {
                     <div className="bulk-action-toolbar__actions">
                         <button
                             className="bulk-action-btn bulk-action-btn--active"
-                            onClick={() => handleBulkStatusUpdate('active')}
+                            onClick={() => showBulkConfirmation('active')}
                         >
                             <CheckCircleIcon /> Set Active
                         </button>
                         <button
                             className="bulk-action-btn bulk-action-btn--locked"
-                            onClick={() => handleBulkStatusUpdate('locked')}
+                            onClick={() => showBulkConfirmation('locked')}
                         >
                             <LockIcon /> Lock
                         </button>
                         <button
                             className="bulk-action-btn bulk-action-btn--disabled"
-                            onClick={() => handleBulkStatusUpdate('disabled')}
+                            onClick={() => showBulkConfirmation('disabled')}
                         >
                             <BlockIcon /> Disable
                         </button>
@@ -1120,6 +1151,39 @@ const UserManagement = () => {
                     <span>Export to CSV</span>
                 </button>
             </div>
+
+            {/* Bulk Action Confirmation Modal */}
+            {showBulkConfirmModal && (
+                <div className="bulk-confirm-overlay" onClick={cancelBulkAction}>
+                    <div className="bulk-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="bulk-confirm-modal__header">
+                            <h3>Confirm Bulk Action</h3>
+                            <button className="bulk-confirm-modal__close" onClick={cancelBulkAction}>
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="bulk-confirm-modal__body">
+                            <p className="bulk-confirm-modal__message">
+                                Are you sure you want to set <strong>{selectedUsers.size}</strong> user(s) to
+                                <span className={`bulk-confirm-modal__status bulk-confirm-modal__status--${pendingBulkStatus}`}>
+                                    {' '}{getStatusLabel(pendingBulkStatus)}
+                                </span>?
+                            </p>
+                            <p className="bulk-confirm-modal__warning">
+                                This action will modify the status of all selected users.
+                            </p>
+                        </div>
+                        <div className="bulk-confirm-modal__footer">
+                            <button className="bulk-confirm-modal__btn bulk-confirm-modal__btn--cancel" onClick={cancelBulkAction}>
+                                Cancel
+                            </button>
+                            <button className="bulk-confirm-modal__btn bulk-confirm-modal__btn--confirm" onClick={confirmBulkAction}>
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Add User Modal */}
             {showAddModal && (
