@@ -2488,7 +2488,7 @@ async def get_admin_products(
     # Get total count
     total = query.count()
     
-    # Dynamic sorting
+    # Dynamic sorting (only if sort_by is specified)
     sort_columns = {
         'product_name': Product.product_name,
         'main_category': Product.main_category,
@@ -2498,12 +2498,17 @@ async def get_admin_products(
         'discount_price_usd': Product.discount_price_usd,
         'actual_price_usd': Product.actual_price_usd
     }
-    sort_column = sort_columns.get(sort_by, Product.product_name)
     
-    if sort_order == 'asc':
-        query = query.order_by(sort_column.asc().nullslast())
+    # Only apply sorting if sort_by is valid, otherwise use default (product_id)
+    if sort_by and sort_by in sort_columns:
+        sort_column = sort_columns[sort_by]
+        if sort_order == 'asc':
+            query = query.order_by(sort_column.asc().nullslast())
+        else:
+            query = query.order_by(sort_column.desc().nullslast())
     else:
-        query = query.order_by(sort_column.desc().nullslast())
+        # Default order: by product_id (natural database order)
+        query = query.order_by(Product.product_id.desc())
     
     # Paginate
     products = query.offset((page - 1) * per_page).limit(per_page).all()

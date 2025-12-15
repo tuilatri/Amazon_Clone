@@ -145,13 +145,13 @@ const ProductManagement = () => {
         setSelectAll(newSelected.size === products.length);
     };
 
-    // Handle reset filters (including sorting)
+    // Handle reset filters (including sorting) - true neutral state
     const handleResetFilters = () => {
         setSearchQuery('');
         setMainCategoryFilter('');
         setSubCategoryFilter('');
-        // Reset sorting to default
-        setSortBy('average_rating');
+        // Clear sorting completely (no default sort)
+        setSortBy('');
         setSortOrder('desc');
     };
 
