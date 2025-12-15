@@ -393,6 +393,24 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
 
+    # Check user status - only allow active users to login
+    user_status = (existing_user.status or 'active').lower()
+    if user_status == 'locked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been locked. Please contact support for assistance."
+        )
+    elif user_status == 'disabled':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact support for assistance."
+        )
+    elif user_status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not active. Please contact support."
+        )
+
     # Generate and store verification code
     # verification_code = generate_verification_code()
     # verification_codes[existing_user.email_address] = verification_code
@@ -462,6 +480,24 @@ async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
+        )
+    
+    # Check user status - only allow active users to login
+    user_status = (existing_user.status or 'active').lower()
+    if user_status == 'locked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been locked. Please contact support for assistance."
+        )
+    elif user_status == 'disabled':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact support for assistance."
+        )
+    elif user_status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not active. Please contact support."
         )
     
     user_response = UserResponse(
