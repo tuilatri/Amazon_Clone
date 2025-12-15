@@ -20,32 +20,41 @@ import ChangeUserInfo from './Pages/UserPage/ChangeUserInfo';
 import Order from './Pages/OrderPage/Order';
 import AdminOverview from './Pages/Admin_Overview/AdminOverview';
 import { AuthProvider } from './Context/AuthContext';
+import { AccountStatusProvider } from './Context/AccountStatusContext';
+import AxiosInterceptor from './Components/AxiosInterceptor/AxiosInterceptor';
+import AccountStatusHandler from './Components/AccountStatusHandler/AccountStatusHandler';
 
 function App() {
   return (
     <AuthProvider>
-      <div className="App">
-        <Routes>
-          <Route path='/' element={<HomePage />} />
-          <Route path='/Product/:category?' element={<Product />} />
-          <Route path='/SignUp' element={<SignUp />} />
-          <Route path='/SignIn' element={<SignIn />} />
-          <Route path='/search' element={<SearchResult />} />
-          <Route path='/Item/:product_id' element={<Item />} />
-          <Route path='/Cart' element={<Cart />} />
-          <Route path='/Checkout' element={<Checkout />} />
-          <Route path='/signUpVerify' element={<SignUpVerify />} />
-          <Route path='/ForgetPassword' element={<ForgetPassword />} />
-          <Route path='/FPVerify' element={<FPVerify />} />
-          <Route path='/ChangePassword' element={<ChangePassword />} />
-          <Route path='/LoginVerifyEmail' element={<LoginVerify />} />
-          <Route path="/Homepage/:category" element={<CategoryPage />} />
-          <Route path="/UserPage" element={<UserPage />} />
-          <Route path="/ChangeUserInfo" element={<ChangeUserInfo />} />
-          <Route path="/Orders" element={<Order />} />
-          <Route path="/admin/overview" element={<AdminOverview />} />
-        </Routes>
-      </div>
+      <AccountStatusProvider>
+        <AxiosInterceptor>
+          <AccountStatusHandler>
+            <div className="App">
+              <Routes>
+                <Route path='/' element={<HomePage />} />
+                <Route path='/Product/:category?' element={<Product />} />
+                <Route path='/SignUp' element={<SignUp />} />
+                <Route path='/SignIn' element={<SignIn />} />
+                <Route path='/search' element={<SearchResult />} />
+                <Route path='/Item/:product_id' element={<Item />} />
+                <Route path='/Cart' element={<Cart />} />
+                <Route path='/Checkout' element={<Checkout />} />
+                <Route path='/signUpVerify' element={<SignUpVerify />} />
+                <Route path='/ForgetPassword' element={<ForgetPassword />} />
+                <Route path='/FPVerify' element={<FPVerify />} />
+                <Route path='/ChangePassword' element={<ChangePassword />} />
+                <Route path='/LoginVerifyEmail' element={<LoginVerify />} />
+                <Route path="/Homepage/:category" element={<CategoryPage />} />
+                <Route path="/UserPage" element={<UserPage />} />
+                <Route path="/ChangeUserInfo" element={<ChangeUserInfo />} />
+                <Route path="/Orders" element={<Order />} />
+                <Route path="/admin/overview" element={<AdminOverview />} />
+              </Routes>
+            </div>
+          </AccountStatusHandler>
+        </AxiosInterceptor>
+      </AccountStatusProvider>
     </AuthProvider>
 
   );

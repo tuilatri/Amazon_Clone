@@ -64,6 +64,40 @@ def get_db():
     finally:
         db.close()
 
+# Reusable dependency to verify user status is active
+# This is used to protect endpoints from locked/disabled users
+async def verify_active_user(user_email: str, db: Session):
+    """
+    Verify that the user with the given email has 'active' status.
+    Raises HTTP 403 Forbidden if user is locked or disabled.
+    """
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    user_status = (user.status or 'active').lower()
+    if user_status == 'locked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been locked. Please contact support for assistance."
+        )
+    elif user_status == 'disabled':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact support for assistance."
+        )
+    elif user_status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not active. Please contact support."
+        )
+    
+    return user
+
+
 # Password hashing utility
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -393,6 +427,24 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
 
+    # Check user status - only allow active users to login
+    user_status = (existing_user.status or 'active').lower()
+    if user_status == 'locked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been locked. Please contact support for assistance."
+        )
+    elif user_status == 'disabled':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact support for assistance."
+        )
+    elif user_status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not active. Please contact support."
+        )
+
     # Generate and store verification code
     # verification_code = generate_verification_code()
     # verification_codes[existing_user.email_address] = verification_code
@@ -425,7 +477,8 @@ async def login(user: LoginRequire, db: Session = Depends(get_db)):
         age=existing_user.age,
         gender=existing_user.gender,
         city=existing_user.city,
-        role=existing_user.role if existing_user.role else 2  # Default to Normal User
+        role=existing_user.role if existing_user.role else 2,  # Default to Normal User
+        status=existing_user.status or 'active'  # Include user status
     )
 
     # Update last_login_at timestamp
@@ -464,11 +517,34 @@ async def postLogin(user: LoginRequire, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
     
+    # Check user status - only allow active users to login
+    user_status = (existing_user.status or 'active').lower()
+    if user_status == 'locked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been locked. Please contact support for assistance."
+        )
+    elif user_status == 'disabled':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been disabled. Please contact support for assistance."
+        )
+    elif user_status != 'active':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is not active. Please contact support."
+        )
+    
     user_response = UserResponse(
         user_name=existing_user.user_name,
         email_address=existing_user.email_address,
         phone_number=existing_user.phone_number,
-        password = existing_user.password
+        password=existing_user.password,
+        age=existing_user.age,
+        gender=existing_user.gender,
+        city=existing_user.city,
+        role=existing_user.role if existing_user.role else 2,
+        status=existing_user.status or 'active'
     )
 
     # Update last_login_at timestamp
@@ -877,6 +953,9 @@ async def related_item(product_id: str, db: Session = Depends(get_db)):
 
 @app.post("/addToCart/")
 async def add_to_cart(request: AddToCartRequest, db: Session = Depends(get_db)):
+    # Verify user status is active before allowing add to cart
+    await verify_active_user(request.user_email, db)
+    
     product_id = request.product_id.strip()  # Ensure no trailing spaces
     user_email = request.user_email
 
@@ -1088,6 +1167,9 @@ async def handle_cart(
     request: CartFetch,
     db: Session = Depends(get_db),
 ):
+    # Verify user status is active before allowing cart operations
+    await verify_active_user(request.user_email, db)
+    
     # Find user by email
     user = db.query(SiteUser).filter(SiteUser.email_address == request.user_email).first()
     if not user:
@@ -1265,6 +1347,9 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
     """
     from datetime import datetime
     
+    # Verify user status is active before allowing order creation
+    await verify_active_user(request.user_email, db)
+    
     # Find the user by email
     user = db.query(SiteUser).filter(SiteUser.email_address == request.user_email).first()
     if not user:
@@ -1349,6 +1434,9 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
 @app.post("/order/history")
 async def get_order_history(user_email: str = Body(..., embed=True), db: Session = Depends(get_db)):
     """Fetch all orders for a user by email."""
+    # Verify user status is active before allowing order history access
+    await verify_active_user(user_email, db)
+    
     # Find user by email
     user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
     if not user:
@@ -1699,6 +1787,13 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         cast(SiteUser.created_at, SQLDate) == today
     ).count()
     
+    # New customers this week (registered this week, role=2)
+    new_customers_this_week = db.query(SiteUser).filter(
+        SiteUser.role == 2,
+        SiteUser.created_at != None,
+        cast(SiteUser.created_at, SQLDate) >= start_of_week
+    ).count()
+    
     # Active users today (users who logged in today)
     # Using last_login_at field that was added to SiteUser
     active_users_today = db.query(SiteUser).filter(
@@ -1722,6 +1817,7 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         "revenue_this_week": round(revenue_this_week, 2),
         "revenue_this_month": round(revenue_this_month, 2),
         "new_customers_today": new_customers_today,
+        "new_customers_this_week": new_customers_this_week,
         "active_users_today": active_users_today,
         "users_ordered_today": users_ordered_today
     }
@@ -1842,7 +1938,480 @@ async def get_order_status_counts(db: Session = Depends(get_db)):
     return result
 
 
+@app.get("/admin/users")
+async def get_admin_users(
+    page: int = 1,
+    per_page: int = 20,
+    search: str = "",
+    email_search: str = "",
+    phone_search: str = "",
+    status: str = "",
+    role: int = 0,
+    registered_date: str = "",
+    last_active_date: str = "",
+    sort_by: str = "user_id",
+    sort_order: str = "desc",
+    registered_from: str = "",
+    registered_to: str = "",
+    last_active_from: str = "",
+    last_active_to: str = "",
+    db: Session = Depends(get_db)
+):
+    """
+    Get all users for admin user management with pagination, filters, and sorting.
+    - search: Search by username
+    - email_search: Search by email address
+    - phone_search: Search by phone number
+    - status: Filter by status (active, locked, disabled) - empty = all
+    - role: Filter by role (0 = all, 1 = Admin, 2 = User, 3 = Supplier, 4 = Delivery)
+    - registered_date: Filter by exact registration date (format: YYYY-MM-DD) - legacy support
+    - last_active_date: Filter by exact last active date (format: YYYY-MM-DD) - legacy support
+    - sort_by: Column to sort by (user_id, user_name, email_address, created_at, last_login_at)
+    - sort_order: Sort direction (asc, desc)
+    - registered_from/registered_to: Date range filter for registration
+    - last_active_from/last_active_to: Date range filter for last active
+    """
+    from datetime import datetime, timedelta
+    
+    query = db.query(SiteUser)
+    
+    # Apply role filter (0 means all roles)
+    if role > 0:
+        query = query.filter(SiteUser.role == role)
+    
+    # Apply status filter (empty means all statuses)
+    if status and status in ['active', 'locked', 'disabled']:
+        query = query.filter(SiteUser.status == status)
+    
+    # Apply username search filter
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(SiteUser.user_name.ilike(search_pattern))
+    
+    # Apply email search filter
+    if email_search:
+        email_pattern = f"%{email_search}%"
+        query = query.filter(SiteUser.email_address.ilike(email_pattern))
+    
+    # Apply phone search filter
+    if phone_search:
+        phone_pattern = f"%{phone_search}%"
+        query = query.filter(SiteUser.phone_number.ilike(phone_pattern))
+    
+    # Apply registered date range filter (new feature)
+    if registered_from:
+        try:
+            date_from = datetime.strptime(registered_from, "%Y-%m-%d")
+            query = query.filter(SiteUser.created_at >= date_from)
+        except ValueError:
+            pass
+    if registered_to:
+        try:
+            date_to = datetime.strptime(registered_to, "%Y-%m-%d")
+            date_to_end = date_to + timedelta(days=1)
+            query = query.filter(SiteUser.created_at < date_to_end)
+        except ValueError:
+            pass
+    
+    # Apply last active date range filter (new feature)
+    if last_active_from:
+        try:
+            date_from = datetime.strptime(last_active_from, "%Y-%m-%d")
+            query = query.filter(SiteUser.last_login_at >= date_from)
+        except ValueError:
+            pass
+    if last_active_to:
+        try:
+            date_to = datetime.strptime(last_active_to, "%Y-%m-%d")
+            date_to_end = date_to + timedelta(days=1)
+            query = query.filter(SiteUser.last_login_at < date_to_end)
+        except ValueError:
+            pass
+    
+    # Legacy: Apply exact registered date filter (backward compatibility)
+    if registered_date and not registered_from and not registered_to:
+        try:
+            date_obj = datetime.strptime(registered_date, "%Y-%m-%d")
+            next_day = date_obj + timedelta(days=1)
+            query = query.filter(
+                SiteUser.created_at >= date_obj,
+                SiteUser.created_at < next_day
+            )
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+    
+    # Legacy: Apply exact last active date filter (backward compatibility)
+    if last_active_date and not last_active_from and not last_active_to:
+        try:
+            date_obj = datetime.strptime(last_active_date, "%Y-%m-%d")
+            next_day = date_obj + timedelta(days=1)
+            query = query.filter(
+                SiteUser.last_login_at >= date_obj,
+                SiteUser.last_login_at < next_day
+            )
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+    
+    # Get total count
+    total = query.count()
+    
+    # Dynamic sorting
+    sort_columns = {
+        'user_id': SiteUser.user_id,
+        'user_name': SiteUser.user_name,
+        'email_address': SiteUser.email_address,
+        'created_at': SiteUser.created_at,
+        'last_login_at': SiteUser.last_login_at
+    }
+    sort_column = sort_columns.get(sort_by, SiteUser.user_id)
+    
+    if sort_order == 'asc':
+        query = query.order_by(sort_column.asc().nullslast())
+    else:
+        query = query.order_by(sort_column.desc().nullslast())
+    
+    # Paginate
+    users = query.offset((page - 1) * per_page).limit(per_page).all()
+    
+    # Role mapping
+    role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
+    
+    user_list = []
+    for user in users:
+        user_list.append({
+            "user_id": user.user_id,
+            "user_name": user.user_name or "No Name",
+            "email_address": user.email_address,
+            "phone_number": user.phone_number,
+            "role": role_mapping.get(user.role, 'User'),
+            "role_id": user.role or 2,
+            "status": user.status or 'active',
+            "created_at": user.created_at.strftime("%d/%m/%Y %H:%M") if user.created_at else None,
+            "last_login_at": user.last_login_at.strftime("%d/%m/%Y %H:%M") if user.last_login_at else None
+        })
+    
+    return {
+        "users": user_list,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if total > 0 else 1
+    }
+
+
+@app.put("/admin/users/{user_id}/status")
+async def update_user_status(
+    user_id: int,
+    status_update: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update a user's status.
+    Body: { "status": "active" | "locked" | "disabled" }
+    """
+    # Validate status
+    new_status = status_update.get("status", "").lower()
+    if new_status not in ['active', 'locked', 'disabled']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status. Must be 'active', 'locked', or 'disabled'"
+        )
+    
+    # Find user
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Don't allow changing admin status (security)
+    if user.role == 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot change admin user status"
+        )
+    
+    # Update status
+    user.status = new_status
+    db.commit()
+    
+    return {
+        "message": f"User status updated to '{new_status}'",
+        "user_id": user_id,
+        "status": new_status
+    }
+
+
+@app.put("/admin/users/bulk-status")
+async def update_bulk_user_status(
+    bulk_update: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update status for multiple users at once.
+    Body: { "user_ids": [1, 2, 3], "status": "active" | "locked" | "disabled" }
+    Skips admin users for security.
+    """
+    user_ids = bulk_update.get("user_ids", [])
+    new_status = bulk_update.get("status", "").lower()
+    
+    # Validate inputs
+    if not user_ids or not isinstance(user_ids, list):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="user_ids must be a non-empty list"
+        )
+    
+    if new_status not in ['active', 'locked', 'disabled']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status. Must be 'active', 'locked', or 'disabled'"
+        )
+    
+    # Get users to update (excluding admins for security)
+    users = db.query(SiteUser).filter(
+        SiteUser.user_id.in_(user_ids),
+        SiteUser.role != 1  # Skip admin users
+    ).all()
+    
+    updated_count = 0
+    skipped_count = len(user_ids) - len(users)  # Count of admin users skipped
+    
+    for user in users:
+        user.status = new_status
+        updated_count += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"Updated {updated_count} user(s) to '{new_status}'",
+        "updated_count": updated_count,
+        "skipped_count": skipped_count,
+        "status": new_status
+    }
+
+
+@app.get("/admin/users/{user_id}/detail")
+async def get_admin_user_detail(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed user information including addresses for admin user profile popup.
+    Does NOT return password.
+    """
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get user addresses
+    addresses = []
+    user_addresses = db.query(UserAddress).filter(UserAddress.user_id == user_id).all()
+    for ua in user_addresses:
+        addr = ua.address
+        if addr:
+            addresses.append({
+                "address_id": addr.address_id,
+                "unit_number": addr.unit_number,
+                "street_number": addr.street_number,
+                "address_line1": addr.address_line1,
+                "address_line2": addr.address_line2,
+                "region": addr.region,
+                "postal_code": addr.postal_code,
+                "is_default": ua.is_default
+            })
+    
+    # Role mapping
+    role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
+    
+    return {
+        "user_id": user.user_id,
+        "user_name": user.user_name or "No Name",
+        "email_address": user.email_address,
+        "phone_number": user.phone_number,
+        "age": user.age,
+        "gender": user.gender,
+        "city": user.city,
+        "role": role_mapping.get(user.role, 'User'),
+        "role_id": user.role or 2,
+        "status": user.status or 'active',
+        "created_at": user.created_at.strftime("%d/%m/%Y %H:%M") if user.created_at else None,
+        "last_login_at": user.last_login_at.strftime("%d/%m/%Y %H:%M") if user.last_login_at else None,
+        "addresses": addresses
+    }
+
+
+@app.put("/admin/users/{user_id}/update")
+async def update_admin_user(
+    user_id: int,
+    user_data: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update user information from admin panel.
+    Does NOT allow password or role changes for security.
+    """
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Fields that can be updated (NO password, NO role for security)
+    allowed_fields = ['user_name', 'email_address', 'phone_number', 'age', 'gender', 'city']
+    
+    for field in allowed_fields:
+        if field in user_data and user_data[field] is not None:
+            setattr(user, field, user_data[field])
+    
+    try:
+        db.commit()
+        db.refresh(user)
+        
+        # Role mapping
+        role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
+        
+        return {
+            "success": True,
+            "message": "User updated successfully",
+            "user": {
+                "user_id": user.user_id,
+                "user_name": user.user_name,
+                "email_address": user.email_address,
+                "phone_number": user.phone_number,
+                "age": user.age,
+                "gender": user.gender,
+                "city": user.city,
+                "role": role_mapping.get(user.role, 'User'),
+                "status": user.status
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
+
+
+@app.get("/admin/users/{user_id}/orders")
+async def get_admin_user_orders(
+    user_id: int,
+    period: str = "",  # day, week, month, year
+    status: str = "",  # Filter by order status
+    db: Session = Depends(get_db)
+):
+    """
+    Get order history for a specific user with optional date and status filtering.
+    - period: Filter by day, week, month, year (from current date)
+    - status: Filter by order status (empty = all)
+    """
+    from datetime import datetime, timedelta
+    
+    # Verify user exists
+    user = db.query(SiteUser).filter(SiteUser.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Build query
+    query = db.query(ShopOrder).filter(ShopOrder.user_id == user_id)
+    
+    # Apply date filter
+    now = datetime.now()
+    if period == "day":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    elif period == "week":
+        start_date = now - timedelta(days=7)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    elif period == "month":
+        start_date = now - timedelta(days=30)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    elif period == "year":
+        start_date = now - timedelta(days=365)
+        query = query.filter(ShopOrder.order_date >= start_date.date())
+    
+    # Apply status filter
+    if status:
+        query = query.join(OrderStatus).filter(OrderStatus.status.ilike(status))
+    
+    # Order by newest first
+    orders = query.order_by(ShopOrder.order_date.desc()).all()
+    
+    # Format orders
+    order_list = []
+    total_spent = 0
+    for order in orders:
+        status_name = order.order_status.status if order.order_status else "Unknown"
+        order_total = float(order.order_total) if order.order_total else 0
+        total_spent += order_total
+        
+        order_list.append({
+            "order_id": order.order_id,
+            "order_date": order.order_date.strftime("%d/%m/%Y") if order.order_date else None,
+            "order_total": order_total,
+            "status": status_name,
+            "payment_method": order.payment_method.payment_name if order.payment_method else None,
+            "shipping_method": order.shipping_method.type if order.shipping_method else None
+        })
+    
+    return {
+        "user_id": user_id,
+        "orders": order_list,
+        "total_orders": len(order_list),
+        "total_spent": round(total_spent, 2),
+        "period": period or "all",
+        "status_filter": status or "all"
+    }
+
+
+@app.get("/admin/users/export")
+async def export_users_csv(db: Session = Depends(get_db)):
+    """
+    Export all customer users (role=2) to CSV file.
+    Returns a downloadable CSV file with user data.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    # Query all customers (role=2)
+    users = db.query(SiteUser).filter(SiteUser.role == 2).order_by(SiteUser.user_id.desc()).all()
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['User ID', 'Username', 'Email', 'Phone', 'Status', 'Gender', 'Age', 'City', 'Registered', 'Last Active'])
+    
+    # Write user data
+    for user in users:
+        writer.writerow([
+            user.user_id,
+            user.user_name or '',
+            user.email_address or '',
+            user.phone_number or '',
+            user.status or 'active',
+            user.gender or '',
+            user.age or '',
+            user.city or '',
+            user.created_at.strftime("%Y-%m-%d %H:%M") if user.created_at else '',
+            user.last_login_at.strftime("%Y-%m-%d %H:%M") if user.last_login_at else ''
+        ])
+    
+    # Reset stream position
+    output.seek(0)
+    
+    # Generate filename with current date
+    from datetime import datetime
+    filename = f"customers_export_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @app.get("/admin/trending-products")
+
 
 async def get_trending_products(
     page: int = 1,

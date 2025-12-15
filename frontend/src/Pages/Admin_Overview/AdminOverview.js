@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
+import UserManagement from '../Admin_User_Management/UserManagement';
 import './AdminOverview.css';
 import { useAuth } from '../../Context/AuthContext';
 import axios from 'axios';
@@ -26,7 +27,7 @@ const AdminOverview = () => {
     const [activeTab, setActiveTab] = useState('Overview');
     const tabs = [
         'Overview',
-        'User Management',
+        'Customer Management',
         'Supplier Management',
         'Delivery Person Management',
         'Product Management',
@@ -278,8 +279,12 @@ const AdminOverview = () => {
         );
     }
 
-    // Render Coming Soon for non-Overview tabs
+    // Render tab content based on active tab
     const renderTabContent = () => {
+        if (activeTab === 'Customer Management') {
+            return <UserManagement />;
+        }
+
         if (activeTab !== 'Overview') {
             return (
                 <div className="admin-page__coming-soon">

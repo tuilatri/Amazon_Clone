@@ -1,0 +1,120 @@
+/* AccountStatusModal - Blocking modal for restricted accounts */
+/* Matches order-detail-modal style from AdminOverview.css */
+
+.account-status-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.account-status-modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 400px;
+    max-width: 500px;
+    overflow: hidden;
+    animation: accountStatusFadeIn 0.2s ease-out;
+}
+
+@keyframes accountStatusFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.account-status-modal__header {
+    background: #b12704;
+    color: #fff;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 3px solid #8c1f03;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.account-status-modal__body {
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.account-status-modal__icon {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: #fef3cd;
+    border-radius: 50%;
+}
+
+.account-status-modal__message {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.account-status-modal__primary-message {
+    font-size: 15px;
+    color: #0f1111;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.account-status-modal__sub-message {
+    font-size: 13px;
+    color: #565959;
+    margin: 0;
+}
+
+.account-status-modal__footer {
+    display: flex;
+    justify-content: center;
+    padding: 16px 20px 24px;
+    border-top: 1px solid #eee;
+}
+
+.account-status-modal__btn {
+    padding: 12px 40px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: #b12704;
+    border: 1px solid #8c1f03;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.account-status-modal__btn:hover {
+    background: #8c1f03;
+}
+
+/* Modal Responsive */
+@media (max-width: 480px) {
+    .account-status-modal {
+        min-width: 90%;
+        margin: 0 15px;
+    }
+}
