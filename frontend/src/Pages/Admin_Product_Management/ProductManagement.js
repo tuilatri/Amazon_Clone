@@ -257,13 +257,10 @@ const ProductManagement = () => {
                         />
                     </div>
 
-                    {/* Product Name Column */}
+                    {/* Product Name Column - Not sortable */}
                     <div className="product-table__cell product-table__cell--name">
-                        <div className="sortable-header" onClick={() => handleSort('product_name')}>
+                        <div className="non-sortable-header">
                             <span className="product-table__header-label">Product Name</span>
-                            {sortBy === 'product_name' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <div className="product-table__filter">
                             <SearchIcon className="search-icon" />
@@ -533,7 +530,7 @@ const ProductManagement = () => {
                     <span>Export Products</span>
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 

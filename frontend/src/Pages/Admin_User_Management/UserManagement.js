@@ -836,11 +836,8 @@ const UserManagement = () => {
                         />
                     </div>
                     <div className="user-table__cell user-table__cell--username">
-                        <div className="sortable-header" onClick={() => handleSort('user_name')}>
+                        <div className="non-sortable-header">
                             <span className="user-table__header-label">User name</span>
-                            {sortBy === 'user_name' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <div className="user-table__filter">
                             <SearchIcon className="search-icon" />
@@ -854,11 +851,8 @@ const UserManagement = () => {
                         </div>
                     </div>
                     <div className="user-table__cell user-table__cell--email">
-                        <div className="sortable-header" onClick={() => handleSort('email_address')}>
+                        <div className="non-sortable-header">
                             <span className="user-table__header-label">Email</span>
-                            {sortBy === 'email_address' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <div className="user-table__filter">
                             <SearchIcon className="search-icon" />
@@ -885,11 +879,8 @@ const UserManagement = () => {
                         </div>
                     </div>
                     <div className="user-table__cell user-table__cell--registered">
-                        <div className="sortable-header" onClick={() => handleSort('created_at')}>
+                        <div className="non-sortable-header">
                             <span className="user-table__header-label">Registered</span>
-                            {sortBy === 'created_at' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <div className="user-table__filter user-table__filter--daterange">
                             <input
@@ -910,11 +901,8 @@ const UserManagement = () => {
                         </div>
                     </div>
                     <div className="user-table__cell user-table__cell--lastactive">
-                        <div className="sortable-header" onClick={() => handleSort('last_login_at')}>
+                        <div className="non-sortable-header">
                             <span className="user-table__header-label">Last active</span>
-                            {sortBy === 'last_login_at' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <div className="user-table__filter user-table__filter--daterange">
                             <input
