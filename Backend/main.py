@@ -1831,11 +1831,14 @@ async def get_admin_orders(
     per_page: int = 10,
     search: str = "",
     status: int = 0,
+    sort_by: str = "",
+    sort_order: str = "desc",
     db: Session = Depends(get_db)
 ):
     """
-    Get all orders for admin dashboard with pagination, search, and status filter.
+    Get all orders for admin dashboard with pagination, search, status filter, and sorting.
     Search by order_id or user_id. Filter by status_id (0 = all statuses).
+    Sort by: quantity, order_total
     """
     query = db.query(ShopOrder)
     
@@ -1872,8 +1875,18 @@ async def get_admin_orders(
     # Get total count
     total = query.count()
     
-    # Sort by newest first and paginate
-    orders = query.order_by(ShopOrder.order_id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    # Apply sorting
+    if sort_by == 'order_total':
+        if sort_order == 'asc':
+            query = query.order_by(ShopOrder.order_total.asc())
+        else:
+            query = query.order_by(ShopOrder.order_total.desc())
+    else:
+        # Default: sort by newest first
+        query = query.order_by(ShopOrder.order_id.desc())
+    
+    # Paginate
+    orders = query.offset((page - 1) * per_page).limit(per_page).all()
     
     # Get status mapping
     status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}

@@ -8,6 +8,8 @@ import FirstPageIcon from '@mui/icons-material/FirstPage';
 import LastPageIcon from '@mui/icons-material/LastPage';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 // OrderManagement - Admin tab for managing orders
 // Fetches orders from database and displays in a table matching Product Management layout
@@ -19,6 +21,10 @@ const OrderManagement = () => {
     // Filter state
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState(0); // 0 = All statuses
+
+    // Sorting state
+    const [sortBy, setSortBy] = useState('');
+    const [sortOrder, setSortOrder] = useState('desc');
 
     // Pagination state
     const [page, setPage] = useState(1);
@@ -46,10 +52,25 @@ const OrderManagement = () => {
                     page,
                     per_page: perPage,
                     search: searchQuery,
-                    status: statusFilter
+                    status: statusFilter,
+                    sort_by: sortBy,
+                    sort_order: sortOrder
                 }
             });
-            setOrders(response.data.orders);
+            let fetchedOrders = response.data.orders;
+
+            // Client-side sorting for quantity (since it's computed)
+            if (sortBy === 'quantity') {
+                fetchedOrders = [...fetchedOrders].sort((a, b) => {
+                    if (sortOrder === 'asc') {
+                        return a.quantity - b.quantity;
+                    } else {
+                        return b.quantity - a.quantity;
+                    }
+                });
+            }
+
+            setOrders(fetchedOrders);
             setTotal(response.data.total);
             setTotalPages(response.data.total_pages);
         } catch (error) {
@@ -57,7 +78,7 @@ const OrderManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, perPage, searchQuery, statusFilter]);
+    }, [page, perPage, searchQuery, statusFilter, sortBy, sortOrder]);
 
     // Fetch orders on mount and when dependencies change
     useEffect(() => {
@@ -76,6 +97,16 @@ const OrderManagement = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
 
+    // Handle sort (matching Product Management pattern)
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('asc');
+        }
+    };
+
     // Get status badge class
     const getStatusClass = (status) => {
         const statusLower = status.toLowerCase();
@@ -86,6 +117,8 @@ const OrderManagement = () => {
     const handleResetFilters = () => {
         setSearchQuery('');
         setStatusFilter(0);
+        setSortBy('');
+        setSortOrder('desc');
         setPage(1);
     };
 
@@ -147,17 +180,27 @@ const OrderManagement = () => {
                         </div>
                     </div>
 
-                    {/* Quantity Column */}
+                    {/* Quantity Column - SORTABLE */}
                     <div className="order-table__cell order-table__cell--quantity">
-                        <div className="non-sortable-header">
+                        <div className="sortable-header" onClick={() => handleSort('quantity')}>
                             <span className="order-table__header-label">Qty</span>
+                            {sortBy === 'quantity' && (
+                                <span className="sort-icon">
+                                    {sortOrder === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+                                </span>
+                            )}
                         </div>
                     </div>
 
-                    {/* Amount Column */}
+                    {/* Amount Column - SORTABLE */}
                     <div className="order-table__cell order-table__cell--amount">
-                        <div className="non-sortable-header">
+                        <div className="sortable-header" onClick={() => handleSort('order_total')}>
                             <span className="order-table__header-label">Amount</span>
+                            {sortBy === 'order_total' && (
+                                <span className="sort-icon">
+                                    {sortOrder === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+                                </span>
+                            )}
                         </div>
                     </div>
 
