@@ -1699,6 +1699,13 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         cast(SiteUser.created_at, SQLDate) == today
     ).count()
     
+    # New customers this week (registered this week, role=2)
+    new_customers_this_week = db.query(SiteUser).filter(
+        SiteUser.role == 2,
+        SiteUser.created_at != None,
+        cast(SiteUser.created_at, SQLDate) >= start_of_week
+    ).count()
+    
     # Active users today (users who logged in today)
     # Using last_login_at field that was added to SiteUser
     active_users_today = db.query(SiteUser).filter(
@@ -1722,6 +1729,7 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         "revenue_this_week": round(revenue_this_week, 2),
         "revenue_this_month": round(revenue_this_month, 2),
         "new_customers_today": new_customers_today,
+        "new_customers_this_week": new_customers_this_week,
         "active_users_today": active_users_today,
         "users_ordered_today": users_ordered_today
     }
@@ -1853,17 +1861,27 @@ async def get_admin_users(
     role: int = 0,
     registered_date: str = "",
     last_active_date: str = "",
+    sort_by: str = "user_id",
+    sort_order: str = "desc",
+    registered_from: str = "",
+    registered_to: str = "",
+    last_active_from: str = "",
+    last_active_to: str = "",
     db: Session = Depends(get_db)
 ):
     """
-    Get all users for admin user management with pagination and filters.
+    Get all users for admin user management with pagination, filters, and sorting.
     - search: Search by username
     - email_search: Search by email address
     - phone_search: Search by phone number
     - status: Filter by status (active, locked, disabled) - empty = all
     - role: Filter by role (0 = all, 1 = Admin, 2 = User, 3 = Supplier, 4 = Delivery)
-    - registered_date: Filter by registration date (format: YYYY-MM-DD)
-    - last_active_date: Filter by last active date (format: YYYY-MM-DD)
+    - registered_date: Filter by exact registration date (format: YYYY-MM-DD) - legacy support
+    - last_active_date: Filter by exact last active date (format: YYYY-MM-DD) - legacy support
+    - sort_by: Column to sort by (user_id, user_name, email_address, created_at, last_login_at)
+    - sort_order: Sort direction (asc, desc)
+    - registered_from/registered_to: Date range filter for registration
+    - last_active_from/last_active_to: Date range filter for last active
     """
     from datetime import datetime, timedelta
     
@@ -1892,8 +1910,38 @@ async def get_admin_users(
         phone_pattern = f"%{phone_search}%"
         query = query.filter(SiteUser.phone_number.ilike(phone_pattern))
     
-    # Apply registered date filter
-    if registered_date:
+    # Apply registered date range filter (new feature)
+    if registered_from:
+        try:
+            date_from = datetime.strptime(registered_from, "%Y-%m-%d")
+            query = query.filter(SiteUser.created_at >= date_from)
+        except ValueError:
+            pass
+    if registered_to:
+        try:
+            date_to = datetime.strptime(registered_to, "%Y-%m-%d")
+            date_to_end = date_to + timedelta(days=1)
+            query = query.filter(SiteUser.created_at < date_to_end)
+        except ValueError:
+            pass
+    
+    # Apply last active date range filter (new feature)
+    if last_active_from:
+        try:
+            date_from = datetime.strptime(last_active_from, "%Y-%m-%d")
+            query = query.filter(SiteUser.last_login_at >= date_from)
+        except ValueError:
+            pass
+    if last_active_to:
+        try:
+            date_to = datetime.strptime(last_active_to, "%Y-%m-%d")
+            date_to_end = date_to + timedelta(days=1)
+            query = query.filter(SiteUser.last_login_at < date_to_end)
+        except ValueError:
+            pass
+    
+    # Legacy: Apply exact registered date filter (backward compatibility)
+    if registered_date and not registered_from and not registered_to:
         try:
             date_obj = datetime.strptime(registered_date, "%Y-%m-%d")
             next_day = date_obj + timedelta(days=1)
@@ -1904,8 +1952,8 @@ async def get_admin_users(
         except ValueError:
             pass  # Invalid date format, ignore filter
     
-    # Apply last active date filter
-    if last_active_date:
+    # Legacy: Apply exact last active date filter (backward compatibility)
+    if last_active_date and not last_active_from and not last_active_to:
         try:
             date_obj = datetime.strptime(last_active_date, "%Y-%m-%d")
             next_day = date_obj + timedelta(days=1)
@@ -1919,8 +1967,23 @@ async def get_admin_users(
     # Get total count
     total = query.count()
     
-    # Sort by newest first (user_id desc) and paginate
-    users = query.order_by(SiteUser.user_id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    # Dynamic sorting
+    sort_columns = {
+        'user_id': SiteUser.user_id,
+        'user_name': SiteUser.user_name,
+        'email_address': SiteUser.email_address,
+        'created_at': SiteUser.created_at,
+        'last_login_at': SiteUser.last_login_at
+    }
+    sort_column = sort_columns.get(sort_by, SiteUser.user_id)
+    
+    if sort_order == 'asc':
+        query = query.order_by(sort_column.asc().nullslast())
+    else:
+        query = query.order_by(sort_column.desc().nullslast())
+    
+    # Paginate
+    users = query.offset((page - 1) * per_page).limit(per_page).all()
     
     # Role mapping
     role_mapping = {1: 'Admin', 2: 'User', 3: 'Supplier', 4: 'Delivery'}
@@ -1988,6 +2051,55 @@ async def update_user_status(
     return {
         "message": f"User status updated to '{new_status}'",
         "user_id": user_id,
+        "status": new_status
+    }
+
+
+@app.put("/admin/users/bulk-status")
+async def update_bulk_user_status(
+    bulk_update: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update status for multiple users at once.
+    Body: { "user_ids": [1, 2, 3], "status": "active" | "locked" | "disabled" }
+    Skips admin users for security.
+    """
+    user_ids = bulk_update.get("user_ids", [])
+    new_status = bulk_update.get("status", "").lower()
+    
+    # Validate inputs
+    if not user_ids or not isinstance(user_ids, list):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="user_ids must be a non-empty list"
+        )
+    
+    if new_status not in ['active', 'locked', 'disabled']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status. Must be 'active', 'locked', or 'disabled'"
+        )
+    
+    # Get users to update (excluding admins for security)
+    users = db.query(SiteUser).filter(
+        SiteUser.user_id.in_(user_ids),
+        SiteUser.role != 1  # Skip admin users
+    ).all()
+    
+    updated_count = 0
+    skipped_count = len(user_ids) - len(users)  # Count of admin users skipped
+    
+    for user in users:
+        user.status = new_status
+        updated_count += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"Updated {updated_count} user(s) to '{new_status}'",
+        "updated_count": updated_count,
+        "skipped_count": skipped_count,
         "status": new_status
     }
 

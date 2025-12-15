@@ -15,6 +15,12 @@ import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import PeopleIcon from '@mui/icons-material/People';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 const UserManagement = () => {
     // Users state
@@ -32,6 +38,27 @@ const UserManagement = () => {
     const [registeredDate, setRegisteredDate] = useState('');
     const [lastActiveDate, setLastActiveDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+
+    // NEW: Sorting state
+    const [sortBy, setSortBy] = useState('user_id');
+    const [sortOrder, setSortOrder] = useState('desc');
+
+    // NEW: Date range filter states
+    const [registeredFrom, setRegisteredFrom] = useState('');
+    const [registeredTo, setRegisteredTo] = useState('');
+    const [lastActiveFrom, setLastActiveFrom] = useState('');
+    const [lastActiveTo, setLastActiveTo] = useState('');
+
+    // NEW: Bulk selection state
+    const [selectedUsers, setSelectedUsers] = useState(new Set());
+    const [selectAll, setSelectAll] = useState(false);
+
+    // NEW: Quick stats state
+    const [stats, setStats] = useState({
+        total_customers: 0,
+        active_users_today: 0,
+        new_customers_this_week: 0
+    });
 
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
@@ -389,8 +416,12 @@ const UserManagement = () => {
                 email_search: filters.emailSearch ?? emailSearch,
                 phone_search: filters.phoneSearch ?? phoneSearch,
                 status: filters.status ?? statusFilter,
-                registered_date: filters.registeredDate ?? registeredDate,
-                last_active_date: filters.lastActiveDate ?? lastActiveDate,
+                sort_by: filters.sortBy ?? sortBy,
+                sort_order: filters.sortOrder ?? sortOrder,
+                registered_from: filters.registeredFrom ?? registeredFrom,
+                registered_to: filters.registeredTo ?? registeredTo,
+                last_active_from: filters.lastActiveFrom ?? lastActiveFrom,
+                last_active_to: filters.lastActiveTo ?? lastActiveTo,
                 role: 2 // Always filter by Role = 2 (User only)
             });
             const response = await axios.get(`http://localhost:8000/admin/users?${params}`);
@@ -398,16 +429,34 @@ const UserManagement = () => {
             setTotalPages(response.data.total_pages);
             setTotal(response.data.total);
             setPage(response.data.page);
+            // Clear selections on page/filter change
+            setSelectedUsers(new Set());
+            setSelectAll(false);
         } catch (error) {
             console.error('Error fetching users:', error);
         } finally {
             setLoading(false);
         }
-    }, [perPage, searchQuery, emailSearch, phoneSearch, statusFilter, registeredDate, lastActiveDate]);
+    }, [perPage, searchQuery, emailSearch, phoneSearch, statusFilter, sortBy, sortOrder, registeredFrom, registeredTo, lastActiveFrom, lastActiveTo]);
+
+    // Fetch quick stats
+    const fetchStats = useCallback(async () => {
+        try {
+            const response = await axios.get('http://localhost:8000/admin/stats');
+            setStats({
+                total_customers: response.data.total_customers,
+                active_users_today: response.data.active_users_today,
+                new_customers_this_week: response.data.new_customers_this_week
+            });
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    }, []);
 
     // Initial fetch
     useEffect(() => {
         fetchUsers(1);
+        fetchStats();
     }, []);
 
     // Refetch when perPage changes
@@ -445,18 +494,32 @@ const UserManagement = () => {
         return () => clearTimeout(timeoutId);
     };
 
-    // Handle registered date filter
-    const handleRegisteredDate = (e) => {
+    // Handle date range filter - Registered From
+    const handleRegisteredFrom = (e) => {
         const value = e.target.value;
-        setRegisteredDate(value);
-        fetchUsers(1, { registeredDate: value });
+        setRegisteredFrom(value);
+        fetchUsers(1, { registeredFrom: value });
     };
 
-    // Handle last active date filter
-    const handleLastActiveDate = (e) => {
+    // Handle date range filter - Registered To
+    const handleRegisteredTo = (e) => {
         const value = e.target.value;
-        setLastActiveDate(value);
-        fetchUsers(1, { lastActiveDate: value });
+        setRegisteredTo(value);
+        fetchUsers(1, { registeredTo: value });
+    };
+
+    // Handle date range filter - Last Active From
+    const handleLastActiveFrom = (e) => {
+        const value = e.target.value;
+        setLastActiveFrom(value);
+        fetchUsers(1, { lastActiveFrom: value });
+    };
+
+    // Handle date range filter - Last Active To
+    const handleLastActiveTo = (e) => {
+        const value = e.target.value;
+        setLastActiveTo(value);
+        fetchUsers(1, { lastActiveTo: value });
     };
 
     // Handle status filter change
@@ -470,6 +533,124 @@ const UserManagement = () => {
     const handlePerPageChange = (e) => {
         const value = parseInt(e.target.value);
         setPerPage(value);
+    };
+
+    // NEW: Handle column sorting
+    const handleSort = (column) => {
+        const newOrder = sortBy === column && sortOrder === 'asc' ? 'desc' : 'asc';
+        setSortBy(column);
+        setSortOrder(newOrder);
+        fetchUsers(1, { sortBy: column, sortOrder: newOrder });
+    };
+
+    // NEW: Handle select all checkbox
+    const handleSelectAll = () => {
+        if (selectAll) {
+            setSelectedUsers(new Set());
+        } else {
+            const allUserIds = new Set(users.map(u => u.user_id));
+            setSelectedUsers(allUserIds);
+        }
+        setSelectAll(!selectAll);
+    };
+
+    // NEW: Handle individual user selection
+    const handleSelectUser = (userId) => {
+        const newSelected = new Set(selectedUsers);
+        if (newSelected.has(userId)) {
+            newSelected.delete(userId);
+        } else {
+            newSelected.add(userId);
+        }
+        setSelectedUsers(newSelected);
+        setSelectAll(newSelected.size === users.length);
+    };
+
+    // NEW: Handle bulk status update
+    const handleBulkStatusUpdate = async (newStatus) => {
+        if (selectedUsers.size === 0) return;
+
+        if (!window.confirm(`Are you sure you want to set ${selectedUsers.size} user(s) to "${newStatus}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await axios.put('http://localhost:8000/admin/users/bulk-status', {
+                user_ids: Array.from(selectedUsers),
+                status: newStatus
+            });
+            alert(response.data.message);
+            fetchUsers(page);
+            fetchStats();
+        } catch (error) {
+            console.error('Error bulk updating status:', error);
+            alert(error.response?.data?.detail || 'Failed to update user statuses');
+        }
+    };
+
+    // NEW: Export users to CSV
+    const handleExport = () => {
+        if (users.length === 0) {
+            alert('No users to export');
+            return;
+        }
+
+        const headers = ['User ID', 'Username', 'Email', 'Phone', 'Status', 'Registered', 'Last Active'];
+        const csvContent = [
+            headers.join(','),
+            ...users.map(user => [
+                user.user_id,
+                `"${(user.user_name || '').replace(/"/g, '""')}"`,
+                `"${(user.email_address || '').replace(/"/g, '""')}"`,
+                user.phone_number || '',
+                user.status || 'active',
+                user.created_at || '',
+                user.last_login_at || ''
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    };
+
+    // NEW: Compute active filter count for filter pills
+    const getActiveFilters = () => {
+        const filters = [];
+        if (searchQuery) filters.push({ key: 'search', label: `Username: ${searchQuery}`, clear: () => { setSearchQuery(''); fetchUsers(1, { search: '' }); } });
+        if (emailSearch) filters.push({ key: 'email', label: `Email: ${emailSearch}`, clear: () => { setEmailSearch(''); fetchUsers(1, { emailSearch: '' }); } });
+        if (phoneSearch) filters.push({ key: 'phone', label: `Phone: ${phoneSearch}`, clear: () => { setPhoneSearch(''); fetchUsers(1, { phoneSearch: '' }); } });
+        if (statusFilter) filters.push({ key: 'status', label: `Status: ${statusFilter}`, clear: () => { setStatusFilter(''); fetchUsers(1, { status: '' }); } });
+        if (registeredFrom) filters.push({ key: 'regFrom', label: `Reg From: ${registeredFrom}`, clear: () => { setRegisteredFrom(''); fetchUsers(1, { registeredFrom: '' }); } });
+        if (registeredTo) filters.push({ key: 'regTo', label: `Reg To: ${registeredTo}`, clear: () => { setRegisteredTo(''); fetchUsers(1, { registeredTo: '' }); } });
+        if (lastActiveFrom) filters.push({ key: 'actFrom', label: `Active From: ${lastActiveFrom}`, clear: () => { setLastActiveFrom(''); fetchUsers(1, { lastActiveFrom: '' }); } });
+        if (lastActiveTo) filters.push({ key: 'actTo', label: `Active To: ${lastActiveTo}`, clear: () => { setLastActiveTo(''); fetchUsers(1, { lastActiveTo: '' }); } });
+        return filters;
+    };
+
+    const activeFilters = getActiveFilters();
+
+    // NEW: Reset all filters
+    const handleResetFilters = () => {
+        setSearchQuery('');
+        setEmailSearch('');
+        setPhoneSearch('');
+        setStatusFilter('');
+        setRegisteredFrom('');
+        setRegisteredTo('');
+        setLastActiveFrom('');
+        setLastActiveTo('');
+        setSortBy('user_id');
+        setSortOrder('desc');
+        setSelectedUsers(new Set());
+        setSelectAll(false);
+        fetchUsers(1, {
+            search: '', emailSearch: '', phoneSearch: '', status: '',
+            registeredFrom: '', registeredTo: '', lastActiveFrom: '', lastActiveTo: '',
+            sortBy: 'user_id', sortOrder: 'desc'
+        });
     };
 
     // Handle pagination
@@ -505,6 +686,7 @@ const UserManagement = () => {
             });
             // Refresh the list
             fetchUsers(page);
+            fetchStats();
             setActiveMenu(null);
         } catch (error) {
             console.error('Error updating user status:', error);
@@ -542,11 +724,101 @@ const UserManagement = () => {
 
     return (
         <div className="admin-page__usermanagement">
+            {/* Quick Stats Bar */}
+            <div className="quick-stats-bar">
+                <div className="stat-card">
+                    <PeopleIcon className="stat-icon" />
+                    <div className="stat-content">
+                        <span className="stat-value">{stats.total_customers}</span>
+                        <span className="stat-label">Total Customers</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <TrendingUpIcon className="stat-icon stat-icon--active" />
+                    <div className="stat-content">
+                        <span className="stat-value">{stats.active_users_today}</span>
+                        <span className="stat-label">Active Today</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <PersonAddIcon className="stat-icon stat-icon--new" />
+                    <div className="stat-content">
+                        <span className="stat-value">{stats.new_customers_this_week}</span>
+                        <span className="stat-label">New This Week</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter Pills */}
+            {activeFilters.length > 0 && (
+                <div className="filter-pills-container">
+                    <span className="filter-pills-label">Active Filters ({activeFilters.length}):</span>
+                    {activeFilters.map((filter) => (
+                        <span key={filter.key} className="filter-pill">
+                            {filter.label}
+                            <button onClick={filter.clear} className="filter-pill__remove">×</button>
+                        </span>
+                    ))}
+                    <button onClick={handleResetFilters} className="filter-pills-clear-all">
+                        Clear All
+                    </button>
+                </div>
+            )}
+
+            {/* Bulk Action Toolbar */}
+            {selectedUsers.size > 0 && (
+                <div className="bulk-action-toolbar">
+                    <span className="bulk-action-toolbar__count">
+                        {selectedUsers.size} user(s) selected
+                    </span>
+                    <div className="bulk-action-toolbar__actions">
+                        <button
+                            className="bulk-action-btn bulk-action-btn--active"
+                            onClick={() => handleBulkStatusUpdate('active')}
+                        >
+                            <CheckCircleIcon /> Set Active
+                        </button>
+                        <button
+                            className="bulk-action-btn bulk-action-btn--locked"
+                            onClick={() => handleBulkStatusUpdate('locked')}
+                        >
+                            <LockIcon /> Lock
+                        </button>
+                        <button
+                            className="bulk-action-btn bulk-action-btn--disabled"
+                            onClick={() => handleBulkStatusUpdate('disabled')}
+                        >
+                            <BlockIcon /> Disable
+                        </button>
+                    </div>
+                    <button
+                        className="bulk-action-toolbar__deselect"
+                        onClick={() => { setSelectedUsers(new Set()); setSelectAll(false); }}
+                    >
+                        Deselect All
+                    </button>
+                </div>
+            )}
+
             {/* Table Header with Filters */}
             <div className="user-table">
                 <div className="user-table__header">
+                    {/* Checkbox Column */}
+                    <div className="user-table__cell user-table__cell--checkbox">
+                        <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={handleSelectAll}
+                            title="Select all"
+                        />
+                    </div>
                     <div className="user-table__cell user-table__cell--username">
-                        <span className="user-table__header-label">User name</span>
+                        <div className="sortable-header" onClick={() => handleSort('user_name')}>
+                            <span className="user-table__header-label">User name</span>
+                            {sortBy === 'user_name' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
                         <div className="user-table__filter">
                             <SearchIcon className="search-icon" />
                             <input
@@ -559,7 +831,12 @@ const UserManagement = () => {
                         </div>
                     </div>
                     <div className="user-table__cell user-table__cell--email">
-                        <span className="user-table__header-label">Email</span>
+                        <div className="sortable-header" onClick={() => handleSort('email_address')}>
+                            <span className="user-table__header-label">Email</span>
+                            {sortBy === 'email_address' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
                         <div className="user-table__filter">
                             <SearchIcon className="search-icon" />
                             <input
@@ -585,26 +862,52 @@ const UserManagement = () => {
                         </div>
                     </div>
                     <div className="user-table__cell user-table__cell--registered">
-                        <span className="user-table__header-label">Registered</span>
-                        <div className="user-table__filter user-table__filter--date">
-                            <CalendarTodayIcon className="search-icon" />
+                        <div className="sortable-header" onClick={() => handleSort('created_at')}>
+                            <span className="user-table__header-label">Registered</span>
+                            {sortBy === 'created_at' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
+                        <div className="user-table__filter user-table__filter--daterange">
                             <input
                                 type="date"
-                                value={registeredDate}
-                                onChange={handleRegisteredDate}
+                                value={registeredFrom}
+                                onChange={handleRegisteredFrom}
                                 className="user-table__search user-table__search--date"
+                                title="From date"
+                            />
+                            <span className="date-separator">-</span>
+                            <input
+                                type="date"
+                                value={registeredTo}
+                                onChange={handleRegisteredTo}
+                                className="user-table__search user-table__search--date"
+                                title="To date"
                             />
                         </div>
                     </div>
                     <div className="user-table__cell user-table__cell--lastactive">
-                        <span className="user-table__header-label">Last active</span>
-                        <div className="user-table__filter user-table__filter--date">
-                            <CalendarTodayIcon className="search-icon" />
+                        <div className="sortable-header" onClick={() => handleSort('last_login_at')}>
+                            <span className="user-table__header-label">Last active</span>
+                            {sortBy === 'last_login_at' && (
+                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
+                            )}
+                        </div>
+                        <div className="user-table__filter user-table__filter--daterange">
                             <input
                                 type="date"
-                                value={lastActiveDate}
-                                onChange={handleLastActiveDate}
+                                value={lastActiveFrom}
+                                onChange={handleLastActiveFrom}
                                 className="user-table__search user-table__search--date"
+                                title="From date"
+                            />
+                            <span className="date-separator">-</span>
+                            <input
+                                type="date"
+                                value={lastActiveTo}
+                                onChange={handleLastActiveTo}
+                                className="user-table__search user-table__search--date"
+                                title="To date"
                             />
                         </div>
                     </div>
@@ -630,25 +933,15 @@ const UserManagement = () => {
                             <PersonAddAlt1Icon />
                         </button>
                         <button
+                            className="export-btn"
+                            onClick={handleExport}
+                            title="Export to CSV"
+                        >
+                            <FileDownloadIcon />
+                        </button>
+                        <button
                             className="reset-filters-btn"
-                            onClick={() => {
-                                setSearchQuery('');
-                                setEmailSearch('');
-                                setPhoneSearch('');
-                                setRegisteredDate('');
-                                setLastActiveDate('');
-                                setStatusFilter('');
-                                setPerPage(20);
-                                fetchUsers(1, {
-                                    search: '',
-                                    emailSearch: '',
-                                    phoneSearch: '',
-                                    status: '',
-                                    registeredDate: '',
-                                    lastActiveDate: '',
-                                    perPage: 20
-                                });
-                            }}
+                            onClick={handleResetFilters}
                             title="Reset all filters"
                         >
                             <RestartAltIcon />
@@ -664,7 +957,15 @@ const UserManagement = () => {
                         <div className="user-table__empty">No users found</div>
                     ) : (
                         users.map((user) => (
-                            <div key={user.user_id} className="user-table__row">
+                            <div key={user.user_id} className={`user-table__row ${selectedUsers.has(user.user_id) ? 'user-table__row--selected' : ''}`}>
+                                {/* Checkbox */}
+                                <div className="user-table__cell user-table__cell--checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedUsers.has(user.user_id)}
+                                        onChange={() => handleSelectUser(user.user_id)}
+                                    />
+                                </div>
                                 <div className="user-table__cell user-table__cell--username">
                                     <div className="user-info">
                                         <div className="user-avatar">
