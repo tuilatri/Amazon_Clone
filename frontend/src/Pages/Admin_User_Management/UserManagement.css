@@ -47,6 +47,7 @@
     position: relative;
     display: flex;
     align-items: center;
+    max-width: fit-content;
 }
 
 .user-table__filter .search-icon {
@@ -57,12 +58,12 @@
 }
 
 .user-table__search {
-    width: 100%;
-    max-width: 150px;
-    padding: 8px 12px 8px 34px;
+    width: 130px;
+    max-width: 130px;
+    padding: 8px 10px 8px 32px;
     border: 1px solid #d5d9d9;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 13px;
     background: #fff;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -141,7 +142,14 @@
     cursor: pointer;
     color: #111;
     transition: all 0.2s ease;
-    margin-bottom: 6px;
+}
+
+/* Header Actions Cell - Centered */
+.user-table__header .user-table__cell--actions {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .add-user-btn:hover {
