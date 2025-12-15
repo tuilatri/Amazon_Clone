@@ -2273,6 +2273,55 @@ async def get_admin_user_orders(
     }
 
 
+@app.get("/admin/users/export")
+async def export_users_csv(db: Session = Depends(get_db)):
+    """
+    Export all customer users (role=2) to CSV file.
+    Returns a downloadable CSV file with user data.
+    """
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+    
+    # Query all customers (role=2)
+    users = db.query(SiteUser).filter(SiteUser.role == 2).order_by(SiteUser.user_id.desc()).all()
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['User ID', 'Username', 'Email', 'Phone', 'Status', 'Gender', 'Age', 'City', 'Registered', 'Last Active'])
+    
+    # Write user data
+    for user in users:
+        writer.writerow([
+            user.user_id,
+            user.user_name or '',
+            user.email_address or '',
+            user.phone_number or '',
+            user.status or 'active',
+            user.gender or '',
+            user.age or '',
+            user.city or '',
+            user.created_at.strftime("%Y-%m-%d %H:%M") if user.created_at else '',
+            user.last_login_at.strftime("%Y-%m-%d %H:%M") if user.last_login_at else ''
+        ])
+    
+    # Reset stream position
+    output.seek(0)
+    
+    # Generate filename with current date
+    from datetime import datetime
+    filename = f"customers_export_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @app.get("/admin/trending-products")
 
 

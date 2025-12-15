@@ -619,32 +619,24 @@ const UserManagement = () => {
         }
     };
 
-    // NEW: Export users to CSV
-    const handleExport = () => {
-        if (users.length === 0) {
-            alert('No users to export');
-            return;
+    // NEW: Export users to CSV (calls backend endpoint)
+    const handleExport = async () => {
+        try {
+            const response = await axios.get('http://localhost:8000/admin/users/export', {
+                responseType: 'blob'
+            });
+
+            // Create download link
+            const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `customers_export_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        } catch (error) {
+            console.error('Error exporting users:', error);
+            alert('Failed to export users. Please try again.');
         }
-
-        const headers = ['User ID', 'Username', 'Email', 'Phone', 'Status', 'Registered', 'Last Active'];
-        const csvContent = [
-            headers.join(','),
-            ...users.map(user => [
-                user.user_id,
-                `"${(user.user_name || '').replace(/"/g, '""')}"`,
-                `"${(user.email_address || '').replace(/"/g, '""')}"`,
-                user.phone_number || '',
-                user.status || 'active',
-                user.created_at || '',
-                user.last_login_at || ''
-            ].join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
     };
 
     // NEW: Compute active filter count for filter pills
