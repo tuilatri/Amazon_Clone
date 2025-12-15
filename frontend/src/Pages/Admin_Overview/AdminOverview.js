@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
 import UserManagement from '../Admin_User_Management/UserManagement';
+import ProductManagement from '../Admin_Product_Management/ProductManagement';
 import './AdminOverview.css';
 import { useAuth } from '../../Context/AuthContext';
 import axios from 'axios';
@@ -283,6 +284,10 @@ const AdminOverview = () => {
     const renderTabContent = () => {
         if (activeTab === 'Customer Management') {
             return <UserManagement />;
+        }
+
+        if (activeTab === 'Product Management') {
+            return <ProductManagement />;
         }
 
         if (activeTab !== 'Overview') {
