@@ -47,6 +47,19 @@ const ProductManagement = () => {
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
 
+    // Image loading states for skeleton
+    const [imageLoadingStates, setImageLoadingStates] = useState({});
+
+    // Handle image load complete
+    const handleImageLoad = (productId) => {
+        setImageLoadingStates(prev => ({ ...prev, [productId]: 'loaded' }));
+    };
+
+    // Handle image error
+    const handleImageError = (productId) => {
+        setImageLoadingStates(prev => ({ ...prev, [productId]: 'error' }));
+    };
+
     // Fetch products from API
     const fetchProducts = useCallback(async (pageNum = page) => {
         setLoading(true);
@@ -264,13 +277,10 @@ const ProductManagement = () => {
                         </div>
                     </div>
 
-                    {/* Main Category Column */}
+                    {/* Main Category Column - Not sortable */}
                     <div className="product-table__cell product-table__cell--main-category">
-                        <div className="sortable-header" onClick={() => handleSort('main_category')}>
+                        <div className="non-sortable-header">
                             <span className="product-table__header-label">Main Category</span>
-                            {sortBy === 'main_category' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <select
                             value={mainCategoryFilter}
@@ -284,13 +294,10 @@ const ProductManagement = () => {
                         </select>
                     </div>
 
-                    {/* Sub Category Column */}
+                    {/* Sub Category Column - Not sortable */}
                     <div className="product-table__cell product-table__cell--sub-category">
-                        <div className="sortable-header" onClick={() => handleSort('sub_category')}>
+                        <div className="non-sortable-header">
                             <span className="product-table__header-label">Sub Category</span>
-                            {sortBy === 'sub_category' && (
-                                sortOrder === 'asc' ? <ArrowUpwardIcon className="sort-icon" /> : <ArrowDownwardIcon className="sort-icon" />
-                            )}
                         </div>
                         <select
                             value={subCategoryFilter}
@@ -363,7 +370,7 @@ const ProductManagement = () => {
                         <div className="product-table__empty">No products found.</div>
                     ) : (
                         products.map((product) => (
-                            <div key={product.product_id} className="product-table__row">
+                            <div key={product.product_id} className={`product-table__row ${selectedProducts.has(product.product_id) ? 'product-table__row--selected' : ''}`}>
                                 <div className="product-table__cell product-table__cell--checkbox">
                                     <input
                                         type="checkbox"
@@ -373,16 +380,26 @@ const ProductManagement = () => {
                                 </div>
                                 <div className="product-table__cell product-table__cell--name">
                                     <div className="product-info">
-                                        {product.product_image ? (
-                                            <img
-                                                src={product.product_image}
-                                                alt={product.product_name}
-                                                className="product-image"
-                                                onError={(e) => { e.target.style.display = 'none'; }}
-                                            />
-                                        ) : (
-                                            <InventoryIcon className="product-icon" />
-                                        )}
+                                        <div className="product-image-container">
+                                            {imageLoadingStates[product.product_id] === 'error' || !product.product_image ? (
+                                                <div className="product-image-skeleton">
+                                                    <InventoryIcon className="product-icon" />
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {imageLoadingStates[product.product_id] !== 'loaded' && (
+                                                        <div className="product-image-skeleton"></div>
+                                                    )}
+                                                    <img
+                                                        src={product.product_image}
+                                                        alt={product.product_name}
+                                                        className={`product-image ${imageLoadingStates[product.product_id] === 'loaded' ? 'product-image--loaded' : 'product-image--loading'}`}
+                                                        onLoad={() => handleImageLoad(product.product_id)}
+                                                        onError={() => handleImageError(product.product_id)}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
                                         <span className="product-name" title={product.product_name}>
                                             {product.product_name.length > 60
                                                 ? product.product_name.substring(0, 60) + '...'

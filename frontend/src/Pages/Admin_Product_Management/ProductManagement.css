@@ -64,20 +64,24 @@
     text-decoration: underline;
 }
 
-/* Bulk Action Toolbar */
+/* ================================
+   BULK ACTION TOOLBAR
+   Matches UserManagement styling
+   ================================ */
+
 .admin-page__productmanagement .bulk-action-toolbar {
     display: flex;
     align-items: center;
     gap: 16px;
     padding: 12px 20px;
-    background: #e7f4ff;
-    border-bottom: 1px solid #c8e1ff;
+    background: #fff3e0;
+    border-bottom: 1px solid #ffcc80;
 }
 
 .admin-page__productmanagement .bulk-action-toolbar__count {
     font-size: 14px;
     font-weight: 600;
-    color: #0f1111;
+    color: #e65100;
 }
 
 .admin-page__productmanagement .bulk-action-toolbar__actions {
@@ -86,47 +90,63 @@
 }
 
 .admin-page__productmanagement .bulk-action-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 6px 12px;
-    border: 1px solid #d5d9d9;
+    border: none;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
 }
 
+.admin-page__productmanagement .bulk-action-btn svg {
+    font-size: 16px !important;
+}
+
 .admin-page__productmanagement .bulk-action-btn--active {
-    background: #e7f4e4;
-    color: #067d62;
-    border-color: #067d62;
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.admin-page__productmanagement .bulk-action-btn--active:hover {
+    background: #c8e6c9;
 }
 
 .admin-page__productmanagement .bulk-action-btn--warning {
-    background: #fef8f2;
-    color: #c45500;
-    border-color: #c45500;
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.admin-page__productmanagement .bulk-action-btn--warning:hover {
+    background: #ffe0b2;
 }
 
 .admin-page__productmanagement .bulk-action-btn--disabled {
-    background: #fff5f5;
-    color: #d13212;
-    border-color: #d13212;
+    background: #ffebee;
+    color: #c62828;
 }
 
-.admin-page__productmanagement .bulk-action-btn:hover {
-    opacity: 0.85;
+.admin-page__productmanagement .bulk-action-btn--disabled:hover {
+    background: #ffcdd2;
 }
 
 .admin-page__productmanagement .bulk-action-toolbar__deselect {
     margin-left: auto;
-    background: none;
-    border: none;
-    color: #565959;
-    font-size: 13px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid #e65100;
+    border-radius: 4px;
+    color: #e65100;
+    font-size: 12px;
     cursor: pointer;
-    text-decoration: underline;
+}
+
+.admin-page__productmanagement .bulk-action-toolbar__deselect:hover {
+    background: #e65100;
+    color: #fff;
 }
 
 /* Table Structure */
@@ -225,6 +245,13 @@
     color: #e77600;
 }
 
+/* Non-Sortable Header - No cursor/hover effects */
+.non-sortable-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 /* Action Buttons in Header */
 .reset-filters-btn,
 .add-product-btn {
@@ -297,6 +324,16 @@
     background: #fafafa;
 }
 
+/* Selected Row Highlighting */
+.product-table__row--selected {
+    background: #fff3e0 !important;
+    border-left: 3px solid #e65100;
+}
+
+.product-table__row--selected:hover {
+    background: #ffe0b2 !important;
+}
+
 /* Product Info - Image and Name side by side */
 .product-info {
     display: flex;
@@ -304,13 +341,62 @@
     gap: 12px;
 }
 
+/* Product Image Container - Matches order-detail-modal */
+.product-image-container {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    position: relative;
+}
+
+/* Product Image - Standard Display */
 .product-image {
-    width: 40px;
-    height: 40px;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     border-radius: 4px;
-    background: #f7f8f9;
-    flex-shrink: 0;
+    border: 1px solid #eee;
+    background: #fff;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.product-image--loading {
+    opacity: 0;
+}
+
+.product-image--loaded {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* Product Image Skeleton Loader */
+.product-image-skeleton {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes skeleton-pulse {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.product-image-skeleton .product-icon {
+    font-size: 24px;
+    color: #bbb;
 }
 
 .product-icon {
@@ -580,5 +666,15 @@
     .admin-page__productmanagement .user-pagination {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .admin-page__productmanagement .bulk-action-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .admin-page__productmanagement .bulk-action-toolbar__deselect {
+        margin-left: 0;
     }
 }
