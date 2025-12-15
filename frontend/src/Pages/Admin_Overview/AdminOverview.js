@@ -4,6 +4,7 @@ import NavBar from '../../Components/Navbar/Navigation';
 import Footer from '../../Components/Footer/Footer';
 import UserManagement from '../Admin_User_Management/UserManagement';
 import ProductManagement from '../Admin_Product_Management/ProductManagement';
+import OrderManagement from '../Admin_Order_Management/OrderManagement';
 import './AdminOverview.css';
 import { useAuth } from '../../Context/AuthContext';
 import axios from 'axios';
@@ -288,6 +289,10 @@ const AdminOverview = () => {
 
         if (activeTab === 'Product Management') {
             return <ProductManagement />;
+        }
+
+        if (activeTab === 'Order Management') {
+            return <OrderManagement />;
         }
 
         if (activeTab !== 'Overview') {
