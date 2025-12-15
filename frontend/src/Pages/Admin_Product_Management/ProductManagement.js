@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import './ProductManagement.css';
-import InventoryIcon from '@mui/icons-material/Inventory';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -14,74 +14,24 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import LastPageIcon from '@mui/icons-material/LastPage';
 import StarIcon from '@mui/icons-material/Star';
+import InventoryIcon from '@mui/icons-material/Inventory';
 
 /**
  * ProductManagement - Admin tab for managing products
- * UI skeleton matching Customer Management layout structure
- * 
- * Table columns based on database Product model:
- * - product_name
- * - main_category
- * - sub_category
- * - average_rating
- * - no_of_ratings
- * - discount_price_usd
- * - actual_price_usd
+ * Fetches products from database and displays in a table matching Customer Management layout
  */
 const ProductManagement = () => {
-    // Sample static data matching database fields
-    const [products] = useState([
-        {
-            product_id: 'P001',
-            product_name: 'Wireless Bluetooth Headphones',
-            main_category: 'Electronics',
-            sub_category: 'Audio',
-            average_rating: 4.5,
-            no_of_ratings: 1250,
-            discount_price_usd: 79.99,
-            actual_price_usd: 129.99
-        },
-        {
-            product_id: 'P002',
-            product_name: 'Cotton T-Shirt Premium',
-            main_category: 'Clothing',
-            sub_category: 'Men\'s Fashion',
-            average_rating: 4.2,
-            no_of_ratings: 856,
-            discount_price_usd: 24.99,
-            actual_price_usd: 39.99
-        },
-        {
-            product_id: 'P003',
-            product_name: 'Stainless Steel Cookware Set',
-            main_category: 'Home & Kitchen',
-            sub_category: 'Cookware',
-            average_rating: 4.7,
-            no_of_ratings: 2340,
-            discount_price_usd: 149.99,
-            actual_price_usd: 249.99
-        },
-        {
-            product_id: 'P004',
-            product_name: 'Smartphone Fast Charger',
-            main_category: 'Electronics',
-            sub_category: 'Accessories',
-            average_rating: 4.3,
-            no_of_ratings: 3120,
-            discount_price_usd: 19.99,
-            actual_price_usd: 34.99
-        },
-        {
-            product_id: 'P005',
-            product_name: 'Programming Guide Book',
-            main_category: 'Books',
-            sub_category: 'Technology',
-            average_rating: 4.8,
-            no_of_ratings: 567,
-            discount_price_usd: 29.99,
-            actual_price_usd: 49.99
-        }
-    ]);
+    // Products state
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [perPage, setPerPage] = useState(20);
+
+    // Categories state for filters
+    const [mainCategories, setMainCategories] = useState([]);
+    const [subCategories, setSubCategories] = useState([]);
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -94,12 +44,60 @@ const ProductManagement = () => {
     const [selectedProducts, setSelectedProducts] = useState(new Set());
     const [selectAll, setSelectAll] = useState(false);
 
-    // Pagination states
-    const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(20);
-
     // Action menu state
     const [activeMenu, setActiveMenu] = useState(null);
+
+    // Fetch products from API
+    const fetchProducts = useCallback(async (pageNum = page) => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: pageNum,
+                per_page: perPage,
+                search: searchQuery,
+                main_category: mainCategoryFilter,
+                sub_category: subCategoryFilter,
+                sort_by: sortBy,
+                sort_order: sortOrder
+            });
+
+            const response = await axios.get(`http://localhost:8000/admin/products?${params}`);
+            setProducts(response.data.products);
+            setTotal(response.data.total);
+            setTotalPages(response.data.total_pages);
+            setPage(response.data.page);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            setProducts([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, perPage, searchQuery, mainCategoryFilter, subCategoryFilter, sortBy, sortOrder]);
+
+    // Fetch categories for filters
+    const fetchCategories = async () => {
+        try {
+            const response = await axios.get('http://localhost:8000/admin/products/categories');
+            setMainCategories(response.data.main_categories || []);
+            setSubCategories(response.data.sub_categories || []);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
+
+    // Initial load
+    useEffect(() => {
+        fetchProducts(1);
+        fetchCategories();
+    }, []);
+
+    // Reload when filters change (with debounce for search)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchProducts(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery, mainCategoryFilter, subCategoryFilter, sortBy, sortOrder, perPage]);
 
     // Handle sort
     const handleSort = (column) => {
@@ -141,11 +139,26 @@ const ProductManagement = () => {
         setSubCategoryFilter('');
     };
 
-    // Handle export (placeholder)
+    // Handle export
     const handleExport = () => {
         console.log('Export products clicked');
         // TODO: Implement backend export functionality
     };
+
+    // Pagination handlers
+    const handlePerPageChange = (e) => {
+        setPerPage(Number(e.target.value));
+        setPage(1);
+    };
+
+    const handleFirstPage = () => fetchProducts(1);
+    const handleLastPage = () => fetchProducts(totalPages);
+    const handlePrevPage = () => page > 1 && fetchProducts(page - 1);
+    const handleNextPage = () => page < totalPages && fetchProducts(page + 1);
+
+    // Calculate pagination info
+    const startItem = total > 0 ? (page - 1) * perPage + 1 : 0;
+    const endItem = Math.min(page * perPage, total);
 
     // Compute active filters
     const getActiveFilters = () => {
@@ -265,10 +278,9 @@ const ProductManagement = () => {
                             className="product-table__select"
                         >
                             <option value="">All</option>
-                            <option value="Electronics">Electronics</option>
-                            <option value="Clothing">Clothing</option>
-                            <option value="Home & Kitchen">Home & Kitchen</option>
-                            <option value="Books">Books</option>
+                            {mainCategories.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -286,6 +298,9 @@ const ProductManagement = () => {
                             className="product-table__select"
                         >
                             <option value="">All</option>
+                            {subCategories.slice(0, 20).map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
                         </select>
                     </div>
 
@@ -342,102 +357,159 @@ const ProductManagement = () => {
 
                 {/* Table Body */}
                 <div className="product-table__body">
-                    {products.map((product) => (
-                        <div key={product.product_id} className="product-table__row">
-                            <div className="product-table__cell product-table__cell--checkbox">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedProducts.has(product.product_id)}
-                                    onChange={() => handleSelectProduct(product.product_id)}
-                                />
-                            </div>
-                            <div className="product-table__cell product-table__cell--name">
-                                <div className="product-info">
-                                    <InventoryIcon className="product-icon" />
-                                    <div className="product-details">
-                                        <span className="product-name">{product.product_name}</span>
-                                        <span className="product-id">ID: {product.product_id}</span>
+                    {loading ? (
+                        <div className="product-table__loading">Loading products...</div>
+                    ) : products.length === 0 ? (
+                        <div className="product-table__empty">No products found.</div>
+                    ) : (
+                        products.map((product) => (
+                            <div key={product.product_id} className="product-table__row">
+                                <div className="product-table__cell product-table__cell--checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedProducts.has(product.product_id)}
+                                        onChange={() => handleSelectProduct(product.product_id)}
+                                    />
+                                </div>
+                                <div className="product-table__cell product-table__cell--name">
+                                    <div className="product-info">
+                                        {product.product_image ? (
+                                            <img
+                                                src={product.product_image}
+                                                alt={product.product_name}
+                                                className="product-image"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        ) : (
+                                            <InventoryIcon className="product-icon" />
+                                        )}
+                                        <span className="product-name" title={product.product_name}>
+                                            {product.product_name.length > 60
+                                                ? product.product_name.substring(0, 60) + '...'
+                                                : product.product_name}
+                                        </span>
                                     </div>
                                 </div>
+                                <div className="product-table__cell product-table__cell--main-category">
+                                    {product.main_category}
+                                </div>
+                                <div className="product-table__cell product-table__cell--sub-category">
+                                    {product.sub_category}
+                                </div>
+                                <div className="product-table__cell product-table__cell--rating">
+                                    {renderRating(product.average_rating)}
+                                </div>
+                                <div className="product-table__cell product-table__cell--num-ratings">
+                                    {product.no_of_ratings.toLocaleString()}
+                                </div>
+                                <div className="product-table__cell product-table__cell--discount-price">
+                                    {product.discount_price_usd ? `$${product.discount_price_usd.toFixed(2)}` : '-'}
+                                </div>
+                                <div className="product-table__cell product-table__cell--actual-price">
+                                    {product.actual_price_usd ? `$${product.actual_price_usd.toFixed(2)}` : '-'}
+                                </div>
+                                <div className="product-table__cell product-table__cell--actions">
+                                    <button
+                                        className="action-menu-btn"
+                                        onClick={() => setActiveMenu(activeMenu === product.product_id ? null : product.product_id)}
+                                    >
+                                        <MoreVertIcon />
+                                    </button>
+                                    {activeMenu === product.product_id && (
+                                        <div className="action-menu">
+                                            <button className="action-menu__item">
+                                                <CheckCircleIcon /> View Details
+                                            </button>
+                                            <button className="action-menu__item">
+                                                <InventoryIcon /> Edit Product
+                                            </button>
+                                            <button className="action-menu__item action-menu__item--danger">
+                                                <BlockIcon /> Discontinue
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="product-table__cell product-table__cell--main-category">
-                                {product.main_category}
-                            </div>
-                            <div className="product-table__cell product-table__cell--sub-category">
-                                {product.sub_category}
-                            </div>
-                            <div className="product-table__cell product-table__cell--rating">
-                                {renderRating(product.average_rating)}
-                            </div>
-                            <div className="product-table__cell product-table__cell--num-ratings">
-                                {product.no_of_ratings.toLocaleString()}
-                            </div>
-                            <div className="product-table__cell product-table__cell--discount-price">
-                                ${product.discount_price_usd.toFixed(2)}
-                            </div>
-                            <div className="product-table__cell product-table__cell--actual-price">
-                                ${product.actual_price_usd.toFixed(2)}
-                            </div>
-                            <div className="product-table__cell product-table__cell--actions">
-                                <button
-                                    className="action-menu-btn"
-                                    onClick={() => setActiveMenu(activeMenu === product.product_id ? null : product.product_id)}
-                                >
-                                    <MoreVertIcon />
-                                </button>
-                                {activeMenu === product.product_id && (
-                                    <div className="action-menu">
-                                        <button className="action-menu__item">
-                                            <CheckCircleIcon /> View Details
-                                        </button>
-                                        <button className="action-menu__item">
-                                            <InventoryIcon /> Edit Product
-                                        </button>
-                                        <button className="action-menu__item action-menu__item--danger">
-                                            <BlockIcon /> Discontinue
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
-            {/* Pagination */}
-            <div className="pagination">
-                <div className="pagination__info">
-                    Showing 1-{products.length} of {products.length} products
+            {/* Pagination - Matching Customer Management */}
+            <div className="user-pagination">
+                <div className="user-pagination__info">
+                    <span className="user-pagination__per-page">
+                        Items per page:
+                        <select
+                            value={perPage}
+                            onChange={handlePerPageChange}
+                            className="user-pagination__select"
+                        >
+                            <option value={20}>20</option>
+                            <option value={40}>40</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </span>
+                    <span className="user-pagination__range">
+                        {startItem}-{endItem} of {total}
+                    </span>
                 </div>
-                <div className="pagination__controls">
-                    <select
-                        value={perPage}
-                        onChange={(e) => setPerPage(Number(e.target.value))}
-                        className="pagination__per-page"
+                <div className="user-pagination__controls">
+                    <button
+                        className="user-pagination__btn user-pagination__btn--icon"
+                        onClick={handleFirstPage}
+                        disabled={page <= 1}
+                        title="First page"
                     >
-                        <option value={10}>10 per page</option>
-                        <option value={20}>20 per page</option>
-                        <option value={50}>50 per page</option>
-                    </select>
-                    <div className="pagination__buttons">
-                        <button className="pagination__btn" disabled>
-                            <FirstPageIcon />
-                        </button>
-                        <button className="pagination__btn" disabled>
-                            Prev
-                        </button>
-                        <span className="pagination__page">Page {page} of 1</span>
-                        <button className="pagination__btn" disabled>
-                            Next
-                        </button>
-                        <button className="pagination__btn" disabled>
-                            <LastPageIcon />
-                        </button>
-                    </div>
+                        <FirstPageIcon />
+                    </button>
+                    <button
+                        className="user-pagination__btn"
+                        onClick={handlePrevPage}
+                        disabled={page <= 1}
+                    >
+                        Prev
+                    </button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                            pageNum = i + 1;
+                        } else if (page <= 3) {
+                            pageNum = i + 1;
+                        } else if (page >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                        } else {
+                            pageNum = page - 2 + i;
+                        }
+                        return (
+                            <button
+                                key={pageNum}
+                                className={`user-pagination__page ${page === pageNum ? 'user-pagination__page--active' : ''}`}
+                                onClick={() => fetchProducts(pageNum)}
+                            >
+                                {pageNum}
+                            </button>
+                        );
+                    })}
+                    <button
+                        className="user-pagination__btn"
+                        onClick={handleNextPage}
+                        disabled={page >= totalPages}
+                    >
+                        Next
+                    </button>
+                    <button
+                        className="user-pagination__btn user-pagination__btn--icon"
+                        onClick={handleLastPage}
+                        disabled={page >= totalPages}
+                        title="Last page"
+                    >
+                        <LastPageIcon />
+                    </button>
                 </div>
             </div>
 
-            {/* Export Section - Below table */}
+            {/* Export Section */}
             <div className="export-section">
                 <button className="export-btn" onClick={handleExport} title="Export Products to CSV">
                     <FileDownloadIcon />
