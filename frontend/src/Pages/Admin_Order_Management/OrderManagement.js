@@ -21,6 +21,8 @@ const OrderManagement = () => {
     // Filter state
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState(0); // 0 = All statuses
+    const [paymentFilter, setPaymentFilter] = useState(''); // '' = All payments
+    const [shippingFilter, setShippingFilter] = useState(''); // '' = All shipping
 
     // Sorting state
     const [sortBy, setSortBy] = useState('');
@@ -41,6 +43,22 @@ const OrderManagement = () => {
         { value: 4, label: 'Delivered' },
         { value: 5, label: 'Cancelled' },
         { value: 6, label: 'Returned' }
+    ];
+
+    // Payment method options for filter
+    const paymentOptions = [
+        { value: '', label: 'All' },
+        { value: 'Cash On Delivery', label: 'Cash On Delivery' },
+        { value: 'Credit Card', label: 'Credit Card' }
+    ];
+
+    // Shipping method options for filter
+    const shippingOptions = [
+        { value: '', label: 'All' },
+        { value: 'Standard', label: 'Standard' },
+        { value: 'Express', label: 'Express' },
+        { value: 'Same Day', label: 'Same Day' },
+        { value: 'International', label: 'International' }
     ];
 
     // Fetch orders from API
@@ -117,6 +135,8 @@ const OrderManagement = () => {
     const handleResetFilters = () => {
         setSearchQuery('');
         setStatusFilter(0);
+        setPaymentFilter('');
+        setShippingFilter('');
         setSortBy('');
         setSortOrder('desc');
         setPage(1);
@@ -126,6 +146,16 @@ const OrderManagement = () => {
     const handleStatusFilterChange = (e) => {
         setStatusFilter(parseInt(e.target.value));
         setPage(1);
+    };
+
+    // Handle payment filter change
+    const handlePaymentFilterChange = (e) => {
+        setPaymentFilter(e.target.value);
+    };
+
+    // Handle shipping filter change
+    const handleShippingFilterChange = (e) => {
+        setShippingFilter(e.target.value);
     };
 
     // Handle per page change
@@ -138,6 +168,13 @@ const OrderManagement = () => {
     const handleExport = () => {
         console.log('Export orders clicked - will be implemented with API');
     };
+
+    // Client-side filtering for payment and shipping (UI-only filters)
+    const filteredOrders = orders.filter(order => {
+        if (paymentFilter && order.payment_method !== paymentFilter) return false;
+        if (shippingFilter && order.shipping_method !== shippingFilter) return false;
+        return true;
+    });
 
     // Calculate pagination info
     const startIndex = total > 0 ? (page - 1) * perPage + 1 : 0;
@@ -209,6 +246,15 @@ const OrderManagement = () => {
                         <div className="non-sortable-header">
                             <span className="order-table__header-label">Payment</span>
                         </div>
+                        <select
+                            value={paymentFilter}
+                            onChange={handlePaymentFilterChange}
+                            className="order-table__select"
+                        >
+                            {paymentOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Shipping Method Column */}
@@ -216,6 +262,15 @@ const OrderManagement = () => {
                         <div className="non-sortable-header">
                             <span className="order-table__header-label">Shipping</span>
                         </div>
+                        <select
+                            value={shippingFilter}
+                            onChange={handleShippingFilterChange}
+                            className="order-table__select"
+                        >
+                            {shippingOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Status Column */}
@@ -246,10 +301,10 @@ const OrderManagement = () => {
                 <div className="order-table__body">
                     {loading ? (
                         <div className="order-table__loading">Loading orders...</div>
-                    ) : orders.length === 0 ? (
+                    ) : filteredOrders.length === 0 ? (
                         <div className="order-table__empty">No orders found.</div>
                     ) : (
-                        orders.map((order) => (
+                        filteredOrders.map((order) => (
                             <div key={order.order_id} className="order-table__row">
                                 {/* Order ID */}
                                 <div className="order-table__cell order-table__cell--id">
