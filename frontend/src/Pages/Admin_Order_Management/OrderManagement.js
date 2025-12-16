@@ -50,6 +50,13 @@ const OrderManagement = () => {
     const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
     const [orderDetailLoading, setOrderDetailLoading] = useState(false);
 
+    // Bulk selection state
+    const [selectedOrders, setSelectedOrders] = useState(new Set());
+    const [selectAll, setSelectAll] = useState(false);
+    const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+    const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
+    const [bulkLoading, setBulkLoading] = useState(false);
+
     // Payment and shipping method mappings for modal display
     const paymentMethods = {
         1: 'Cash On Delivery',
@@ -240,7 +247,82 @@ const OrderManagement = () => {
         console.log('Export orders clicked - will be implemented with API');
     };
 
-    // Toggle action menu
+    // Handle select all checkbox
+    const handleSelectAll = () => {
+        if (selectAll) {
+            setSelectedOrders(new Set());
+        } else {
+            const allOrderIds = new Set(filteredOrders.map(o => o.order_id));
+            setSelectedOrders(allOrderIds);
+        }
+        setSelectAll(!selectAll);
+    };
+
+    // Handle individual order selection
+    const handleSelectOrder = (orderId) => {
+        const newSelected = new Set(selectedOrders);
+        if (newSelected.has(orderId)) {
+            newSelected.delete(orderId);
+        } else {
+            newSelected.add(orderId);
+        }
+        setSelectedOrders(newSelected);
+        setSelectAll(newSelected.size === filteredOrders.length && filteredOrders.length > 0);
+    };
+
+    // Show bulk action confirmation modal
+    const showBulkConfirmation = (statusId) => {
+        if (selectedOrders.size === 0) return;
+        setPendingBulkStatus(statusId);
+        setShowBulkConfirmModal(true);
+    };
+
+    // Get status label from ID
+    const getStatusLabel = (statusId) => {
+        const status = statusOptions.find(s => s.value === statusId);
+        return status ? status.label : 'Unknown';
+    };
+
+    // Confirm and execute bulk status update
+    const confirmBulkAction = async () => {
+        if (selectedOrders.size === 0 || !pendingBulkStatus) {
+            setShowBulkConfirmModal(false);
+            return;
+        }
+
+        setBulkLoading(true);
+        try {
+            const response = await axios.put('http://localhost:8000/admin/orders/bulk-status', {
+                order_ids: Array.from(selectedOrders),
+                status_id: pendingBulkStatus
+            });
+
+            setShowBulkConfirmModal(false);
+            setPendingBulkStatus(null);
+            setSelectedOrders(new Set());
+            setSelectAll(false);
+            fetchOrders();
+            alert(response.data.message);
+        } catch (error) {
+            console.error('Error bulk updating order status:', error);
+            alert('Failed to update orders: ' + (error.response?.data?.detail || error.message));
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    // Cancel bulk action
+    const cancelBulkAction = () => {
+        setShowBulkConfirmModal(false);
+        setPendingBulkStatus(null);
+    };
+
+    // Clear bulk selection
+    const clearBulkSelection = () => {
+        setSelectedOrders(new Set());
+        setSelectAll(false);
+    };
+
     const toggleMenu = (orderId) => {
         setActiveMenu(activeMenu === orderId ? null : orderId);
     };
@@ -318,10 +400,67 @@ const OrderManagement = () => {
 
     return (
         <div className="admin-page__ordermanagement">
+            {/* Bulk Action Toolbar - shown when orders selected */}
+            {selectedOrders.size > 0 && (
+                <div className="bulk-action-toolbar">
+                    <span className="bulk-action-toolbar__count">
+                        {selectedOrders.size} order{selectedOrders.size > 1 ? 's' : ''} selected
+                    </span>
+                    <div className="bulk-action-toolbar__actions">
+                        <button
+                            className="bulk-action-btn bulk-action-btn--pending"
+                            onClick={() => showBulkConfirmation(1)}
+                        >
+                            Set Pending
+                        </button>
+                        <button
+                            className="bulk-action-btn bulk-action-btn--processing"
+                            onClick={() => showBulkConfirmation(2)}
+                        >
+                            Set Processing
+                        </button>
+                        <button
+                            className="bulk-action-btn bulk-action-btn--shipped"
+                            onClick={() => showBulkConfirmation(3)}
+                        >
+                            Set Shipped
+                        </button>
+                        <button
+                            className="bulk-action-btn bulk-action-btn--delivered"
+                            onClick={() => showBulkConfirmation(4)}
+                        >
+                            Set Delivered
+                        </button>
+                        <button
+                            className="bulk-action-btn bulk-action-btn--cancelled"
+                            onClick={() => showBulkConfirmation(5)}
+                        >
+                            Set Cancelled
+                        </button>
+                    </div>
+                    <button
+                        className="bulk-action-toolbar__deselect"
+                        onClick={clearBulkSelection}
+                    >
+                        Clear Selection
+                    </button>
+                </div>
+            )}
+
             {/* Table Structure */}
             <div className="order-table">
                 {/* Table Header */}
                 <div className="order-table__header">
+                    {/* Checkbox Column */}
+                    <div className="order-table__cell order-table__cell--checkbox">
+                        <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={handleSelectAll}
+                            title="Select all orders on this page"
+                        />
+                    </div>
+
                     {/* Order ID Column */}
                     <div className="order-table__cell order-table__cell--id">
                         <div className="non-sortable-header">
@@ -499,7 +638,19 @@ const OrderManagement = () => {
                         <div className="order-table__empty">No orders found.</div>
                     ) : (
                         filteredOrders.map((order) => (
-                            <div key={order.order_id} className="order-table__row">
+                            <div
+                                key={order.order_id}
+                                className={`order-table__row ${selectedOrders.has(order.order_id) ? 'order-table__row--selected' : ''}`}
+                            >
+                                {/* Checkbox */}
+                                <div className="order-table__cell order-table__cell--checkbox">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedOrders.has(order.order_id)}
+                                        onChange={() => handleSelectOrder(order.order_id)}
+                                    />
+                                </div>
+
                                 {/* Order ID */}
                                 <div className="order-table__cell order-table__cell--id">
                                     <span className="order-id">#{order.order_id}</span>
@@ -758,6 +909,47 @@ const OrderManagement = () => {
                         <div className="order-detail-modal__footer">
                             <button className="order-detail-modal__btn" onClick={closeOrderDetail}>
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Action Confirmation Modal */}
+            {showBulkConfirmModal && (
+                <div className="bulk-confirm-overlay" onClick={cancelBulkAction}>
+                    <div className="bulk-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="bulk-confirm-modal__header">
+                            <h3>Confirm Bulk Status Change</h3>
+                            <button className="bulk-confirm-modal__close" onClick={cancelBulkAction}>
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="bulk-confirm-modal__body">
+                            <p className="bulk-confirm-modal__message">
+                                You are about to change the status of <strong>{selectedOrders.size}</strong> order{selectedOrders.size > 1 ? 's' : ''} to{' '}
+                                <span className={`bulk-confirm-modal__status bulk-confirm-modal__status--${getStatusLabel(pendingBulkStatus).toLowerCase()}`}>
+                                    {getStatusLabel(pendingBulkStatus)}
+                                </span>
+                            </p>
+                            <p className="bulk-confirm-modal__warning">
+                                This action will update all selected orders immediately.
+                            </p>
+                        </div>
+                        <div className="bulk-confirm-modal__footer">
+                            <button
+                                className="bulk-confirm-modal__btn bulk-confirm-modal__btn--cancel"
+                                onClick={cancelBulkAction}
+                                disabled={bulkLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="bulk-confirm-modal__btn bulk-confirm-modal__btn--confirm"
+                                onClick={confirmBulkAction}
+                                disabled={bulkLoading}
+                            >
+                                {bulkLoading ? 'Updating...' : 'Confirm'}
                             </button>
                         </div>
                     </div>

@@ -1941,6 +1941,59 @@ async def get_admin_orders(
     }
 
 
+@app.put("/admin/orders/bulk-status")
+async def update_bulk_order_status(
+    bulk_update: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update status for multiple orders at once.
+    Body: { "order_ids": [1, 2, 3], "status_id": 1-6 }
+    Status IDs: 1=Pending, 2=Processing, 3=Shipped, 4=Delivered, 5=Cancelled, 6=Returned
+    """
+    order_ids = bulk_update.get("order_ids", [])
+    status_id = bulk_update.get("status_id")
+    
+    if not order_ids:
+        raise HTTPException(status_code=400, detail="No order IDs provided")
+    
+    if not status_id or status_id not in [1, 2, 3, 4, 5, 6]:
+        raise HTTPException(status_code=400, detail="Invalid status ID. Must be 1-6.")
+    
+    status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    
+    success_count = 0
+    failed_count = 0
+    
+    for order_id in order_ids:
+        try:
+            order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+            if order:
+                order.order_status_id = status_id
+                # Set completed_at when status is Delivered (4), clear otherwise
+                if status_id == 4:
+                    order.completed_at = datetime.now()
+                elif order.completed_at and status_id != 4:
+                    # Keep completed_at if changing from Delivered to another status
+                    pass
+                success_count += 1
+            else:
+                failed_count += 1
+        except Exception as e:
+            print(f"Error updating order {order_id}: {e}")
+            failed_count += 1
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": f"Updated {success_count} orders to {status_mapping[status_id]}",
+        "success_count": success_count,
+        "failed_count": failed_count
+    }
+
+
+
 @app.get("/admin/order-status-counts")
 async def get_order_status_counts(db: Session = Depends(get_db)):
     """
