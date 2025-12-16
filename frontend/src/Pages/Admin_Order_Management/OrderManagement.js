@@ -242,9 +242,61 @@ const OrderManagement = () => {
         setPage(1);
     };
 
-    // Handle export (placeholder)
+    // Handle export - downloads CSV of current filtered orders
     const handleExport = () => {
-        console.log('Export orders clicked - will be implemented with API');
+        try {
+            // Define CSV headers matching table columns
+            const headers = [
+                'Order ID',
+                'Customer',
+                'Phone',
+                'Quantity',
+                'Amount',
+                'Payment Method',
+                'Shipping Method',
+                'Status',
+                'Order Date',
+                'Complete Date'
+            ];
+
+            // Convert orders to CSV rows
+            const rows = filteredOrders.map(order => [
+                order.order_id,
+                order.customer_name || '',
+                order.phone || '',
+                order.quantity || 0,
+                order.order_total ? `$${order.order_total.toFixed(2)}` : '$0.00',
+                order.payment_method || '',
+                order.shipping_method || '',
+                order.status || '',
+                order.order_date ? new Date(order.order_date).toLocaleDateString() : '',
+                order.completed_at ? new Date(order.completed_at).toLocaleDateString() : ''
+            ]);
+
+            // Build CSV content
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => {
+                    // Escape cells containing commas or quotes
+                    const cellStr = String(cell);
+                    if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                        return `"${cellStr.replace(/"/g, '""')}"`;
+                    }
+                    return cellStr;
+                }).join(','))
+            ].join('\n');
+
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        } catch (error) {
+            console.error('Error exporting orders:', error);
+            alert('Failed to export orders. Please try again.');
+        }
     };
 
     // Handle select all checkbox
