@@ -491,7 +491,7 @@
 }
 
 /* ================================
-   ORDER DETAIL MODAL
+   ORDER DETAIL MODAL - TWO COLUMN LAYOUT
    ================================ */
 
 .order-detail-overlay {
@@ -511,8 +511,8 @@
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    min-width: 500px;
-    max-width: 600px;
+    width: 800px;
+    max-width: 95vw;
     max-height: 80vh;
     overflow: hidden;
     animation: fadeIn 0.2s ease-out;
@@ -557,21 +557,23 @@
     opacity: 0.8;
 }
 
+/* Two-Column Body Layout */
 .order-detail-modal__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
     padding: 20px;
-    max-height: 50vh;
+    max-height: 55vh;
     overflow-y: auto;
 }
 
-.order-detail-modal__section {
-    margin-bottom: 20px;
+/* Left Column - Products */
+.order-detail-modal__products-column {
+    display: flex;
+    flex-direction: column;
 }
 
-.order-detail-modal__section:last-child {
-    margin-bottom: 0;
-}
-
-.order-detail-modal__section h4 {
+.order-detail-modal__products-column h4 {
     font-size: 14px;
     font-weight: 600;
     color: #0f1111;
@@ -584,6 +586,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: 350px;
+    overflow-y: auto;
 }
 
 .order-detail-modal__product {
@@ -597,6 +601,7 @@
 
 .product-info {
     flex: 1;
+    min-width: 0;
 }
 
 .product-name {
@@ -605,6 +610,9 @@
     font-weight: 500;
     display: block;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .product-meta {
@@ -615,8 +623,9 @@
 }
 
 .product-image-container {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
 }
 
 .product-image {
@@ -628,10 +637,25 @@
     background: #fff;
 }
 
+/* Right Column - Order Info */
+.order-detail-modal__info-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.order-detail-modal__info-column h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f1111;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
 .order-detail-modal__info {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .info-row {
@@ -653,12 +677,52 @@
     font-size: 13px;
     color: #0f1111;
     font-weight: 500;
+    text-align: right;
 }
 
 .info-value--total {
     font-size: 16px;
     font-weight: 700;
     color: #c45500;
+}
+
+/* Status Badge in Modal */
+.info-value--status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.info-value--status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.info-value--status.processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.info-value--status.shipped {
+    background: #d4edda;
+    color: #155724;
+}
+
+.info-value--status.delivered {
+    background: #c3e6cb;
+    color: #0d5524;
+}
+
+.info-value--status.cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.info-value--status.returned {
+    background: #e2e3e5;
+    color: #383d41;
 }
 
 .order-detail-modal__footer {

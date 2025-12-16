@@ -1496,13 +1496,23 @@ async def get_order_detail(order_id: int, db: Session = Depends(get_db)):
             "product_image": product.product_image if product else ""
         })
     
+    # Status mapping
+    status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    payment_mapping = {1: 'Cash On Delivery', 2: 'Credit Card'}
+    shipping_mapping = {1: 'Standard', 2: 'Express', 3: 'Same Day', 4: 'International'}
+    
     return {
         "order_id": order.order_id,
         "order_date": str(order.order_date),
         "order_total": float(order.order_total),
         "payment_method_id": order.payment_method_id,
+        "payment_method": payment_mapping.get(order.payment_method_id, "Unknown"),
         "shipping_method_id": order.shipping_method_id,
+        "shipping_method": shipping_mapping.get(order.shipping_method_id, "Unknown"),
         "order_status_id": order.order_status_id,
+        "order_status": status_mapping.get(order.order_status_id, "Unknown"),
+        "created_at": order.created_at.isoformat() if order.created_at else None,
+        "completed_at": order.completed_at.isoformat() if order.completed_at else None,
         "items": items
     }
 

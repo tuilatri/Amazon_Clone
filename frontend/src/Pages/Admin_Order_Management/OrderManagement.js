@@ -671,7 +671,7 @@ const OrderManagement = () => {
                 </button>
             </div>
 
-            {/* Order Detail Modal */}
+            {/* Order Detail Modal - Two Column Layout */}
             {showOrderDetail && selectedOrderDetail && (
                 <div className="order-detail-overlay" onClick={closeOrderDetail}>
                     <div className="order-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -682,8 +682,8 @@ const OrderManagement = () => {
                             </button>
                         </div>
                         <div className="order-detail-modal__body">
-                            {/* Products List */}
-                            <div className="order-detail-modal__section">
+                            {/* Left Column - Products */}
+                            <div className="order-detail-modal__products-column">
                                 <h4>Products</h4>
                                 <div className="order-detail-modal__products">
                                     {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
@@ -691,17 +691,17 @@ const OrderManagement = () => {
                                             <div key={index} className="order-detail-modal__product">
                                                 <div className="product-image-container">
                                                     <img
-                                                        src={item.product_image || 'https://via.placeholder.com/60x60?text=No+Image'}
+                                                        src={item.product_image || 'https://via.placeholder.com/50x50?text=No+Image'}
                                                         alt={item.product_name}
                                                         className="product-image"
-                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/60x60?text=No+Image'; }}
+                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/50x50?text=No+Image'; }}
                                                     />
                                                 </div>
                                                 <div className="product-info">
-                                                    <span className="product-name">{item.product_name}</span>
+                                                    <span className="product-name" title={item.product_name}>{item.product_name}</span>
                                                     <div className="product-meta">
                                                         <span>Qty: {item.qty}</span>
-                                                        <span>Price: ${item.price.toFixed(2)}</span>
+                                                        <span>${item.price.toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -712,10 +712,16 @@ const OrderManagement = () => {
                                 </div>
                             </div>
 
-                            {/* Order Info */}
-                            <div className="order-detail-modal__section">
+                            {/* Right Column - Order Info */}
+                            <div className="order-detail-modal__info-column">
                                 <h4>Order Information</h4>
                                 <div className="order-detail-modal__info">
+                                    <div className="info-row">
+                                        <span className="info-label">Status:</span>
+                                        <span className={`info-value info-value--status ${(selectedOrderDetail.order_status || '').toLowerCase()}`}>
+                                            {selectedOrderDetail.order_status || 'N/A'}
+                                        </span>
+                                    </div>
                                     <div className="info-row">
                                         <span className="info-label">Order Date:</span>
                                         <span className="info-value">
@@ -725,25 +731,19 @@ const OrderManagement = () => {
                                     <div className="info-row">
                                         <span className="info-label">Complete Date:</span>
                                         <span className="info-value">
-                                            {formatDateTime(selectedOrderDetail.completed_at)}
+                                            {selectedOrderDetail.completed_at ? formatDateTime(selectedOrderDetail.completed_at) : '—'}
                                         </span>
                                     </div>
                                     <div className="info-row">
-                                        <span className="info-label">Status:</span>
+                                        <span className="info-label">Payment:</span>
                                         <span className="info-value">
-                                            {selectedOrderDetail.order_status || selectedOrderDetail.status || 'N/A'}
+                                            {selectedOrderDetail.payment_method || 'N/A'}
                                         </span>
                                     </div>
                                     <div className="info-row">
-                                        <span className="info-label">Payment Method:</span>
+                                        <span className="info-label">Shipping:</span>
                                         <span className="info-value">
-                                            {paymentMethods[selectedOrderDetail.payment_method_id] || selectedOrderDetail.payment_method || 'N/A'}
-                                        </span>
-                                    </div>
-                                    <div className="info-row">
-                                        <span className="info-label">Shipping Method:</span>
-                                        <span className="info-value">
-                                            {shippingMethods[selectedOrderDetail.shipping_method_id] || selectedOrderDetail.shipping_method || 'N/A'}
+                                            {selectedOrderDetail.shipping_method || 'N/A'}
                                         </span>
                                     </div>
                                     <div className="info-row">
