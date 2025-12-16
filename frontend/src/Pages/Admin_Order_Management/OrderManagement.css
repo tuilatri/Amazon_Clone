@@ -557,20 +557,23 @@
     opacity: 0.8;
 }
 
-/* Two-Column Body Layout */
+/* Two-Column Body Layout - Fixed Widths */
 .order-detail-modal__body {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: 50% 50%;
+    gap: 10px;
     padding: 20px;
     max-height: 55vh;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* Left Column - Products */
+/* Left Column - Products (Fixed Width) */
 .order-detail-modal__products-column {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .order-detail-modal__products-column h4 {
@@ -610,9 +613,11 @@
     font-weight: 500;
     display: block;
     margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Text Wrapping - Allow long names to wrap */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
 }
 
 .product-meta {
@@ -637,10 +642,12 @@
     background: #fff;
 }
 
-/* Right Column - Order Info */
+/* Right Column - Order Info (Fixed Width) */
 .order-detail-modal__info-column {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .order-detail-modal__info-column h4 {
