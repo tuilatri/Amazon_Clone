@@ -283,6 +283,25 @@ const OrderManagement = () => {
         return status ? status.label : 'Unknown';
     };
 
+    // Get non-updatable orders (Delivered or Cancelled)
+    const getNonUpdatableOrders = () => {
+        return filteredOrders.filter(order =>
+            selectedOrders.has(order.order_id) &&
+            (order.status === 'Delivered' || order.status === 'Cancelled')
+        );
+    };
+
+    // Get updatable order IDs (excluding Delivered and Cancelled)
+    const getUpdatableOrderIds = () => {
+        return filteredOrders
+            .filter(order =>
+                selectedOrders.has(order.order_id) &&
+                order.status !== 'Delivered' &&
+                order.status !== 'Cancelled'
+            )
+            .map(order => order.order_id);
+    };
+
     // Confirm and execute bulk status update
     const confirmBulkAction = async () => {
         if (selectedOrders.size === 0 || !pendingBulkStatus) {
@@ -290,10 +309,19 @@ const OrderManagement = () => {
             return;
         }
 
+        // Get only updatable orders (exclude Delivered/Cancelled)
+        const updatableOrderIds = getUpdatableOrderIds();
+
+        if (updatableOrderIds.length === 0) {
+            alert('No orders can be updated. All selected orders are already Delivered or Cancelled.');
+            setShowBulkConfirmModal(false);
+            return;
+        }
+
         setBulkLoading(true);
         try {
             const response = await axios.put('http://localhost:8000/admin/orders/bulk-status', {
-                order_ids: Array.from(selectedOrders),
+                order_ids: updatableOrderIds,
                 status_id: pendingBulkStatus
             });
 
@@ -927,13 +955,20 @@ const OrderManagement = () => {
                         </div>
                         <div className="bulk-confirm-modal__body">
                             <p className="bulk-confirm-modal__message">
-                                You are about to change the status of <strong>{selectedOrders.size}</strong> order{selectedOrders.size > 1 ? 's' : ''} to{' '}
+                                You are about to change the status of <strong>{getUpdatableOrderIds().length}</strong> order{getUpdatableOrderIds().length !== 1 ? 's' : ''} to{' '}
                                 <span className={`bulk-confirm-modal__status bulk-confirm-modal__status--${getStatusLabel(pendingBulkStatus).toLowerCase()}`}>
                                     {getStatusLabel(pendingBulkStatus)}
                                 </span>
                             </p>
+                            {getNonUpdatableOrders().length > 0 && (
+                                <div className="bulk-confirm-modal__notice">
+                                    <p className="bulk-confirm-modal__notice-text">
+                                        <strong>{getNonUpdatableOrders().length}</strong> order{getNonUpdatableOrders().length !== 1 ? 's are' : ' is'} already <strong>Delivered</strong> or <strong>Cancelled</strong> and cannot be updated. {getNonUpdatableOrders().length !== 1 ? 'These orders' : 'This order'} will be skipped.
+                                    </p>
+                                </div>
+                            )}
                             <p className="bulk-confirm-modal__warning">
-                                This action will update all selected orders immediately.
+                                This action will update the eligible orders immediately.
                             </p>
                         </div>
                         <div className="bulk-confirm-modal__footer">

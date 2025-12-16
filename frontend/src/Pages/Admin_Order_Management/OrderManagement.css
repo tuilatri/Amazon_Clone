@@ -1028,6 +1028,27 @@
     color: #383d41;
 }
 
+/* Notice for non-updatable orders */
+.bulk-confirm-modal__notice {
+    background: #fff8e1;
+    border: 1px solid #ffcc80;
+    border-left: 4px solid #ff9800;
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin: 12px 0;
+}
+
+.bulk-confirm-modal__notice-text {
+    font-size: 13px;
+    color: #5d4037;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.bulk-confirm-modal__notice-text strong {
+    color: #e65100;
+}
+
 .bulk-confirm-modal__warning {
     font-size: 13px;
     color: #565959;
