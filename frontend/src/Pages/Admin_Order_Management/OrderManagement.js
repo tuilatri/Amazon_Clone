@@ -12,6 +12,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
+import LockIcon from '@mui/icons-material/Lock';
 
 // OrderManagement - Admin tab for managing orders
 // Fetches orders from database and displays in a table matching Product Management layout
@@ -56,6 +57,9 @@ const OrderManagement = () => {
     const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
     const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
     const [bulkLoading, setBulkLoading] = useState(false);
+
+    // Inline status edit state
+    const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
 
     // Payment and shipping method mappings for modal display
     const paymentMethods = {
@@ -401,6 +405,37 @@ const OrderManagement = () => {
     const clearBulkSelection = () => {
         setSelectedOrders(new Set());
         setSelectAll(false);
+    };
+
+    // Check if status is locked (Delivered or Cancelled)
+    const isStatusLocked = (status) => {
+        return status === 'Delivered' || status === 'Cancelled';
+    };
+
+    // Handle inline status change for a single order
+    const handleInlineStatusChange = async (orderId, newStatusId) => {
+        try {
+            await axios.put('http://localhost:8000/admin/orders/bulk-status', {
+                order_ids: [orderId],
+                status_id: newStatusId
+            });
+            // Update local state immediately for better UX
+            setOrders(prevOrders => prevOrders.map(order => {
+                if (order.order_id === orderId) {
+                    const newStatus = statusOptions.find(s => s.value === newStatusId)?.label || order.status;
+                    return {
+                        ...order,
+                        status: newStatus,
+                        completed_at: newStatusId === 4 ? new Date().toISOString() : order.completed_at
+                    };
+                }
+                return order;
+            }));
+            setEditingStatusOrderId(null);
+        } catch (error) {
+            console.error('Error updating order status:', error);
+            alert('Failed to update order status: ' + (error.response?.data?.detail || error.message));
+        }
     };
 
     const toggleMenu = (orderId) => {
@@ -766,11 +801,32 @@ const OrderManagement = () => {
                                     <span className="shipping-method">{order.shipping_method}</span>
                                 </div>
 
-                                {/* Status */}
+                                {/* Status - Inline Editable */}
                                 <div className="order-table__cell order-table__cell--status">
-                                    <span className={getStatusClass(order.status)}>
-                                        {order.status}
-                                    </span>
+                                    {editingStatusOrderId === order.order_id ? (
+                                        <select
+                                            className="status-inline-select"
+                                            value={statusOptions.find(s => s.label === order.status)?.value || 0}
+                                            onChange={(e) => handleInlineStatusChange(order.order_id, parseInt(e.target.value))}
+                                            onBlur={() => setEditingStatusOrderId(null)}
+                                            autoFocus
+                                        >
+                                            {statusOptions.filter(s => s.value !== 0).map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span
+                                            className={`${getStatusClass(order.status)} ${isStatusLocked(order.status) ? 'status-locked' : 'status-editable'}`}
+                                            onClick={() => !isStatusLocked(order.status) && setEditingStatusOrderId(order.order_id)}
+                                            title={isStatusLocked(order.status) ? 'Status is final and cannot be changed' : 'Click to change status'}
+                                        >
+                                            {order.status}
+                                            {isStatusLocked(order.status) && <LockIcon className="status-lock-icon" />}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Order Date */}

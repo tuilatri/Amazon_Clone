@@ -202,7 +202,7 @@
 .order-table__row {
     display: grid;
     /* Checkbox + all other columns */
-    grid-template-columns: 40px 90px 90px 120px 60px 90px 150px 110px 120px 160px 160px 60px;
+    grid-template-columns: 40px 90px 90px 120px 60px 90px 150px 90px 140px 160px 160px 80px;
     /* customer, phone, qty, amount, payment, shipping, status, order date, complete date, reload */
     padding: 12px 12px;
     gap: 8px;
@@ -305,6 +305,50 @@
 .order-status--returned {
     background: #e2e3e5;
     color: #383d41;
+}
+
+/* Editable Status - Shows pointer cursor and hover effect */
+.status-editable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-editable:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    transform: scale(1.02);
+}
+
+/* Locked Status - Delivered/Cancelled */
+.status-locked {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: not-allowed;
+    opacity: 0.9;
+}
+
+.status-lock-icon {
+    font-size: 12px !important;
+    opacity: 0.7;
+}
+
+/* Inline Status Select Dropdown */
+.status-inline-select {
+    padding: 4px 8px;
+    border: 1px solid #e77600;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #fff;
+    cursor: pointer;
+    min-width: 50px;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-inline-select:focus {
+    border-color: #c45500;
+    box-shadow: 0 0 0 2px rgba(231, 118, 0, 0.2);
 }
 
 /* Action Menu - Matching User Management */
