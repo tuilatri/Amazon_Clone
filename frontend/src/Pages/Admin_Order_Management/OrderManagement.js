@@ -339,21 +339,22 @@ const OrderManagement = () => {
         return status ? status.label : 'Unknown';
     };
 
-    // Get non-updatable orders (Delivered or Cancelled)
+    // Get non-updatable orders (Delivered, Cancelled, or Returned - final states)
     const getNonUpdatableOrders = () => {
         return filteredOrders.filter(order =>
             selectedOrders.has(order.order_id) &&
-            (order.status === 'Delivered' || order.status === 'Cancelled')
+            (order.status === 'Delivered' || order.status === 'Cancelled' || order.status === 'Returned')
         );
     };
 
-    // Get updatable order IDs (excluding Delivered and Cancelled)
+    // Get updatable order IDs (excluding Delivered, Cancelled, and Returned)
     const getUpdatableOrderIds = () => {
         return filteredOrders
             .filter(order =>
                 selectedOrders.has(order.order_id) &&
                 order.status !== 'Delivered' &&
-                order.status !== 'Cancelled'
+                order.status !== 'Cancelled' &&
+                order.status !== 'Returned'
             )
             .map(order => order.order_id);
     };
@@ -407,9 +408,9 @@ const OrderManagement = () => {
         setSelectAll(false);
     };
 
-    // Check if status is locked (Delivered or Cancelled)
+    // Check if status is locked (Delivered, Cancelled, or Returned - final states)
     const isStatusLocked = (status) => {
-        return status === 'Delivered' || status === 'Cancelled';
+        return status === 'Delivered' || status === 'Cancelled' || status === 'Returned';
     };
 
     // Handle inline status change for a single order
