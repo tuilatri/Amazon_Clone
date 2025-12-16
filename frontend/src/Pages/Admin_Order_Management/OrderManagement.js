@@ -10,6 +10,8 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import CloseIcon from '@mui/icons-material/Close';
 
 // OrderManagement - Admin tab for managing orders
 // Fetches orders from database and displays in a table matching Product Management layout
@@ -24,6 +26,12 @@ const OrderManagement = () => {
     const [paymentFilter, setPaymentFilter] = useState(''); // '' = All payments
     const [shippingFilter, setShippingFilter] = useState(''); // '' = All shipping
 
+    // Date range filter state
+    const [orderDateFrom, setOrderDateFrom] = useState('');
+    const [orderDateTo, setOrderDateTo] = useState('');
+    const [completeDateFrom, setCompleteDateFrom] = useState('');
+    const [completeDateTo, setCompleteDateTo] = useState('');
+
     // Sorting state
     const [sortBy, setSortBy] = useState('');
     const [sortOrder, setSortOrder] = useState('desc');
@@ -33,6 +41,26 @@ const OrderManagement = () => {
     const [perPage, setPerPage] = useState(20);
     const [total, setTotal] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
+
+    // Action menu state
+    const [activeMenu, setActiveMenu] = useState(null);
+
+    // Order detail modal state
+    const [showOrderDetail, setShowOrderDetail] = useState(false);
+    const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+    const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+
+    // Payment and shipping method mappings for modal display
+    const paymentMethods = {
+        1: 'Cash On Delivery',
+        2: 'Credit Card'
+    };
+    const shippingMethods = {
+        1: 'Standard Shipping',
+        2: 'Express Shipping',
+        3: 'Same Day Delivery',
+        4: 'International Shipping'
+    };
 
     // Status options for filter (numeric values for API)
     const statusOptions = [
@@ -88,6 +116,24 @@ const OrderManagement = () => {
                 });
             }
 
+            // Client-side sorting for created_at
+            if (sortBy === 'created_at') {
+                fetchedOrders = [...fetchedOrders].sort((a, b) => {
+                    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+                    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+                    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+            }
+
+            // Client-side sorting for completed_at
+            if (sortBy === 'completed_at') {
+                fetchedOrders = [...fetchedOrders].sort((a, b) => {
+                    const dateA = a.completed_at ? new Date(a.completed_at) : new Date(0);
+                    const dateB = b.completed_at ? new Date(b.completed_at) : new Date(0);
+                    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+            }
+
             setOrders(fetchedOrders);
             setTotal(response.data.total);
             setTotalPages(response.data.total_pages);
@@ -115,6 +161,27 @@ const OrderManagement = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
 
+    // Fetch order detail
+    const fetchOrderDetail = async (orderId) => {
+        try {
+            setOrderDetailLoading(true);
+            const response = await axios.get(`http://localhost:8000/order/${orderId}`);
+            setSelectedOrderDetail(response.data);
+            setShowOrderDetail(true);
+        } catch (error) {
+            console.error('Error fetching order detail:', error);
+            alert('Failed to fetch order details');
+        } finally {
+            setOrderDetailLoading(false);
+        }
+    };
+
+    // Close order detail modal
+    const closeOrderDetail = () => {
+        setShowOrderDetail(false);
+        setSelectedOrderDetail(null);
+    };
+
     // Handle sort (matching Product Management pattern)
     const handleSort = (column) => {
         if (sortBy === column) {
@@ -137,6 +204,10 @@ const OrderManagement = () => {
         setStatusFilter(0);
         setPaymentFilter('');
         setShippingFilter('');
+        setOrderDateFrom('');
+        setOrderDateTo('');
+        setCompleteDateFrom('');
+        setCompleteDateTo('');
         setSortBy('');
         setSortOrder('desc');
         setPage(1);
@@ -169,10 +240,75 @@ const OrderManagement = () => {
         console.log('Export orders clicked - will be implemented with API');
     };
 
-    // Client-side filtering for payment and shipping (UI-only filters)
+    // Toggle action menu
+    const toggleMenu = (orderId) => {
+        setActiveMenu(activeMenu === orderId ? null : orderId);
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setActiveMenu(null);
+        if (activeMenu) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [activeMenu]);
+
+    // Format date for display
+    const formatDate = (dateString) => {
+        if (!dateString) return '—';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    // Format datetime for display
+    const formatDateTime = (dateString) => {
+        if (!dateString) return '—';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    // Client-side filtering for payment, shipping, and date ranges
     const filteredOrders = orders.filter(order => {
         if (paymentFilter && order.payment_method !== paymentFilter) return false;
         if (shippingFilter && order.shipping_method !== shippingFilter) return false;
+
+        // Order Date range filter
+        if (orderDateFrom) {
+            const orderDate = order.created_at ? new Date(order.created_at) : null;
+            const fromDate = new Date(orderDateFrom);
+            if (!orderDate || orderDate < fromDate) return false;
+        }
+        if (orderDateTo) {
+            const orderDate = order.created_at ? new Date(order.created_at) : null;
+            const toDate = new Date(orderDateTo);
+            toDate.setHours(23, 59, 59, 999); // End of day
+            if (!orderDate || orderDate > toDate) return false;
+        }
+
+        // Complete Date range filter
+        if (completeDateFrom) {
+            const completeDate = order.completed_at ? new Date(order.completed_at) : null;
+            const fromDate = new Date(completeDateFrom);
+            if (!completeDate || completeDate < fromDate) return false;
+        }
+        if (completeDateTo) {
+            const completeDate = order.completed_at ? new Date(order.completed_at) : null;
+            const toDate = new Date(completeDateTo);
+            toDate.setHours(23, 59, 59, 999); // End of day
+            if (!completeDate || completeDate > toDate) return false;
+        }
+
         return true;
     });
 
@@ -289,6 +425,64 @@ const OrderManagement = () => {
                         </select>
                     </div>
 
+                    {/* Order Date Column - SORTABLE with Date Range */}
+                    <div className="order-table__cell order-table__cell--orderdate">
+                        <div className="sortable-header" onClick={() => handleSort('created_at')}>
+                            <span className="order-table__header-label">Order Date</span>
+                            {sortBy === 'created_at' && (
+                                <span className="sort-icon">
+                                    {sortOrder === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+                                </span>
+                            )}
+                        </div>
+                        <div className="order-table__filter order-table__filter--daterange">
+                            <input
+                                type="date"
+                                value={orderDateFrom}
+                                onChange={(e) => setOrderDateFrom(e.target.value)}
+                                className="order-table__search order-table__search--date"
+                                title="From date"
+                            />
+                            <span className="date-separator">-</span>
+                            <input
+                                type="date"
+                                value={orderDateTo}
+                                onChange={(e) => setOrderDateTo(e.target.value)}
+                                className="order-table__search order-table__search--date"
+                                title="To date"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Complete Date Column - SORTABLE with Date Range */}
+                    <div className="order-table__cell order-table__cell--completedate">
+                        <div className="sortable-header" onClick={() => handleSort('completed_at')}>
+                            <span className="order-table__header-label">Complete Date</span>
+                            {sortBy === 'completed_at' && (
+                                <span className="sort-icon">
+                                    {sortOrder === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+                                </span>
+                            )}
+                        </div>
+                        <div className="order-table__filter order-table__filter--daterange">
+                            <input
+                                type="date"
+                                value={completeDateFrom}
+                                onChange={(e) => setCompleteDateFrom(e.target.value)}
+                                className="order-table__search order-table__search--date"
+                                title="From date"
+                            />
+                            <span className="date-separator">-</span>
+                            <input
+                                type="date"
+                                value={completeDateTo}
+                                onChange={(e) => setCompleteDateTo(e.target.value)}
+                                className="order-table__search order-table__search--date"
+                                title="To date"
+                            />
+                        </div>
+                    </div>
+
                     {/* Actions Column */}
                     <div className="order-table__cell order-table__cell--actions">
                         <button className="reset-filters-btn" onClick={handleResetFilters} title="Reset Filters">
@@ -348,9 +542,43 @@ const OrderManagement = () => {
                                     </span>
                                 </div>
 
-                                {/* Actions (placeholder) */}
+                                {/* Order Date */}
+                                <div className="order-table__cell order-table__cell--orderdate">
+                                    <span className="date-value">{formatDateTime(order.created_at)}</span>
+                                </div>
+
+                                {/* Complete Date */}
+                                <div className="order-table__cell order-table__cell--completedate">
+                                    <span className="date-value">{formatDateTime(order.completed_at)}</span>
+                                </div>
+
+                                {/* Actions */}
                                 <div className="order-table__cell order-table__cell--actions">
-                                    {/* Future: action menu */}
+                                    <div className="action-menu-container">
+                                        <button
+                                            className="action-menu-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleMenu(order.order_id);
+                                            }}
+                                        >
+                                            <MoreVertIcon />
+                                        </button>
+                                        {activeMenu === order.order_id && (
+                                            <div className="action-menu" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    className="action-menu__item"
+                                                    onClick={() => {
+                                                        fetchOrderDetail(order.order_id);
+                                                        setActiveMenu(null);
+                                                    }}
+                                                    disabled={orderDetailLoading}
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))
@@ -442,6 +670,99 @@ const OrderManagement = () => {
                     Export Orders
                 </button>
             </div>
+
+            {/* Order Detail Modal */}
+            {showOrderDetail && selectedOrderDetail && (
+                <div className="order-detail-overlay" onClick={closeOrderDetail}>
+                    <div className="order-detail-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="order-detail-modal__header">
+                            <span>Order Details - #{selectedOrderDetail.order_id}</span>
+                            <button className="order-detail-modal__close" onClick={closeOrderDetail}>
+                                <CloseIcon />
+                            </button>
+                        </div>
+                        <div className="order-detail-modal__body">
+                            {/* Products List */}
+                            <div className="order-detail-modal__section">
+                                <h4>Products</h4>
+                                <div className="order-detail-modal__products">
+                                    {selectedOrderDetail.items && selectedOrderDetail.items.length > 0 ? (
+                                        selectedOrderDetail.items.map((item, index) => (
+                                            <div key={index} className="order-detail-modal__product">
+                                                <div className="product-image-container">
+                                                    <img
+                                                        src={item.product_image || 'https://via.placeholder.com/60x60?text=No+Image'}
+                                                        alt={item.product_name}
+                                                        className="product-image"
+                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/60x60?text=No+Image'; }}
+                                                    />
+                                                </div>
+                                                <div className="product-info">
+                                                    <span className="product-name">{item.product_name}</span>
+                                                    <div className="product-meta">
+                                                        <span>Qty: {item.qty}</span>
+                                                        <span>Price: ${item.price.toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p>No products found.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Order Info */}
+                            <div className="order-detail-modal__section">
+                                <h4>Order Information</h4>
+                                <div className="order-detail-modal__info">
+                                    <div className="info-row">
+                                        <span className="info-label">Order Date:</span>
+                                        <span className="info-value">
+                                            {formatDateTime(selectedOrderDetail.created_at || selectedOrderDetail.order_date)}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Complete Date:</span>
+                                        <span className="info-value">
+                                            {formatDateTime(selectedOrderDetail.completed_at)}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Status:</span>
+                                        <span className="info-value">
+                                            {selectedOrderDetail.order_status || selectedOrderDetail.status || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Payment Method:</span>
+                                        <span className="info-value">
+                                            {paymentMethods[selectedOrderDetail.payment_method_id] || selectedOrderDetail.payment_method || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Shipping Method:</span>
+                                        <span className="info-value">
+                                            {shippingMethods[selectedOrderDetail.shipping_method_id] || selectedOrderDetail.shipping_method || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="info-row">
+                                        <span className="info-label">Order Total:</span>
+                                        <span className="info-value info-value--total">
+                                            ${selectedOrderDetail.order_total?.toFixed(2) || '0.00'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="order-detail-modal__footer">
+                            <button className="order-detail-modal__btn" onClick={closeOrderDetail}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

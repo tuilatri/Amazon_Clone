@@ -1917,7 +1917,9 @@ async def get_admin_orders(
             "payment_method": payment_mapping.get(order.payment_method_id, "Unknown"),
             "shipping_method": shipping_mapping.get(order.shipping_method_id, "Unknown"),
             "status": status_mapping.get(order.order_status_id, "Unknown"),
-            "status_id": order.order_status_id
+            "status_id": order.order_status_id,
+            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "completed_at": order.completed_at.isoformat() if order.completed_at else None
         })
     
     return {
