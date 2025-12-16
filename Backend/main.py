@@ -1563,6 +1563,50 @@ async def cancel_order(
     }
 
 
+@app.post("/order/return")
+async def return_order(
+    order_id: int = Body(..., embed=True),
+    user_email: str = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """
+    Return an order - only allowed if order status is Delivered (id=4).
+    Changes order status to Returned (id=6).
+    This is a USER-initiated action only - Admins cannot trigger returns.
+    """
+    # Find user by email
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find the order
+    order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify the order belongs to this user (security check)
+    if order.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to return this order")
+    
+    # Check if order is in Delivered status (id=4)
+    if order.order_status_id != 4:
+        raise HTTPException(
+            status_code=400, 
+            detail="Only delivered orders can be returned"
+        )
+    
+    # Update status to Returned (id=6)
+    order.order_status_id = 6
+    # Keep the completed_at time from when it was delivered
+    db.commit()
+    
+    return {
+        "message": "Return request submitted successfully",
+        "order_id": order.order_id,
+        "new_status": "Returned"
+    }
+
+
 # ------------------------------
 # Checkout Display
 # ------------------------------
