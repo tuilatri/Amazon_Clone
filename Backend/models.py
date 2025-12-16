@@ -248,6 +248,10 @@ class ShopOrder(Base):
     payment_method_id = Column(Integer, ForeignKey("payment_type.payment_type_id"))  # Changed to reference payment_type
     shipping_method_id = Column(Integer, ForeignKey("shipping_method.shipping_method_id"))
     order_status_id = Column(Integer, ForeignKey("order_status.order_status_id"))
+    
+    # Timestamp fields for order lifecycle tracking
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=True)  # When order was placed
+    completed_at = Column(DateTime, nullable=True)  # When order reached terminal state (Delivered/Cancelled)
 
     user = relationship("SiteUser", back_populates="orders")
     payment_method = relationship("PaymentType")  # Changed to PaymentType

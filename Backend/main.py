@@ -1382,6 +1382,7 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
             payment_method_id=request.payment_method_id,  # References payment_type_id
             shipping_method_id=request.shipping_method_id,
             order_status_id=1,  # 'Pending' status
+            created_at=datetime.utcnow(),  # Order creation timestamp
         )
         db.add(new_order)
         db.commit()
@@ -1540,8 +1541,9 @@ async def cancel_order(
             detail="Only orders with Pending status can be cancelled"
         )
     
-    # Update status to Cancelled (id=5)
+    # Update status to Cancelled (id=5) and set completed_at
     order.order_status_id = 5
+    order.completed_at = datetime.utcnow()  # Order reached terminal state
     db.commit()
     
     return {
