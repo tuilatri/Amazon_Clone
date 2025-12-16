@@ -21,7 +21,8 @@
 .order-table__header {
     display: grid;
     /* Checkbox + all other columns */
-    grid-template-columns: 40px 90px 100px 120px 80px 100px 140px 130px 140px 160px 160px 70px;
+    grid-template-columns: 40px 80px 110px 100px 60px 90px 130px 120px 140px 160px 160px 70px;
+    /* customer, phone, qty, amount, payment, shipping, status, order date, complete date, reload */
     background: #f7f8f9;
     border-bottom: 1px solid #e0e0e0;
     padding: 14px 12px;
@@ -201,7 +202,8 @@
 .order-table__row {
     display: grid;
     /* Checkbox + all other columns */
-    grid-template-columns: 40px 90px 100px 130px 80px 100px 160px 120px 120px 160px 160px 70px;
+    grid-template-columns: 40px 90px 90px 120px 60px 90px 150px 110px 120px 160px 160px 60px;
+    /* customer, phone, qty, amount, payment, shipping, status, order date, complete date, reload */
     padding: 12px 12px;
     gap: 8px;
     align-items: center;
@@ -823,7 +825,7 @@
     accent-color: #232f3e;
 }
 
-/* Bulk Action Toolbar - Matches Product Management styling */
+/* Bulk Action Toolbar - Matches Customer Management styling */
 .bulk-action-toolbar {
     display: flex;
     align-items: center;
@@ -837,7 +839,6 @@
     font-size: 14px;
     font-weight: 600;
     color: #e65100;
-    min-width: 140px;
 }
 
 .bulk-action-toolbar__actions {
@@ -847,19 +848,25 @@
 }
 
 .bulk-action-btn {
-    padding: 6px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border: none;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.bulk-action-btn svg {
+    font-size: 16px !important;
 }
 
 .bulk-action-btn--pending {
     background: #fff3cd;
     color: #856404;
-    border-color: #ffc107;
 }
 
 .bulk-action-btn--pending:hover {
@@ -869,7 +876,6 @@
 .bulk-action-btn--processing {
     background: #cce5ff;
     color: #004085;
-    border-color: #4dabf7;
 }
 
 .bulk-action-btn--processing:hover {
@@ -879,7 +885,6 @@
 .bulk-action-btn--shipped {
     background: #d4edda;
     color: #155724;
-    border-color: #28a745;
 }
 
 .bulk-action-btn--shipped:hover {
@@ -889,7 +894,6 @@
 .bulk-action-btn--delivered {
     background: #c3e6cb;
     color: #0d5524;
-    border-color: #20c997;
 }
 
 .bulk-action-btn--delivered:hover {
@@ -899,7 +903,6 @@
 .bulk-action-btn--cancelled {
     background: #f8d7da;
     color: #721c24;
-    border-color: #dc3545;
 }
 
 .bulk-action-btn--cancelled:hover {
