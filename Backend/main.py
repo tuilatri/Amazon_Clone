@@ -1994,6 +1994,10 @@ async def update_bulk_order_status(
     Update status for multiple orders at once.
     Body: { "order_ids": [1, 2, 3], "status_id": 1-6 }
     Status IDs: 1=Pending, 2=Processing, 3=Shipped, 4=Delivered, 5=Cancelled, 6=Returned
+    
+    VALIDATION RULES (Defense in Depth):
+    - Final states (Delivered=4, Cancelled=5, Returned=6) cannot be changed
+    - Returned status cannot be set via admin API (user-initiated only)
     """
     order_ids = bulk_update.get("order_ids", [])
     status_id = bulk_update.get("status_id")
@@ -2004,21 +2008,35 @@ async def update_bulk_order_status(
     if not status_id or status_id not in [1, 2, 3, 4, 5, 6]:
         raise HTTPException(status_code=400, detail="Invalid status ID. Must be 1-6.")
     
+    # SECURITY: Admins cannot set status to Returned (6) - user-initiated only
+    if status_id == 6:
+        raise HTTPException(
+            status_code=403, 
+            detail="Returned status can only be initiated by the customer, not by admin."
+        )
+    
     status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    final_states = [4, 5, 6]  # Delivered, Cancelled, Returned
     
     success_count = 0
     failed_count = 0
+    skipped_final_state = 0
     
     for order_id in order_ids:
         try:
             order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
             if order:
+                # VALIDATION: Skip orders in final states (cannot be changed)
+                if order.order_status_id in final_states:
+                    skipped_final_state += 1
+                    continue
+                    
                 order.order_status_id = status_id
-                # Set completed_at when status is Delivered (4), clear otherwise
-                if status_id == 4:
+                # Set completed_at when status is Delivered (4) or Cancelled (5)
+                if status_id in [4, 5]:
                     order.completed_at = datetime.now()
-                elif order.completed_at and status_id != 4:
-                    # Keep completed_at if changing from Delivered to another status
+                elif order.completed_at and status_id not in [4, 5]:
+                    # Keep completed_at if changing from terminal to non-terminal
                     pass
                 success_count += 1
             else:
@@ -2029,11 +2047,16 @@ async def update_bulk_order_status(
     
     db.commit()
     
+    message = f"Updated {success_count} orders to {status_mapping[status_id]}"
+    if skipped_final_state > 0:
+        message += f". Skipped {skipped_final_state} orders in final states (Delivered/Cancelled/Returned)."
+    
     return {
         "success": True,
-        "message": f"Updated {success_count} orders to {status_mapping[status_id]}",
+        "message": message,
         "success_count": success_count,
-        "failed_count": failed_count
+        "failed_count": failed_count,
+        "skipped_final_state": skipped_final_state
     }
 
 

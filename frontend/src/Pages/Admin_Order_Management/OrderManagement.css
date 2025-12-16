@@ -12,6 +12,118 @@
     margin: 0 auto;
 }
 
+/* ================================
+   QUICK STATS BAR
+   ================================ */
+.quick-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 15px;
+    padding: 20px;
+    background: #f7f8f8;
+    border-bottom: 1px solid #d5d9d9;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px !important;
+}
+
+.stat-icon svg {
+    font-size: 24px !important;
+}
+
+.stat-icon--total {
+    background: #e8f4fd;
+    color: #0066c0;
+}
+
+.stat-icon--pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.stat-icon--processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.stat-icon--shipped {
+    background: #d4edda;
+    color: #155724;
+}
+
+.stat-icon--delivered {
+    background: #c3e6cb;
+    color: #0d5524;
+}
+
+.stat-icon--cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.stat-icon--returned {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f1111;
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #565959;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Responsive for Quick Stats Bar */
+@media (max-width: 1400px) {
+    .quick-stats-bar {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .quick-stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 /* Table Structure */
 .order-table {
     width: 100%;

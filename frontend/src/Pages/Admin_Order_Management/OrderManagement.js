@@ -13,6 +13,13 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import CloseIcon from '@mui/icons-material/Close';
 import LockIcon from '@mui/icons-material/Lock';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import PendingIcon from '@mui/icons-material/Pending';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn';
 
 // OrderManagement - Admin tab for managing orders
 // Fetches orders from database and displays in a table matching Product Management layout
@@ -61,6 +68,17 @@ const OrderManagement = () => {
     // Inline status edit state
     const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
 
+    // Order stats for quick stats bar
+    const [orderStats, setOrderStats] = useState({
+        total: 0,
+        pending: 0,
+        processing: 0,
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0,
+        returned: 0
+    });
+
     // Payment and shipping method mappings for modal display
     const paymentMethods = {
         1: 'Cash On Delivery',
@@ -99,6 +117,30 @@ const OrderManagement = () => {
         { value: 'Same Day', label: 'Same Day' },
         { value: 'International', label: 'International' }
     ];
+
+    // Fetch order stats for quick stats bar (fetches all orders to count statuses)
+    const fetchOrderStats = useCallback(async () => {
+        try {
+            const response = await axios.get('http://localhost:8000/admin/orders', {
+                params: { per_page: 1000 } // Get all orders for stats
+            });
+            const allOrders = response.data.orders || [];
+
+            // Calculate status counts
+            const stats = {
+                total: allOrders.length,
+                pending: allOrders.filter(o => o.status === 'Pending').length,
+                processing: allOrders.filter(o => o.status === 'Processing').length,
+                shipped: allOrders.filter(o => o.status === 'Shipped').length,
+                delivered: allOrders.filter(o => o.status === 'Delivered').length,
+                cancelled: allOrders.filter(o => o.status === 'Cancelled').length,
+                returned: allOrders.filter(o => o.status === 'Returned').length
+            };
+            setOrderStats(stats);
+        } catch (error) {
+            console.error('Error fetching order stats:', error);
+        }
+    }, []);
 
     // Fetch orders from API
     const fetchOrders = useCallback(async () => {
@@ -159,6 +201,11 @@ const OrderManagement = () => {
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
+
+    // Fetch order stats on mount
+    useEffect(() => {
+        fetchOrderStats();
+    }, [fetchOrderStats]);
 
     // Debounced search
     useEffect(() => {
@@ -387,6 +434,7 @@ const OrderManagement = () => {
             setSelectedOrders(new Set());
             setSelectAll(false);
             fetchOrders();
+            fetchOrderStats(); // Refresh stats after bulk update
             alert(response.data.message);
         } catch (error) {
             console.error('Error bulk updating order status:', error);
@@ -433,6 +481,8 @@ const OrderManagement = () => {
                 return order;
             }));
             setEditingStatusOrderId(null);
+            // Refresh stats after status change
+            fetchOrderStats();
         } catch (error) {
             console.error('Error updating order status:', error);
             alert('Failed to update order status: ' + (error.response?.data?.detail || error.message));
@@ -516,6 +566,73 @@ const OrderManagement = () => {
 
     return (
         <div className="admin-page__ordermanagement">
+            {/* Quick Stats Bar */}
+            <div className="quick-stats-bar">
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--total">
+                        <ShoppingCartIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.total}</span>
+                        <span className="stat-label">Total Orders</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--pending">
+                        <PendingIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.pending}</span>
+                        <span className="stat-label">Pending</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--processing">
+                        <AutorenewIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.processing}</span>
+                        <span className="stat-label">Processing</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--shipped">
+                        <LocalShippingIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.shipped}</span>
+                        <span className="stat-label">Shipped</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--delivered">
+                        <CheckCircleIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.delivered}</span>
+                        <span className="stat-label">Delivered</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--cancelled">
+                        <CancelIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.cancelled}</span>
+                        <span className="stat-label">Cancelled</span>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon stat-icon--returned">
+                        <AssignmentReturnIcon />
+                    </div>
+                    <div className="stat-content">
+                        <span className="stat-value">{orderStats.returned}</span>
+                        <span className="stat-label">Returned</span>
+                    </div>
+                </div>
+            </div>
+
             {/* Bulk Action Toolbar - shown when orders selected */}
             {selectedOrders.size > 0 && (
                 <div className="bulk-action-toolbar">
