@@ -2052,11 +2052,12 @@
 }
 
 .user-table__row--selected {
-    background: #fff8e1 !important;
+    background: #fff3e0 !important;
+    border-left: 3px solid #e65100;
 }
 
 .user-table__row--selected:hover {
-    background: #fff3c4 !important;
+    background: #ffe0b2 !important;
 }
 
 /* ================================

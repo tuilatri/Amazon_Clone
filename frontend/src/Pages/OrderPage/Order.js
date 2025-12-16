@@ -20,6 +20,11 @@ const Order = () => {
     const [showNotification, setShowNotification] = useState(false);
     const [orderToCancel, setOrderToCancel] = useState(null);
 
+    // State for return order flow
+    const [returningOrderId, setReturningOrderId] = useState(null);
+    const [showReturnNotification, setShowReturnNotification] = useState(false);
+    const [orderToReturn, setOrderToReturn] = useState(null);
+
     // State for filters
     const [activeTab, setActiveTab] = useState('Order'); // Order, Pending, Processing, Shipped, Delivered, Cancelled, Returned
     const [timePeriod, setTimePeriod] = useState('past3months'); // last30days, past3months, thisyear, lastyear
@@ -108,6 +113,49 @@ const Order = () => {
     const closeNotification = () => {
         setShowNotification(false);
         setOrderToCancel(null);
+    };
+
+    // Handle return order - shows return notification popup (User only, Delivered orders only)
+    const handleReturnOrder = (orderId) => {
+        if (!user?.email_address) {
+            alert('Please log in to return orders.');
+            return;
+        }
+        setOrderToReturn(orderId);
+        setShowReturnNotification(true);
+    };
+
+    // Confirm return order - called when user clicks Yes
+    const confirmReturnOrder = async () => {
+        if (!orderToReturn) return;
+
+        setShowReturnNotification(false);
+        setReturningOrderId(orderToReturn);
+
+        try {
+            const response = await axios.post('http://localhost:8000/order/return', {
+                order_id: orderToReturn,
+                user_email: user.email_address
+            });
+
+            if (response.data.message) {
+                // Refresh orders list to show updated status
+                fetchOrders();
+            }
+        } catch (error) {
+            console.error('Error returning order:', error);
+            const errorMessage = error.response?.data?.detail || 'Failed to return order. Please try again.';
+            alert(errorMessage);
+        } finally {
+            setReturningOrderId(null);
+            setOrderToReturn(null);
+        }
+    };
+
+    // Close return notification without returning
+    const closeReturnNotification = () => {
+        setShowReturnNotification(false);
+        setOrderToReturn(null);
     };
 
     // Load orders on mount
@@ -328,9 +376,10 @@ const Order = () => {
                                     )}
                                 </div>
 
-                                {/* Order Actions - Cancel Button */}
+                                {/* Order Actions - Cancel for Pending, Return for Delivered */}
                                 <div className="order-card__actions">
-                                    {order.order_status_id === 1 ? (
+                                    {/* Cancel Button - Only for Pending orders */}
+                                    {order.order_status_id === 1 && (
                                         <button
                                             className="order-card__cancel-btn"
                                             onClick={() => handleCancelOrder(order.order_id)}
@@ -338,14 +387,26 @@ const Order = () => {
                                         >
                                             {cancellingOrderId === order.order_id ? 'Cancelling...' : 'Cancel Order'}
                                         </button>
-                                    ) : (
+                                    )}
+
+                                    {/* Return Button - Only for Delivered orders (User-initiated only) */}
+                                    {order.order_status_id === 4 && (
                                         <button
-                                            className="order-card__cancel-btn order-card__cancel-btn--disabled"
-                                            disabled
-                                            title="Only pending orders can be cancelled"
+                                            className="order-card__return-btn"
+                                            onClick={() => handleReturnOrder(order.order_id)}
+                                            disabled={returningOrderId === order.order_id}
                                         >
-                                            Cancel Order
+                                            {returningOrderId === order.order_id ? 'Processing...' : 'Return Order'}
                                         </button>
+                                    )}
+
+                                    {/* No actions for other statuses (Processing, Shipped, Cancelled, Returned) */}
+                                    {![1, 4].includes(order.order_status_id) && (
+                                        <span className="order-card__no-action">
+                                            {order.order_status_id === 5 && 'Order Cancelled'}
+                                            {order.order_status_id === 6 && 'Return Requested'}
+                                            {[2, 3].includes(order.order_status_id) && 'Order in progress'}
+                                        </span>
                                     )}
                                 </div>
                             </div>
@@ -358,6 +419,15 @@ const Order = () => {
                 onConfirm={confirmCancelOrder}
                 onCancel={closeNotification}
                 orderId={orderToCancel}
+            />
+            {/* Return Order Notification */}
+            <OrderNotification
+                isOpen={showReturnNotification}
+                onConfirm={confirmReturnOrder}
+                onCancel={closeReturnNotification}
+                orderId={orderToReturn}
+                message="Are you sure you want to return this order? This action cannot be undone."
+                actionType="return"
             />
             <Footer />
         </div>

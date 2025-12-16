@@ -1382,6 +1382,7 @@ async def create_order_api(request: CreateOrderRequest, db: Session = Depends(ge
             payment_method_id=request.payment_method_id,  # References payment_type_id
             shipping_method_id=request.shipping_method_id,
             order_status_id=1,  # 'Pending' status
+            created_at=datetime.utcnow(),  # Order creation timestamp
         )
         db.add(new_order)
         db.commit()
@@ -1495,13 +1496,23 @@ async def get_order_detail(order_id: int, db: Session = Depends(get_db)):
             "product_image": product.product_image if product else ""
         })
     
+    # Status mapping
+    status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    payment_mapping = {1: 'Cash On Delivery', 2: 'Credit Card'}
+    shipping_mapping = {1: 'Standard', 2: 'Express', 3: 'Same Day', 4: 'International'}
+    
     return {
         "order_id": order.order_id,
         "order_date": str(order.order_date),
         "order_total": float(order.order_total),
         "payment_method_id": order.payment_method_id,
+        "payment_method": payment_mapping.get(order.payment_method_id, "Unknown"),
         "shipping_method_id": order.shipping_method_id,
+        "shipping_method": shipping_mapping.get(order.shipping_method_id, "Unknown"),
         "order_status_id": order.order_status_id,
+        "order_status": status_mapping.get(order.order_status_id, "Unknown"),
+        "created_at": order.created_at.isoformat() if order.created_at else None,
+        "completed_at": order.completed_at.isoformat() if order.completed_at else None,
         "items": items
     }
 
@@ -1540,14 +1551,59 @@ async def cancel_order(
             detail="Only orders with Pending status can be cancelled"
         )
     
-    # Update status to Cancelled (id=5)
+    # Update status to Cancelled (id=5) and set completed_at
     order.order_status_id = 5
+    order.completed_at = datetime.utcnow()  # Order reached terminal state
     db.commit()
     
     return {
         "message": "Order cancelled successfully",
         "order_id": order.order_id,
         "new_status": "Cancelled"
+    }
+
+
+@app.post("/order/return")
+async def return_order(
+    order_id: int = Body(..., embed=True),
+    user_email: str = Body(..., embed=True),
+    db: Session = Depends(get_db)
+):
+    """
+    Return an order - only allowed if order status is Delivered (id=4).
+    Changes order status to Returned (id=6).
+    This is a USER-initiated action only - Admins cannot trigger returns.
+    """
+    # Find user by email
+    user = db.query(SiteUser).filter(SiteUser.email_address == user_email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Find the order
+    order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify the order belongs to this user (security check)
+    if order.user_id != user.user_id:
+        raise HTTPException(status_code=403, detail="You are not authorized to return this order")
+    
+    # Check if order is in Delivered status (id=4)
+    if order.order_status_id != 4:
+        raise HTTPException(
+            status_code=400, 
+            detail="Only delivered orders can be returned"
+        )
+    
+    # Update status to Returned (id=6)
+    order.order_status_id = 6
+    # Keep the completed_at time from when it was delivered
+    db.commit()
+    
+    return {
+        "message": "Return request submitted successfully",
+        "order_id": order.order_id,
+        "new_status": "Returned"
     }
 
 
@@ -1831,11 +1887,14 @@ async def get_admin_orders(
     per_page: int = 10,
     search: str = "",
     status: int = 0,
+    sort_by: str = "",
+    sort_order: str = "desc",
     db: Session = Depends(get_db)
 ):
     """
-    Get all orders for admin dashboard with pagination, search, and status filter.
+    Get all orders for admin dashboard with pagination, search, status filter, and sorting.
     Search by order_id or user_id. Filter by status_id (0 = all statuses).
+    Sort by: quantity, order_total
     """
     query = db.query(ShopOrder)
     
@@ -1872,24 +1931,49 @@ async def get_admin_orders(
     # Get total count
     total = query.count()
     
-    # Sort by newest first and paginate
-    orders = query.order_by(ShopOrder.order_id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    # Apply sorting
+    if sort_by == 'order_total':
+        if sort_order == 'asc':
+            query = query.order_by(ShopOrder.order_total.asc())
+        else:
+            query = query.order_by(ShopOrder.order_total.desc())
+    else:
+        # Default: sort by newest first
+        query = query.order_by(ShopOrder.order_id.desc())
+    
+    # Paginate
+    orders = query.offset((page - 1) * per_page).limit(per_page).all()
     
     # Get status mapping
     status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    
+    # Payment and shipping method mappings
+    payment_mapping = {1: 'Cash On Delivery', 2: 'Credit Card'}
+    shipping_mapping = {1: 'Standard', 2: 'Express', 3: 'Same Day', 4: 'International'}
     
     order_list = []
     for order in orders:
         # Get user info
         user = db.query(SiteUser).filter(SiteUser.user_id == order.user_id).first()
+        
+        # Get order quantity (sum of all order lines)
+        order_lines = db.query(OrderLine).filter(OrderLine.order_id == order.order_id).all()
+        total_qty = sum(line.qty for line in order_lines) if order_lines else 0
+        
         order_list.append({
             "order_id": order.order_id,
             "user_id": order.user_id,
             "user_name": user.user_name if user else "Unknown",
+            "phone_number": user.phone_number if user else "",
             "order_date": order.order_date.isoformat() if order.order_date else None,
             "order_total": float(order.order_total) if order.order_total else 0,
+            "quantity": total_qty,
+            "payment_method": payment_mapping.get(order.payment_method_id, "Unknown"),
+            "shipping_method": shipping_mapping.get(order.shipping_method_id, "Unknown"),
             "status": status_mapping.get(order.order_status_id, "Unknown"),
-            "status_id": order.order_status_id
+            "status_id": order.order_status_id,
+            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "completed_at": order.completed_at.isoformat() if order.completed_at else None
         })
     
     return {
@@ -1899,6 +1983,82 @@ async def get_admin_orders(
         "per_page": per_page,
         "total_pages": (total + per_page - 1) // per_page
     }
+
+
+@app.put("/admin/orders/bulk-status")
+async def update_bulk_order_status(
+    bulk_update: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Update status for multiple orders at once.
+    Body: { "order_ids": [1, 2, 3], "status_id": 1-6 }
+    Status IDs: 1=Pending, 2=Processing, 3=Shipped, 4=Delivered, 5=Cancelled, 6=Returned
+    
+    VALIDATION RULES (Defense in Depth):
+    - Final states (Delivered=4, Cancelled=5, Returned=6) cannot be changed
+    - Returned status cannot be set via admin API (user-initiated only)
+    """
+    order_ids = bulk_update.get("order_ids", [])
+    status_id = bulk_update.get("status_id")
+    
+    if not order_ids:
+        raise HTTPException(status_code=400, detail="No order IDs provided")
+    
+    if not status_id or status_id not in [1, 2, 3, 4, 5, 6]:
+        raise HTTPException(status_code=400, detail="Invalid status ID. Must be 1-6.")
+    
+    # SECURITY: Admins cannot set status to Returned (6) - user-initiated only
+    if status_id == 6:
+        raise HTTPException(
+            status_code=403, 
+            detail="Returned status can only be initiated by the customer, not by admin."
+        )
+    
+    status_mapping = {1: 'Pending', 2: 'Processing', 3: 'Shipped', 4: 'Delivered', 5: 'Cancelled', 6: 'Returned'}
+    final_states = [4, 5, 6]  # Delivered, Cancelled, Returned
+    
+    success_count = 0
+    failed_count = 0
+    skipped_final_state = 0
+    
+    for order_id in order_ids:
+        try:
+            order = db.query(ShopOrder).filter(ShopOrder.order_id == order_id).first()
+            if order:
+                # VALIDATION: Skip orders in final states (cannot be changed)
+                if order.order_status_id in final_states:
+                    skipped_final_state += 1
+                    continue
+                    
+                order.order_status_id = status_id
+                # Set completed_at when status is Delivered (4) or Cancelled (5)
+                if status_id in [4, 5]:
+                    order.completed_at = datetime.now()
+                elif order.completed_at and status_id not in [4, 5]:
+                    # Keep completed_at if changing from terminal to non-terminal
+                    pass
+                success_count += 1
+            else:
+                failed_count += 1
+        except Exception as e:
+            print(f"Error updating order {order_id}: {e}")
+            failed_count += 1
+    
+    db.commit()
+    
+    message = f"Updated {success_count} orders to {status_mapping[status_id]}"
+    if skipped_final_state > 0:
+        message += f". Skipped {skipped_final_state} orders in final states (Delivered/Cancelled/Returned)."
+    
+    return {
+        "success": True,
+        "message": message,
+        "success_count": success_count,
+        "failed_count": failed_count,
+        "skipped_final_state": skipped_final_state
+    }
+
 
 
 @app.get("/admin/order-status-counts")

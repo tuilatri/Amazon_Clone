@@ -367,6 +367,42 @@
     opacity: 0.6;
 }
 
+/* Return Button */
+.order-card__return-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f1111;
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+    border: 1px solid #a88734 #9c7e31 #846a29;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.order-card__return-btn:hover:not(:disabled) {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+.order-card__return-btn:active:not(:disabled) {
+    background: #ddb347;
+}
+
+.order-card__return-btn:disabled {
+    color: #adb1b8;
+    background: #f7f8fa;
+    border-color: #e7e9ec;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* No Action Text */
+.order-card__no-action {
+    font-size: 13px;
+    color: #565959;
+    font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .order-page__header {
