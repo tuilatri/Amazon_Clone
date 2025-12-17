@@ -1,0 +1,365 @@
+================================================================================
+              AMAZON CLONE - DATABASE ENTITY RELATIONSHIP DIAGRAM (ERD)
+                           Textual Description
+================================================================================
+
+This document describes all database entities (tables) in the Amazon Clone 
+e-commerce system, based on the actual implementation in Backend/models.py.
+
+================================================================================
+1. USER-RELATED TABLES
+================================================================================
+
+• site_user
+  - Description: Core table storing all system users including customers, 
+    admins, suppliers, and delivery personnel.
+  - Fields:
+    - user_id (PK, Integer, auto-increment)
+    - user_name (String, nullable)
+    - age (Integer)
+    - gender (String)
+    - email_address (String, unique)
+    - phone_number (String, unique)
+    - city (String)
+    - password (String)
+    - role (Integer, default=2) - Values: 1=Admin, 2=User, 3=Supplier, 4=Delivery
+    - created_at (DateTime)
+    - updated_at (DateTime)
+    - last_login_at (DateTime)
+    - status (String, default='active')
+  - Relationships:
+    - One-to-many with user_address (a user can have multiple addresses)
+    - One-to-many with user_payment_method (a user can have multiple payment methods)
+    - One-to-many with user_review (a user can write multiple reviews)
+    - One-to-many with product_rating (a user can rate multiple products)
+    - One-to-many with shopping_cart (a user can have shopping carts)
+    - One-to-many with shop_order (a user can place multiple orders)
+    - One-to-many with interesting_category (a user can have multiple interests)
+
+--------------------------------------------------------------------------------
+
+• address
+  - Description: Stores physical address details for shipping/billing purposes.
+  - Fields:
+    - address_id (PK, Integer)
+    - unit_number (String)
+    - street_number (String)
+    - address_line1 (String, required)
+    - address_line2 (String)
+    - region (String)
+    - postal_code (String)
+  - Relationships:
+    - One-to-many with user_address (an address can be linked to multiple users)
+
+--------------------------------------------------------------------------------
+
+• user_address
+  - Description: Junction table linking users to their addresses (many-to-many).
+  - Fields:
+    - user_id (PK, FK -> site_user.user_id)
+    - address_id (PK, FK -> address.address_id)
+    - is_default (Boolean)
+  - Relationships:
+    - Many-to-one with site_user
+    - Many-to-one with address
+
+--------------------------------------------------------------------------------
+
+• user_payment_method
+  - Description: Stores user's saved payment methods (credit cards, etc.).
+  - Fields:
+    - payment_method_id (PK, Integer)
+    - user_id (FK -> site_user.user_id)
+    - payment_type_id (FK -> payment_type.payment_type_id)
+    - provider (String, required)
+    - account_number (String, required)
+    - expiry_date (Date, required)
+    - is_default (Boolean)
+  - Relationships:
+    - Many-to-one with site_user
+    - Many-to-one with payment_type
+
+--------------------------------------------------------------------------------
+
+• user_review
+  - Description: Stores user reviews for ordered products.
+  - Fields:
+    - user_review_id (PK, Integer)
+    - user_id (FK -> site_user.user_id)
+    - ordered_product_id (FK -> order_line.ordered_product_id)
+    - rating_value (Decimal)
+    - comment (Text)
+  - Relationships:
+    - Many-to-one with site_user
+    - Many-to-one with order_line
+
+================================================================================
+2. PRODUCT-RELATED TABLES
+================================================================================
+
+• product
+  - Description: Main product catalog table with pricing and rating information.
+  - Fields:
+    - product_id (PK, String)
+    - product_name (String, required)
+    - main_category (String, required)
+    - main_category_encoded (String, required)
+    - sub_category (String, required)
+    - sub_category_encoded (String, required)
+    - product_image (String)
+    - product_link (String)
+    - average_rating (Float, default=0.0)
+    - no_of_ratings (Integer, default=0)
+    - discount_price_usd (Decimal)
+    - actual_price_usd (Decimal)
+    - category_id (FK -> product_category.category_id)
+  - Relationships:
+    - Many-to-one with product_category
+    - One-to-many with product_item (a product can have multiple items/variants)
+    - One-to-many with product_rating (a product can receive multiple ratings)
+    - One-to-many with shopping_cart_item (a product can be in multiple carts)
+
+--------------------------------------------------------------------------------
+
+• product_category
+  - Description: Hierarchical product categories (supports parent-child structure).
+  - Fields:
+    - category_id (PK, Integer)
+    - parent_category_id (FK -> product_category.category_id, self-referencing)
+    - category_name (String, required)
+  - Relationships:
+    - Self-referencing (parent category can have child categories)
+    - One-to-many with product
+    - One-to-many with variation
+    - One-to-many with promotion_category
+    - One-to-many with interesting_category
+
+--------------------------------------------------------------------------------
+
+• product_item
+  - Description: Specific purchasable variants of a product (SKU level).
+  - Fields:
+    - product_item_id (PK, String)
+    - product_id (FK -> product.product_id)
+    - SKU (String, required)
+    - price (Decimal, required)
+    - is_in_stock (Boolean, default=True)
+    - product_image (String, required)
+  - Relationships:
+    - Many-to-one with product
+    - One-to-many with product_configuration
+
+--------------------------------------------------------------------------------
+
+• product_rating
+  - Description: Individual user ratings for products.
+  - Fields:
+    - rating_id (PK, Integer)
+    - user_id (FK -> site_user.user_id)
+    - product_id (FK -> product.product_id)
+    - rating (Float, required)
+  - Relationships:
+    - Many-to-one with site_user
+    - Many-to-one with product
+
+================================================================================
+3. VARIATION TABLES
+================================================================================
+
+• variation
+  - Description: Defines variation types (size, color, etc.) per category.
+  - Fields:
+    - variation_id (PK, Integer)
+    - category_id (FK -> product_category.category_id)
+    - name (String)
+    - size (String)
+    - color (String)
+  - Relationships:
+    - Many-to-one with product_category
+    - One-to-many with variation_option
+
+--------------------------------------------------------------------------------
+
+• variation_option
+  - Description: Specific values for variation types.
+  - Fields:
+    - variation_option_id (PK, Integer)
+    - variation_id (FK -> variation.variation_id)
+    - value (String)
+  - Relationships:
+    - Many-to-one with variation
+    - One-to-many with product_configuration
+
+--------------------------------------------------------------------------------
+
+• product_configuration
+  - Description: Junction table linking product items to their variation options.
+  - Fields:
+    - product_item_id (PK, FK -> product_item.product_item_id)
+    - variation_option_id (PK, FK -> variation_option.variation_option_id)
+  - Relationships:
+    - Many-to-one with product_item
+    - Many-to-one with variation_option
+
+================================================================================
+4. PROMOTION TABLES
+================================================================================
+
+• promotion
+  - Description: Promotional campaigns with discount information.
+  - Fields:
+    - promotion_id (PK, Integer)
+    - name (String)
+    - description (Text)
+    - discount_rate (Decimal)
+    - start_date (Date)
+    - end_date (Date)
+  - Relationships:
+    - One-to-many with promotion_category
+
+--------------------------------------------------------------------------------
+
+• promotion_category
+  - Description: Junction table linking promotions to product categories.
+  - Fields:
+    - category_id (PK, FK -> product_category.category_id)
+    - promotion_id (PK, FK -> promotion.promotion_id)
+  - Relationships:
+    - Many-to-one with product_category
+    - Many-to-one with promotion
+
+================================================================================
+5. SHOPPING CART TABLES
+================================================================================
+
+• shopping_cart
+  - Description: User's active shopping cart.
+  - Fields:
+    - shopping_cart_id (PK, Integer)
+    - user_id (FK -> site_user.user_id)
+  - Relationships:
+    - Many-to-one with site_user
+    - One-to-many with shopping_cart_item
+
+--------------------------------------------------------------------------------
+
+• shopping_cart_item
+  - Description: Individual items in a shopping cart.
+  - Fields:
+    - shopping_cart_id (PK, FK -> shopping_cart.shopping_cart_id)
+    - product_id (PK, FK -> product.product_id)
+    - quantity (Integer, required)
+    - price (Decimal, required)
+  - Relationships:
+    - Many-to-one with shopping_cart
+    - Many-to-one with product
+
+================================================================================
+6. ORDER TABLES
+================================================================================
+
+• order_status
+  - Description: Lookup table for order status values.
+  - Fields:
+    - order_status_id (PK, Integer)
+    - status (String, required)
+  - Status Values: Pending, Processing, Shipped, Delivered, Cancelled
+  - Relationships:
+    - One-to-many with shop_order
+
+--------------------------------------------------------------------------------
+
+• shop_order
+  - Description: Main order table storing completed customer orders.
+  - Fields:
+    - order_id (PK, Integer)
+    - user_id (FK -> site_user.user_id)
+    - order_date (Date, required)
+    - order_total (Decimal)
+    - payment_method_id (FK -> payment_type.payment_type_id)
+    - shipping_method_id (FK -> shipping_method.shipping_method_id)
+    - order_status_id (FK -> order_status.order_status_id)
+    - created_at (DateTime)
+    - completed_at (DateTime)
+  - Relationships:
+    - Many-to-one with site_user
+    - Many-to-one with payment_type
+    - Many-to-one with shipping_method
+    - Many-to-one with order_status
+    - One-to-many with order_line
+
+--------------------------------------------------------------------------------
+
+• order_line
+  - Description: Individual line items within an order.
+  - Fields:
+    - ordered_product_id (PK, Integer)
+    - order_id (FK -> shop_order.order_id)
+    - product_id (FK -> product.product_id)
+    - qty (Integer, required)
+    - price (Decimal, required)
+  - Relationships:
+    - Many-to-one with shop_order
+    - Many-to-one with product
+    - One-to-many with user_review
+
+================================================================================
+7. PAYMENT & SHIPPING TABLES
+================================================================================
+
+• payment_type
+  - Description: Lookup table for payment methods.
+  - Fields:
+    - payment_type_id (PK, Integer)
+    - payment_name (String, required)
+  - Values: Cash On Delivery, Credit Card
+  - Relationships:
+    - One-to-many with user_payment_method
+    - One-to-many with shop_order
+
+--------------------------------------------------------------------------------
+
+• shipping_method
+  - Description: Available shipping methods with pricing.
+  - Fields:
+    - shipping_method_id (PK, Integer)
+    - type (String, required)
+    - price (Decimal, required)
+  - Values: Standard, Express, Same Day, International
+  - Relationships:
+    - One-to-many with shop_order
+
+================================================================================
+8. USER INTEREST TABLE
+================================================================================
+
+• interesting_category
+  - Description: Tracks user interests in product categories for recommendations.
+  - Fields:
+    - interesting_category_id (PK, Integer, auto-increment)
+    - category_id (FK -> product_category.category_id)
+    - user_id (FK -> site_user.user_id)
+  - Constraints: Unique constraint on (category_id, user_id) pair
+  - Relationships:
+    - Many-to-one with product_category
+    - Many-to-one with site_user
+
+================================================================================
+SUMMARY
+================================================================================
+
+Total Tables: 20
+
+| Domain           | Tables                                                    |
+|------------------|-----------------------------------------------------------|
+| User             | site_user, address, user_address, user_payment_method,   |
+|                  | user_review                                               |
+| Product          | product, product_category, product_item, product_rating  |
+| Variation        | variation, variation_option, product_configuration       |
+| Promotion        | promotion, promotion_category                             |
+| Shopping Cart    | shopping_cart, shopping_cart_item                         |
+| Order            | order_status, shop_order, order_line                      |
+| Payment/Shipping | payment_type, shipping_method                             |
+| Interest         | interesting_category                                      |
+
+================================================================================
