@@ -1,0 +1,457 @@
+================================================================================
+              AMAZON CLONE - SYSTEM CLASS DIAGRAM
+                     Textual Description
+================================================================================
+
+This document describes the core domain classes in the Amazon Clone e-commerce 
+system at the application level, based on:
+- Backend/models.py (SQLAlchemy ORM models)
+- Backend/schemas.py (Pydantic schemas)
+- ModelApp/ML_FastAPI_Docker_Heroku/main.py (ML recommendation models)
+
+================================================================================
+1. USER DOMAIN CLASSES
+================================================================================
+
+• SiteUser
+  - Description: Core user entity managing authentication and authorization.
+  - Attributes:
+    - user_id: int (Primary Key)
+    - user_name: str
+    - email_address: str (unique)
+    - phone_number: str (unique)
+    - password: str
+    - role: int (1=Admin, 2=User, 3=Supplier, 4=Delivery)
+    - status: str (active, locked, disabled)
+    - age: int
+    - gender: str
+    - city: str
+    - created_at: datetime
+    - updated_at: datetime
+    - last_login_at: datetime
+  - Key Methods:
+    - register(): Creates a new user account
+    - login(): Authenticates user credentials
+    - updateProfile(): Updates user profile information
+  - Relationships:
+    - Composition -> Address (via UserAddress junction)
+    - Aggregation -> ShoppingCart (user owns carts)
+    - Aggregation -> ShopOrder (user places orders)
+    - Aggregation -> UserReview (user writes reviews)
+    - Aggregation -> ProductRating (user rates products)
+    - Aggregation -> InterestingCategory (user has interests)
+
+--------------------------------------------------------------------------------
+
+• Address
+  - Description: Physical address value object for shipping/billing.
+  - Attributes:
+    - address_id: int
+    - unit_number: str
+    - street_number: str
+    - address_line1: str
+    - address_line2: str
+    - region: str
+    - postal_code: str
+  - Relationships:
+    - Association <-> SiteUser (many-to-many via UserAddress)
+
+--------------------------------------------------------------------------------
+
+• UserAddress
+  - Description: Junction class linking users to addresses.
+  - Attributes:
+    - user_id: int (FK)
+    - address_id: int (FK)
+    - is_default: bool
+  - Relationships:
+    - Association -> SiteUser
+    - Association -> Address
+
+--------------------------------------------------------------------------------
+
+• UserPaymentMethod
+  - Description: User's saved payment method details.
+  - Attributes:
+    - payment_method_id: int
+    - user_id: int (FK)
+    - payment_type_id: int (FK)
+    - provider: str
+    - account_number: str
+    - expiry_date: date
+    - is_default: bool
+  - Relationships:
+    - Association -> SiteUser
+    - Association -> PaymentType
+
+--------------------------------------------------------------------------------
+
+• UserReview
+  - Description: User reviews for ordered products.
+  - Attributes:
+    - user_review_id: int
+    - user_id: int (FK)
+    - ordered_product_id: int (FK)
+    - rating_value: decimal
+    - comment: str
+  - Relationships:
+    - Association -> SiteUser
+    - Association -> OrderLine
+
+================================================================================
+2. PRODUCT DOMAIN CLASSES
+================================================================================
+
+• Product
+  - Description: Central product entity with catalog information and pricing.
+  - Attributes:
+    - product_id: str (Primary Key)
+    - product_name: str
+    - main_category: str
+    - main_category_encoded: str
+    - sub_category: str
+    - sub_category_encoded: str
+    - product_image: str
+    - product_link: str
+    - average_rating: float
+    - no_of_ratings: int
+    - discount_price_usd: decimal
+    - actual_price_usd: decimal
+    - category_id: int (FK)
+  - Key Methods:
+    - getDetails(): Returns full product information
+    - updateRating(): Recalculates average rating
+    - getItems(): Returns all product item variants
+  - Relationships:
+    - Association -> ProductCategory
+    - Composition -> ProductItem (one-to-many)
+    - Aggregation -> ProductRating (one-to-many)
+    - Aggregation -> ShoppingCartItem (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• ProductCategory
+  - Description: Hierarchical category structure with self-referencing.
+  - Attributes:
+    - category_id: int
+    - parent_category_id: int (FK, self-referencing)
+    - category_name: str
+  - Key Methods:
+    - getSubcategories(): Returns child categories
+    - getProducts(): Returns products in this category
+  - Relationships:
+    - Self-reference (parent-child hierarchy)
+    - Association -> Product (one-to-many)
+    - Association -> Variation (one-to-many)
+    - Association -> PromotionCategory (one-to-many)
+    - Association -> InterestingCategory (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• ProductItem
+  - Description: Purchasable SKU-level variant of a product.
+  - Attributes:
+    - product_item_id: str
+    - product_id: str (FK)
+    - SKU: str
+    - price: decimal
+    - is_in_stock: bool
+    - product_image: str
+  - Relationships:
+    - Association -> Product
+    - Association -> ProductConfiguration (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• ProductRating
+  - Description: Individual user rating for a product.
+  - Attributes:
+    - rating_id: int
+    - user_id: int (FK)
+    - product_id: str (FK)
+    - rating: float
+  - Relationships:
+    - Association -> SiteUser
+    - Association -> Product
+
+================================================================================
+3. VARIATION DOMAIN CLASSES
+================================================================================
+
+• Variation
+  - Description: Defines variation types (size, color) per category.
+  - Attributes:
+    - variation_id: int
+    - category_id: int (FK)
+    - name: str
+    - size: str
+    - color: str
+  - Relationships:
+    - Association -> ProductCategory
+    - Composition -> VariationOption (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• VariationOption
+  - Description: Specific values for variation types.
+  - Attributes:
+    - variation_option_id: int
+    - variation_id: int (FK)
+    - value: str
+  - Relationships:
+    - Association -> Variation
+    - Association -> ProductConfiguration (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• ProductConfiguration
+  - Description: Junction class linking product items to variation options.
+  - Attributes:
+    - product_item_id: str (FK)
+    - variation_option_id: int (FK)
+  - Relationships:
+    - Association -> ProductItem
+    - Association -> VariationOption
+
+================================================================================
+4. PROMOTION DOMAIN CLASSES
+================================================================================
+
+• Promotion
+  - Description: Promotional campaign entity with discount information.
+  - Attributes:
+    - promotion_id: int
+    - name: str
+    - description: str
+    - discount_rate: decimal
+    - start_date: date
+    - end_date: date
+  - Relationships:
+    - Association -> PromotionCategory (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• PromotionCategory
+  - Description: Junction class linking promotions to product categories.
+  - Attributes:
+    - category_id: int (FK)
+    - promotion_id: int (FK)
+  - Relationships:
+    - Association -> ProductCategory
+    - Association -> Promotion
+
+================================================================================
+5. SHOPPING CART DOMAIN CLASSES
+================================================================================
+
+• ShoppingCart
+  - Description: User's active shopping cart before checkout.
+  - Attributes:
+    - shopping_cart_id: int
+    - user_id: int (FK)
+  - Key Methods:
+    - addItem(): Adds product to cart
+    - removeItem(): Removes product from cart
+    - updateQuantity(): Updates item quantity
+    - getTotal(): Calculates cart total
+    - clear(): Empties the cart
+  - Relationships:
+    - Association -> SiteUser
+    - Composition -> ShoppingCartItem (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• ShoppingCartItem
+  - Description: Individual item in a shopping cart.
+  - Attributes:
+    - shopping_cart_id: int (FK)
+    - product_id: str (FK)
+    - quantity: int
+    - price: decimal
+  - Relationships:
+    - Association -> ShoppingCart
+    - Association -> Product
+
+================================================================================
+6. ORDER DOMAIN CLASSES
+================================================================================
+
+• ShopOrder
+  - Description: Completed customer order with lifecycle tracking.
+  - Attributes:
+    - order_id: int
+    - user_id: int (FK)
+    - order_date: date
+    - order_total: decimal
+    - payment_method_id: int (FK)
+    - shipping_method_id: int (FK)
+    - order_status_id: int (FK)
+    - created_at: datetime
+    - completed_at: datetime
+  - Key Methods:
+    - createOrder(): Creates new order from cart
+    - updateStatus(): Transitions order status
+    - cancel(): Cancels the order
+    - getOrderDetails(): Returns full order information
+  - Relationships:
+    - Association -> SiteUser
+    - Composition -> OrderLine (one-to-many)
+    - Association -> PaymentType
+    - Association -> ShippingMethod
+    - Association -> OrderStatus
+
+--------------------------------------------------------------------------------
+
+• OrderLine
+  - Description: Individual line item within an order.
+  - Attributes:
+    - ordered_product_id: int
+    - order_id: int (FK)
+    - product_id: str (FK)
+    - qty: int
+    - price: decimal
+  - Relationships:
+    - Association -> ShopOrder
+    - Association -> Product
+    - Aggregation -> UserReview (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• OrderStatus
+  - Description: Order status enumeration/lookup.
+  - Attributes:
+    - order_status_id: int
+    - status: str
+  - Values: Pending, Processing, Shipped, Delivered, Cancelled
+  - Relationships:
+    - Association -> ShopOrder (one-to-many)
+
+================================================================================
+7. PAYMENT & SHIPPING DOMAIN CLASSES
+================================================================================
+
+• PaymentType
+  - Description: Payment method types available in the system.
+  - Attributes:
+    - payment_type_id: int
+    - payment_name: str
+  - Values: Cash On Delivery, Credit Card
+  - Relationships:
+    - Association -> UserPaymentMethod (one-to-many)
+    - Association -> ShopOrder (one-to-many)
+
+--------------------------------------------------------------------------------
+
+• ShippingMethod
+  - Description: Shipping options with pricing.
+  - Attributes:
+    - shipping_method_id: int
+    - type: str
+    - price: decimal
+  - Values: Standard, Express, Same Day, International
+  - Relationships:
+    - Association -> ShopOrder (one-to-many)
+
+================================================================================
+8. INTEREST DOMAIN CLASSES
+================================================================================
+
+• InterestingCategory
+  - Description: Tracks user interests for recommendation purposes.
+  - Attributes:
+    - interesting_category_id: int
+    - category_id: int (FK)
+    - user_id: int (FK)
+  - Constraints: Unique pair (category_id, user_id)
+  - Relationships:
+    - Association -> ProductCategory
+    - Association -> SiteUser
+
+================================================================================
+9. ML RECOMMENDATION CLASSES (ModelApp)
+================================================================================
+
+• SearchRecommendation
+  - Description: TF-IDF based product search using cosine similarity.
+  - Attributes:
+    - product: DataFrame
+    - vectorizer: TfidfVectorizer
+    - tfidf_matrix: sparse matrix
+  - Key Methods:
+    - search(query, top_n): Returns top N matching products
+  - Relationships:
+    - Dependency -> Product (uses product data)
+
+--------------------------------------------------------------------------------
+
+• RecommendTrendModel
+  - Description: Collaborative filtering for trending product recommendations.
+  - Attributes:
+    - user_data: DataFrame
+    - ratings_data: DataFrame
+    - product_data: DataFrame
+  - Key Methods:
+    - calculate_similarity(): Computes user similarity scores
+    - find_top_similar_users(user_info): Finds similar users
+    - collaborative_filtering_recommendations(user_info, top_n): CF-based recommendations
+    - most_trending_products(top_n): Returns trending products
+    - recommend(user_info, top_n): Main recommendation method
+  - Relationships:
+    - Dependency -> SiteUser (uses user data)
+    - Dependency -> ProductRating (uses rating data)
+    - Dependency -> Product (uses product data)
+
+--------------------------------------------------------------------------------
+
+• InterestRecommendationModel
+  - Description: Interest-based product recommendations.
+  - Attributes:
+    - user_data: DataFrame
+    - ratings_data: DataFrame
+    - product_data: DataFrame
+  - Key Methods:
+    - calculate_similarity(): Computes user similarity
+    - find_top_similar_users(user_info): Finds similar users
+    - collaborative_filtering_recommendations(user_info, top_n): CF recommendations
+    - highest_rated_products_by_interest(user_info, top_n): Interest-based recommendations
+    - recommend(user_info, top_n): Main recommendation method
+  - Relationships:
+    - Dependency -> SiteUser (uses user data)
+    - Dependency -> InterestingCategory (uses interest data)
+    - Dependency -> Product (uses product data)
+
+--------------------------------------------------------------------------------
+
+• AssociationRecommendationModel
+  - Description: Association rule mining for related product recommendations.
+  - Attributes:
+    - product: DataFrame
+    - rules: DataFrame
+  - Key Methods:
+    - get_top_associated_categories(item_ids, n): Gets associated categories
+    - get_top_rated_items(categories, top_n): Gets top rated items
+    - recommend(item_ids, associated_n, top_n): Main recommendation method
+  - Relationships:
+    - Dependency -> Product (uses product data)
+
+================================================================================
+SUMMARY
+================================================================================
+
+Total Classes: 24
+
+| Domain           | Classes                                                  |
+|------------------|----------------------------------------------------------|
+| User             | SiteUser, Address, UserAddress, UserPaymentMethod,      |
+|                  | UserReview                                               |
+| Product          | Product, ProductCategory, ProductItem, ProductRating    |
+| Variation        | Variation, VariationOption, ProductConfiguration        |
+| Promotion        | Promotion, PromotionCategory                             |
+| Shopping Cart    | ShoppingCart, ShoppingCartItem                           |
+| Order            | ShopOrder, OrderLine, OrderStatus                        |
+| Payment/Shipping | PaymentType, ShippingMethod                              |
+| Interest         | InterestingCategory                                      |
+| ML Models        | SearchRecommendation, RecommendTrendModel,              |
+|                  | InterestRecommendationModel, AssociationRecommendationModel |
+
+================================================================================
