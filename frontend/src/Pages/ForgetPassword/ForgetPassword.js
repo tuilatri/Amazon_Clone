@@ -35,7 +35,7 @@ const ForgetPassword = () => {
     return (
         <div className="signup-container">
             <Link to="/">
-                <img src={amazon_logo} alt="Amazon Logo" className="signup-logo" />
+                {/* <img src={amazon_logo} alt="Amazon Logo" className="signup-logo" /> */}
             </Link>
             <div className="signup-box">
                 <h1>ForgetPassword</h1>
