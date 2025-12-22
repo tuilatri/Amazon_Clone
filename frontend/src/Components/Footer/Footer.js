@@ -150,7 +150,7 @@ const Footer = () => {
                 <div className="footer__logo">
                     {/* logo amazon */}
                     <div>
-                        <img className="footer__amazon__logo" src={amazon_logo__origin} alt='amazon_logo' />
+                        {/* <img className="footer__amazon__logo" src={amazon_logo__origin} alt='amazon_logo' /> */}
                     </div>
 
                     {/* ngôn ngữ */}

@@ -249,7 +249,7 @@ const NavBar = () => {
                     <div>
                         {/* Option 1: Using navigate with button */}
                         <button onClick={handleNavigate} className="navbar__logo">
-                            <img className="amazon__logo" src={amazon_logo} alt="amazon_logo" />
+                            {/* <img className="amazon__logo" src={amazon_logo} alt="amazon_logo" /> */}
                         </button>
                     </div>
 

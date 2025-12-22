@@ -58,7 +58,7 @@ const SignIn = () => {
   return (
     <div className="signin-container">
       <Link to="/">
-        <img src={amazon_logo} alt="Amazon Logo" className="signin-logo" />
+        {/* <img src={amazon_logo} alt="Amazon Logo" className="signin-logo" /> */}
       </Link>
       <div className="signin-box">
         <h1>Sign In</h1>
